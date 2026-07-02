@@ -19,8 +19,8 @@ from consiliency_contract import (
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.2.1")
-        self.assertEqual(load_contract()["contract_version"], "0.2.1")
+        self.assertEqual(CONTRACT_VERSION, "0.2.2")
+        self.assertEqual(load_contract()["contract_version"], "0.2.2")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")

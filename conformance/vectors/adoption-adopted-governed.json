@@ -1,0 +1,18 @@
+{
+  "id": "adoption-adopted-governed",
+  "description": "An adopted repo (a valid profile = consent to be governed) governs a doc it declares in the governed set within an adopted scope facet.",
+  "input": {
+    "schema": "consiliency.governance_scope_scenario.v1",
+    "adoption": {"adopted": true, "adopted_scope": ["layout", "gates", "projections"]},
+    "governed_set": [{"by": "path", "value": "README.md"}],
+    "facet": "layout",
+    "subject": {"kind": "doc", "path": "README.md"}
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "governance.governed", "severity": "info", "message": "Document is declared in the governed set and within an adopted scope facet."}]
+  },
+  "expected": {"governed": true, "reason": "declared"}
+}

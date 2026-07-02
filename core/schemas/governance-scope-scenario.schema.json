@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/governance-scope-scenario.schema.json",
+  "title": "Consiliency governance scope conformance scenario",
+  "type": "object",
+  "required": ["schema", "subject"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.governance_scope_scenario.v1"},
+    "adoption": {
+      "type": "object",
+      "required": ["adopted", "adopted_scope"],
+      "additionalProperties": false,
+      "properties": {
+        "adopted": {"type": "boolean"},
+        "adopted_scope": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["layout", "gates", "projections", "cert"]}
+        }
+      }
+    },
+    "governed_set": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "required": ["by", "value"],
+        "additionalProperties": false,
+        "properties": {
+          "by": {"enum": ["path", "glob", "class"]},
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "not": {"anyOf": [{"pattern": "^/"}, {"pattern": "(^|/)\\.\\.(/|$)"}, {"pattern": "^[A-Za-z]:[\\\\/]"}]}
+          }
+        }
+      }
+    },
+    "ignore_set": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "facet": {"enum": ["layout", "gates", "projections", "cert"]},
+    "subject": {
+      "type": "object",
+      "required": ["kind", "path"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"const": "doc"},
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "not": {"anyOf": [{"pattern": "^/"}, {"pattern": "(^|/)\\.\\.(/|$)"}, {"pattern": "^[A-Za-z]:[\\\\/]"}]}
+        },
+        "class": {"enum": ["intent-ground", "intent-plan", "proj-S", "proj-code", "ops-fact", "static", "index"]},
+        "observed_label": {"type": "string"}
+      }
+    }
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/lease-store-protocol.schema.json",
+  "title": "Consiliency lease store protocol",
+  "description": "The LeaseStore interface contract. The store is the SOLE source of truth for lease state; the coordination channel (inbox) is never authoritative. A lease is not a lock: it carries a TTL, a heartbeat, and auto-expiry.",
+  "type": "object",
+  "required": ["schema", "operations", "operation_semantics", "failure_modes", "source_of_truth", "atomicity", "expiry", "granularity_ladder", "backends"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.lease_store_protocol.v1"},
+    "operations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["acquire", "renew", "release", "query"]}
+    },
+    "source_of_truth": {"const": "lease-store"},
+    "atomicity": {
+      "type": "object",
+      "required": ["hard_requires_atomic_acquire", "degrade_without_atomic_backend"],
+      "additionalProperties": false,
+      "properties": {
+        "hard_requires_atomic_acquire": {"const": true},
+        "degrade_without_atomic_backend": {"const": "soft"}
+      }
+    },
+    "expiry": {
+      "type": "object",
+      "required": ["ttl_authoritative", "heartbeat_renews", "auto_expiry", "expires_at_formula", "boundary"],
+      "additionalProperties": false,
+      "properties": {
+        "ttl_authoritative": {"const": true},
+        "heartbeat_renews": {"const": true},
+        "auto_expiry": {"const": true},
+        "expires_at_formula": {"const": "heartbeat_at + ttl_seconds"},
+        "boundary": {
+          "const": "exclusive",
+          "description": "A lease is held over [acquired_at, expires_at); the expires_at instant itself is NOT held. A lease is expired iff now >= heartbeat_at + ttl_seconds. This makes the contention instant deterministic across vendoring consumers."
+        }
+      }
+    },
+    "operation_semantics": {
+      "type": "object",
+      "required": ["acquire", "renew", "release", "query"],
+      "additionalProperties": false,
+      "properties": {
+        "acquire": {
+          "type": "object",
+          "required": ["request", "response", "idempotent", "holder_only", "rejects"],
+          "additionalProperties": false,
+          "properties": {
+            "request": {"const": "lease_id, holder, ttl_seconds, mode, scope, phase"},
+            "response": {"const": "granted-lease | conflict"},
+            "idempotent": {"const": false},
+            "holder_only": {"const": false},
+            "rejects": {"type": "array", "uniqueItems": true, "items": {"enum": ["conflict", "not-holder", "not-found", "expired"]}}
+          }
+        },
+        "renew": {
+          "type": "object",
+          "required": ["request", "response", "idempotent", "holder_only", "rejects"],
+          "additionalProperties": false,
+          "properties": {
+            "request": {"const": "lease_id, holder"},
+            "response": {"const": "renewed-lease | rejected"},
+            "idempotent": {"const": true},
+            "holder_only": {"const": true},
+            "rejects": {"type": "array", "uniqueItems": true, "items": {"enum": ["conflict", "not-holder", "not-found", "expired"]}}
+          }
+        },
+        "release": {
+          "type": "object",
+          "required": ["request", "response", "idempotent", "holder_only", "rejects"],
+          "additionalProperties": false,
+          "properties": {
+            "request": {"const": "lease_id, holder"},
+            "response": {"const": "released | rejected"},
+            "idempotent": {"const": true},
+            "holder_only": {"const": true},
+            "rejects": {"type": "array", "uniqueItems": true, "items": {"enum": ["conflict", "not-holder", "not-found", "expired"]}}
+          }
+        },
+        "query": {
+          "type": "object",
+          "required": ["request", "response", "idempotent", "holder_only", "rejects"],
+          "additionalProperties": false,
+          "properties": {
+            "request": {"const": "lease_id | scope"},
+            "response": {"const": "current-lease | empty"},
+            "idempotent": {"const": true},
+            "holder_only": {"const": false},
+            "rejects": {"type": "array", "uniqueItems": true, "items": {"enum": ["conflict", "not-holder", "not-found", "expired"]}}
+          }
+        }
+      }
+    },
+    "failure_modes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["conflict", "not-holder", "not-found", "expired"]}
+    },
+    "granularity_ladder": {
+      "type": "object",
+      "required": ["default", "opt_in", "out_of_scope"],
+      "additionalProperties": false,
+      "properties": {
+        "default": {"const": "path-set"},
+        "opt_in": {"const": "symbol"},
+        "out_of_scope": {"const": "line"}
+      }
+    },
+    "backends": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["local-file", "portal", "coordinator"]}
+    }
+  }
+}

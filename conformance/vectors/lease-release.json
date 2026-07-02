@@ -1,0 +1,26 @@
+{
+  "id": "lease-release",
+  "description": "An explicit release clears the lease; the current-lease view is empty even though the TTL had not elapsed.",
+  "input": {
+    "schema": "consiliency.coordination_scenario.v1",
+    "now": "2026-01-01T00:02:10Z",
+    "requested_mode": "soft",
+    "backend": "local-file",
+    "atomic_backend": false,
+    "events": [
+      {"event": "acquire", "lease_id": "lease-src-mod", "holder": "agent-a", "at": "2026-01-01T00:00:00Z", "ttl_seconds": 300, "mode": "soft", "scope": {"granularity": "path-set", "selector": ["src/mod/**"]}, "phase": "implement"},
+      {"event": "release", "lease_id": "lease-src-mod", "holder": "agent-a", "at": "2026-01-01T00:02:00Z"}
+    ]
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "coordination.lease_released", "severity": "info", "message": "Holder released the lease before its TTL; the lease is free."}]
+  },
+  "expected": {
+    "effective_mode": "soft",
+    "changed_by_message": false,
+    "current_lease": null
+  }
+}

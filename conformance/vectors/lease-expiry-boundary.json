@@ -1,0 +1,25 @@
+{
+  "id": "lease-expiry-boundary",
+  "description": "Expiry boundary is EXCLUSIVE: at now == heartbeat_at + ttl_seconds the lease is already expired (the interval is [acquired_at, expires_at)). This pins the contention instant so two vendoring consumers agree.",
+  "input": {
+    "schema": "consiliency.coordination_scenario.v1",
+    "now": "2026-01-01T00:05:00Z",
+    "requested_mode": "soft",
+    "backend": "local-file",
+    "atomic_backend": false,
+    "events": [
+      {"event": "acquire", "lease_id": "lease-src-mod", "holder": "agent-a", "at": "2026-01-01T00:00:00Z", "ttl_seconds": 300, "mode": "soft", "scope": {"granularity": "path-set", "selector": ["src/mod/**"]}, "phase": "implement"}
+    ]
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "coordination.lease_expired", "severity": "info", "message": "At now == expires_at the exclusive boundary treats the lease as already expired; it is free for the next acquirer."}]
+  },
+  "expected": {
+    "effective_mode": "soft",
+    "changed_by_message": false,
+    "current_lease": null
+  }
+}

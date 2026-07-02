@@ -1,0 +1,18 @@
+{
+  "id": "governed-set-undeclared-ungoverned",
+  "description": "Allowlist by declaration: a doc not matched by any governed_set selector is ungoverned (the safety property for undeclared docs).",
+  "input": {
+    "schema": "consiliency.governance_scope_scenario.v1",
+    "adoption": {"adopted": true, "adopted_scope": ["layout"]},
+    "governed_set": [{"by": "glob", "value": "docs/**"}],
+    "facet": "layout",
+    "subject": {"kind": "doc", "path": "NOTES.md"}
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "governance.undeclared", "severity": "info", "message": "No governed_set selector matches the document; it is ungoverned."}]
+  },
+  "expected": {"governed": false, "reason": "undeclared-ungoverned"}
+}

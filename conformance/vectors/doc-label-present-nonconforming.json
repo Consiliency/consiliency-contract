@@ -1,0 +1,19 @@
+{
+  "id": "doc-label-present-nonconforming",
+  "description": "A governed doc that is present but does not conform to its declared class is labeled present-nonconforming and warns in Phase 0.",
+  "input": {
+    "schema": "consiliency.governance_scope_scenario.v1",
+    "adoption": {"adopted": true, "adopted_scope": ["layout", "projections"]},
+    "governed_set": [{"by": "path", "value": "docs/architecture.md"}],
+    "facet": "projections",
+    "subject": {"kind": "doc", "path": "docs/architecture.md", "class": "proj-S", "observed_label": "present-nonconforming"}
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "warn",
+    "maturity": "presence-only",
+    "labels": ["present-nonconforming"],
+    "findings": [{"code": "governance.present_nonconforming", "severity": "warn", "message": "Governed document is present but does not conform to its declared class."}]
+  },
+  "expected": {"governed": true, "reason": "declared"}
+}

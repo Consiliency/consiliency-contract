@@ -1,0 +1,19 @@
+{
+  "id": "ignore-set-scratch-never-governed",
+  "description": "The ignore-set is the safety floor: a scratch path is ungoverned even when a governed_set glob would match it.",
+  "input": {
+    "schema": "consiliency.governance_scope_scenario.v1",
+    "adoption": {"adopted": true, "adopted_scope": ["layout"]},
+    "governed_set": [{"by": "glob", "value": "**/*.md"}],
+    "ignore_set": ["scratch/"],
+    "facet": "layout",
+    "subject": {"kind": "doc", "path": "scratch/notes.md"}
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "governance.ignored", "severity": "info", "message": "Path matches the ignore-set; it is ungoverned and never ingested, overriding the governed_set match."}]
+  },
+  "expected": {"governed": false, "reason": "ignored-scratch"}
+}

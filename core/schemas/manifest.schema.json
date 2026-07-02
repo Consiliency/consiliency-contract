@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "properties": {
     "schema": {"const": "consiliency.manifest.v1"},
-    "contract_version": {"type": "string", "pattern": "^0\\.1\\.0$"},
+    "contract_version": {"type": "string", "pattern": "^0\\.2\\.\\d+$"},
     "repo": {
       "type": "object",
       "required": ["id", "display_name", "default_branch"],
@@ -57,9 +57,52 @@
     "legacy_layouts": {
       "type": "array",
       "items": {"$ref": "#/$defs/repoRelativePath"}
+    },
+    "adoption": {"$ref": "#/$defs/adoptionProfile"},
+    "governed_set": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/governedSelector"}
     }
   },
   "$defs": {
+    "adoptionProfile": {
+      "type": "object",
+      "required": ["adopted", "contract_version", "archetype", "adopted_scope"],
+      "additionalProperties": false,
+      "properties": {
+        "adopted": {
+          "type": "boolean",
+          "description": "true = the repo consents to be governed for the facets in adopted_scope (which must be non-empty). false = an explicit, recorded declaration of non-adoption: the repo is UNGOVERNED for every facet even though a profile is present. A repo with no adoption profile at all is likewise ungoverned; adopted:false is the explicit, auditable form of that state."
+        },
+        "contract_version": {"type": "string", "pattern": "^0\\.2\\.\\d+$"},
+        "archetype": {"enum": ["product", "service", "library", "infra", "tooling-meta", "experiment", "document", "baseline-only"]},
+        "adopted_scope": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["layout", "gates", "projections", "cert"]}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"adopted": {"const": true}}, "required": ["adopted"]},
+          "then": {"properties": {"adopted_scope": {"minItems": 1}}}
+        }
+      ]
+    },
+    "governedSelector": {
+      "type": "object",
+      "required": ["by", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "by": {"enum": ["path", "glob", "class"]},
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "not": {"anyOf": [{"pattern": "^/"}, {"pattern": "(^|/)\\.\\.(/|$)"}, {"pattern": "^[A-Za-z]:[\\\\/]"}]}
+        }
+      }
+    },
     "repoRelativePath": {
       "type": "string",
       "minLength": 1,

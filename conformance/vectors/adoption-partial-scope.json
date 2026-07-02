@@ -1,0 +1,18 @@
+{
+  "id": "adoption-partial-scope",
+  "description": "Adoption is a profile, not a boolean: a facet outside adopted_scope is ungoverned even for a declared doc.",
+  "input": {
+    "schema": "consiliency.governance_scope_scenario.v1",
+    "adoption": {"adopted": true, "adopted_scope": ["layout"]},
+    "governed_set": [{"by": "path", "value": "docs/projection.md"}],
+    "facet": "projections",
+    "subject": {"kind": "doc", "path": "docs/projection.md", "class": "proj-S"}
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "governance.out_of_scope_facet", "severity": "info", "message": "The projections facet is not in adopted_scope; the document is ungoverned for this facet."}]
+  },
+  "expected": {"governed": false, "reason": "out-of-scope-facet", "facet": "projections"}
+}

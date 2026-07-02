@@ -21,7 +21,7 @@
         "provider_repo": "consiliency-contract",
         "consumer_repo": "governed-pipeline",
         "interface_id": "consiliency-contract-v1",
-        "ref": {"kind": "package-coordinate", "value": "@consiliency/contract@^0.1.0"},
+        "ref": {"kind": "package-coordinate", "value": "@consiliency/contract@^0.2.0"},
         "maturity": "presence-only",
         "evidence": []
       }

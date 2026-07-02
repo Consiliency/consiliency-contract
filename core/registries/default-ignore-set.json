@@ -1,0 +1,30 @@
+{
+  "schema": "consiliency.default_ignore_set.v1",
+  "summary": "The shipped default set of tool, harness, and scratch namespaces that contract ingestion must never touch. These are ungoverned by construction: they are never candidates for the governed set even if a governed_set selector would otherwise match them.",
+  "namespaces": [
+    ".git/",
+    ".phase-loop/",
+    ".pipeline/",
+    ".claude/",
+    ".codex/",
+    ".opencode/",
+    ".gemini/",
+    ".pi/",
+    ".agents/",
+    ".cursor/",
+    "node_modules/",
+    ".venv/",
+    "scratch/",
+    "**/*.wip.md",
+    "**/transcripts/",
+    "**/*.transcript/"
+  ],
+  "matching": {
+    "bare_dir_matches_at_any_depth": true,
+    "metachar_entries_are_globs": true,
+    "rule": "An entry with no glob metacharacter that ends in '/' (a bare directory name, e.g. '.claude/') matches that directory at ANY depth, so both '.claude/x.md' and 'tools/.claude/x.md' are ignored. An entry containing a glob metacharacter ('*', '?', '[') is a glob evaluated against the repo-relative path (e.g. '**/*.wip.md')."
+  },
+  "precedence": "ignore-set-overrides-governed-set",
+  "extensible_per_repo": true,
+  "rule": "A path matching any ignore-set namespace is ungoverned regardless of adoption or governed_set declarations. The ignore-set is the safety floor: it wins over the allowlist so scratchpads and other-harness docs (Claude, Codex, OpenCode, Gemini/Antigravity, PI, Cursor, and the .agents shared root) are never governed or ingested."
+}

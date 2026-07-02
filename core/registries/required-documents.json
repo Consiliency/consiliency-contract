@@ -4,23 +4,21 @@
   "baseline": [
     {"id": "readme", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": false},
     {"id": "doc-contract-index", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
-    {"id": "service-catalog-ownership", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
     {"id": "contract-version-status", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": false},
-    {"id": "contributing", "class": "static", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
-    {"id": "license", "class": "static", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": false},
-    {"id": "changelog", "class": "intent-plan", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
     {"id": "glossary", "class": "proj-S", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true, "l0_note": "Presence stub with authored zone only; not a fake projection."},
-    {"id": "adr-index", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
-    {"id": "sbom", "class": "proj-code", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
-    {"id": "dev-setup", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
-    {"id": "codeowners", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
-    {"id": "interface-declaration", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": false}
+    {"id": "interface-declaration", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": false},
+    {"id": "codeowners", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true}
   ],
   "archetypes": {
     "product": [
       {"id": "prd", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
       {"id": "product-roadmap", "class": "intent-plan", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
-      {"id": "end-user-docs", "class": "proj-S", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true}
+      {"id": "end-user-docs", "class": "proj-S", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "service-catalog-ownership", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "sbom", "class": "proj-code", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "adr-index", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "dev-setup", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "changelog", "class": "intent-plan", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true}
     ],
     "service": [
       {"id": "slo-policy", "class": "ops-fact", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
@@ -29,19 +27,35 @@
       {"id": "incident-response", "class": "ops-fact", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
       {"id": "deployment", "class": "ops-fact", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
       {"id": "env-secrets-inventory", "class": "ops-fact", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
-      {"id": "release-policy", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true}
+      {"id": "release-policy", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "service-catalog-ownership", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "sbom", "class": "proj-code", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "adr-index", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "dev-setup", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "changelog", "class": "intent-plan", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true}
     ],
     "library": [
       {"id": "api-spec", "class": "proj-code", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
-      {"id": "release-policy", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true}
+      {"id": "release-policy", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "sbom", "class": "proj-code", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "adr-index", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "dev-setup", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "changelog", "class": "intent-plan", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true}
     ],
     "infra": [
       {"id": "deployment", "class": "ops-fact", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
-      {"id": "dr-bcp", "class": "ops-fact", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true}
+      {"id": "dr-bcp", "class": "ops-fact", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "service-catalog-ownership", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "sbom", "class": "proj-code", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "adr-index", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "dev-setup", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true}
     ],
     "tooling-meta": [
       {"id": "configured-surfaces", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
-      {"id": "compatibility-policy", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true}
+      {"id": "compatibility-policy", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "adr-index", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "dev-setup", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "changelog", "class": "intent-plan", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true}
     ],
     "experiment": [
       {"id": "hypothesis", "class": "intent-ground", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
@@ -62,7 +76,9 @@
     "public": [
       {"id": "code-of-conduct", "class": "static", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
       {"id": "support", "class": "static", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
-      {"id": "security", "class": "static", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true}
+      {"id": "security", "class": "static", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "contributing", "class": "static", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true},
+      {"id": "license", "class": "static", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": false}
     ],
     "regulated": [
       {"id": "compliance-audit-index", "class": "index", "required": true, "maturity_floor": "presence-only", "l0_stub_allowed": true}

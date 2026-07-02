@@ -3,7 +3,7 @@
   "description": "Unknown archetypes are rejected.",
   "input": {
     "schema": "consiliency.manifest.v1",
-    "contract_version": "0.2.0",
+    "contract_version": "0.3.0",
     "repo": {"id": "bad", "display_name": "Bad", "default_branch": "main"},
     "declaration": {"mode": "archetyped", "archetypes": ["website"], "modifiers": []},
     "documents": [],

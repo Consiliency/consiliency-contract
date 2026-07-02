@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/coordination-scenario.schema.json",
+  "title": "Consiliency coordination conformance scenario",
+  "description": "A lease/inbox scenario: an ordered append-only lease-event stream, optional advisory inbox messages, and the evaluation clock. The current-lease VIEW is the projection of the event stream evaluated at `now`. Inbox messages are advisory and MUST NOT change the projected lease state.",
+  "type": "object",
+  "required": ["schema", "now", "events"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.coordination_scenario.v1"},
+    "now": {"type": "string", "minLength": 1},
+    "requested_mode": {"enum": ["soft", "hard"]},
+    "backend": {"enum": ["local-file", "portal", "coordinator", "none"]},
+    "atomic_backend": {"type": "boolean"},
+    "events": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/event"}
+    },
+    "messages": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/message"}
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "required": ["event", "lease_id", "holder", "at"],
+      "additionalProperties": false,
+      "properties": {
+        "event": {"enum": ["acquire", "renew", "release", "expire"]},
+        "lease_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.:-]*$"},
+        "holder": {"type": "string", "minLength": 1},
+        "at": {"type": "string", "minLength": 1},
+        "ttl_seconds": {"type": "integer", "minimum": 1},
+        "mode": {"enum": ["soft", "hard"]},
+        "scope": {
+          "type": "object",
+          "required": ["granularity", "selector"],
+          "additionalProperties": false,
+          "properties": {
+            "granularity": {"enum": ["repo", "path-set", "symbol"]},
+            "selector": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "phase": {"type": "string", "minLength": 1}
+      }
+    },
+    "message": {
+      "type": "object",
+      "required": ["type", "from", "target_lease"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {"enum": ["request-yield", "announce-intent", "handoff", "done"]},
+        "from": {"type": "string", "minLength": 1},
+        "target_lease": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.:-]*$"}
+      }
+    }
+  }
+}

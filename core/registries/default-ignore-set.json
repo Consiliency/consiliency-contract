@@ -1,0 +1,20 @@
+{
+  "schema": "consiliency.default_ignore_set.v1",
+  "summary": "The shipped default set of tool, harness, and scratch namespaces that contract ingestion must never touch. These are ungoverned by construction: they are never candidates for the governed set even if a governed_set selector would otherwise match them.",
+  "namespaces": [
+    ".phase-loop/",
+    ".pipeline/",
+    ".claude/",
+    ".codex/",
+    ".opencode/",
+    "node_modules/",
+    ".venv/",
+    "scratch/",
+    "**/*.wip.md",
+    "**/transcripts/",
+    "**/*.transcript/"
+  ],
+  "precedence": "ignore-set-overrides-governed-set",
+  "extensible_per_repo": true,
+  "rule": "A path matching any ignore-set namespace is ungoverned regardless of adoption or governed_set declarations. The ignore-set is the safety floor: it wins over the allowlist so scratchpads and other-harness docs are never governed or ingested."
+}

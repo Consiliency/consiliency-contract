@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/coordination-channel-protocol.schema.json",
+  "title": "Consiliency coordination channel protocol",
+  "description": "The CoordinationChannel (inbox) interface. GUARDRAIL: the inbox is NEVER authoritative for lock state. A message never mutates a lease; it only leads to a lease-store operation. The lease store is the sole source of truth.",
+  "type": "object",
+  "required": ["schema", "operations", "message_types", "delivery", "authority"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.coordination_channel_protocol.v1"},
+    "operations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["send", "subscribe"]}
+    },
+    "message_types": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["request-yield", "announce-intent", "handoff", "done"]}
+    },
+    "delivery": {"const": "append-only"},
+    "authority": {
+      "type": "object",
+      "required": ["inbox_authoritative", "message_may_mutate_lease", "message_leads_to_store_op"],
+      "additionalProperties": false,
+      "properties": {
+        "inbox_authoritative": {"const": false},
+        "message_may_mutate_lease": {"const": false},
+        "message_leads_to_store_op": {"const": true}
+      }
+    },
+    "omniagent_plus_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "worktree_lease": {"const": "consiliency.lease.v1"},
+        "handoff_packet": {"const": "handoff"}
+      }
+    }
+  }
+}

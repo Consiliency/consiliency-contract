@@ -1,0 +1,30 @@
+{
+  "id": "edge-label-unmanaged-cross-repo",
+  "description": "A cross-repo edge into a repo that has not adopted the contract is labeled unmanaged (governed:false at the far end).",
+  "input": {
+    "schema": "consiliency.interface_declaration.v1",
+    "repo_id": "consiliency-portal",
+    "realized_edges": [
+      {
+        "id": "legacy-crm-export",
+        "provider_repo": "legacy-crm",
+        "consumer_repo": "consiliency-portal",
+        "interface_id": "crm-export-feed",
+        "ref": {"kind": "opaque-external-ref", "value": "legacy-crm://export/v3"},
+        "maturity": "realized-edge-observed",
+        "governed": false,
+        "governance_label": "unmanaged",
+        "evidence": []
+      }
+    ],
+    "promised_edges": []
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "realized-edge-observed",
+    "labels": ["unmanaged"],
+    "findings": [{"code": "governance.unmanaged_edge", "severity": "info", "message": "Cross-repo edge points into a repo that has not adopted the contract; the far end is unmanaged."}]
+  },
+  "expected": {"governed": false, "reason": "unmanaged-far-end", "far_end_adopted": false}
+}

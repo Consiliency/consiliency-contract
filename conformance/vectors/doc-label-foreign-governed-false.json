@@ -1,0 +1,19 @@
+{
+  "id": "doc-label-foreign-governed-false",
+  "description": "A present but undeclared doc is labeled foreign (governed:false); it is neither owed nor checked.",
+  "input": {
+    "schema": "consiliency.governance_scope_scenario.v1",
+    "adoption": {"adopted": true, "adopted_scope": ["layout"]},
+    "governed_set": [{"by": "glob", "value": "docs/**"}],
+    "facet": "layout",
+    "subject": {"kind": "doc", "path": "vendor/thirdparty.md", "observed_label": "foreign"}
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "labels": ["foreign"],
+    "findings": [{"code": "governance.foreign", "severity": "info", "message": "Present artifact is not in the governed set; labeled foreign (governed:false)."}]
+  },
+  "expected": {"governed": false, "reason": "undeclared-ungoverned"}
+}

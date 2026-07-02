@@ -57,9 +57,45 @@
     "legacy_layouts": {
       "type": "array",
       "items": {"$ref": "#/$defs/repoRelativePath"}
+    },
+    "adoption": {"$ref": "#/$defs/adoptionProfile"},
+    "governed_set": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/governedSelector"}
     }
   },
   "$defs": {
+    "adoptionProfile": {
+      "type": "object",
+      "required": ["adopted", "contract_version", "archetype", "adopted_scope"],
+      "additionalProperties": false,
+      "properties": {
+        "adopted": {"type": "boolean"},
+        "contract_version": {"type": "string", "pattern": "^0\\.2\\.0$"},
+        "archetype": {"enum": ["product", "service", "library", "infra", "tooling-meta", "experiment", "document", "baseline-only"]},
+        "adopted_scope": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["layout", "gates", "projections", "cert"]}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"adopted": {"const": true}}, "required": ["adopted"]},
+          "then": {"properties": {"adopted_scope": {"minItems": 1}}}
+        }
+      ]
+    },
+    "governedSelector": {
+      "type": "object",
+      "required": ["by", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "by": {"enum": ["path", "glob", "class"]},
+        "value": {"type": "string", "minLength": 1}
+      }
+    },
     "repoRelativePath": {
       "type": "string",
       "minLength": 1,

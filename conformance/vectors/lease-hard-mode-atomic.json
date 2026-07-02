@@ -1,0 +1,35 @@
+{
+  "id": "lease-hard-mode-atomic",
+  "description": "Hard mode is granted only over an atomic backend; the atomic acquire yields an active hard lease.",
+  "input": {
+    "schema": "consiliency.coordination_scenario.v1",
+    "now": "2026-01-01T00:00:10Z",
+    "requested_mode": "hard",
+    "backend": "coordinator",
+    "atomic_backend": true,
+    "events": [
+      {"event": "acquire", "lease_id": "lease-symbol-parse", "holder": "agent-a", "at": "2026-01-01T00:00:00Z", "ttl_seconds": 300, "mode": "hard", "scope": {"granularity": "symbol", "selector": ["src/parser.rs::parse"]}, "phase": "implement"}
+    ]
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "coordination.hard_granted", "severity": "info", "message": "Atomic backend present; hard lease granted and active."}]
+  },
+  "expected": {
+    "effective_mode": "hard",
+    "changed_by_message": false,
+    "current_lease": {
+      "schema": "consiliency.lease.v1",
+      "lease_id": "lease-symbol-parse",
+      "holder": "agent-a",
+      "acquired_at": "2026-01-01T00:00:00Z",
+      "ttl_seconds": 300,
+      "heartbeat_at": "2026-01-01T00:00:00Z",
+      "mode": "hard",
+      "scope": {"granularity": "symbol", "selector": ["src/parser.rs::parse"]},
+      "phase": "implement"
+    }
+  }
+}

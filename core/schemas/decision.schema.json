@@ -9,6 +9,11 @@
     "schema": {"const": "consiliency.conformance_decision.v1"},
     "status": {"enum": ["accepted", "rejected", "warn"]},
     "maturity": {"enum": ["presence-only", "hash-checked", "realized-edge-observed"]},
+    "labels": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"}
+    },
     "findings": {
       "type": "array",
       "items": {

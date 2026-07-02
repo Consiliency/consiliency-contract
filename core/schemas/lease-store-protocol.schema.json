@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/lease-store-protocol.schema.json",
+  "title": "Consiliency lease store protocol",
+  "description": "The LeaseStore interface contract. The store is the SOLE source of truth for lease state; the coordination channel (inbox) is never authoritative. A lease is not a lock: it carries a TTL, a heartbeat, and auto-expiry.",
+  "type": "object",
+  "required": ["schema", "operations", "source_of_truth", "atomicity", "expiry", "granularity_ladder", "backends"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.lease_store_protocol.v1"},
+    "operations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["acquire", "renew", "release", "query"]}
+    },
+    "source_of_truth": {"const": "lease-store"},
+    "atomicity": {
+      "type": "object",
+      "required": ["hard_requires_atomic_acquire", "degrade_without_atomic_backend"],
+      "additionalProperties": false,
+      "properties": {
+        "hard_requires_atomic_acquire": {"const": true},
+        "degrade_without_atomic_backend": {"const": "soft"}
+      }
+    },
+    "expiry": {
+      "type": "object",
+      "required": ["ttl_authoritative", "heartbeat_renews", "auto_expiry"],
+      "additionalProperties": false,
+      "properties": {
+        "ttl_authoritative": {"const": true},
+        "heartbeat_renews": {"const": true},
+        "auto_expiry": {"const": true}
+      }
+    },
+    "granularity_ladder": {
+      "type": "object",
+      "required": ["default", "opt_in", "out_of_scope"],
+      "additionalProperties": false,
+      "properties": {
+        "default": {"const": "path-set"},
+        "opt_in": {"const": "symbol"},
+        "out_of_scope": {"const": "line"}
+      }
+    },
+    "backends": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["local-file", "portal", "coordinator"]}
+    }
+  }
+}

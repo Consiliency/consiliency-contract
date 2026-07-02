@@ -1,0 +1,35 @@
+{
+  "id": "lease-acquire",
+  "description": "Acquiring a soft path-set lease projects to an active current-lease view within its TTL.",
+  "input": {
+    "schema": "consiliency.coordination_scenario.v1",
+    "now": "2026-01-01T00:01:00Z",
+    "requested_mode": "soft",
+    "backend": "local-file",
+    "atomic_backend": false,
+    "events": [
+      {"event": "acquire", "lease_id": "lease-src-mod", "holder": "agent-a", "at": "2026-01-01T00:00:00Z", "ttl_seconds": 300, "mode": "soft", "scope": {"granularity": "path-set", "selector": ["src/mod/**"]}, "phase": "implement"}
+    ]
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "coordination.lease_active", "severity": "info", "message": "Lease is held and within its TTL at the evaluation time."}]
+  },
+  "expected": {
+    "effective_mode": "soft",
+    "changed_by_message": false,
+    "current_lease": {
+      "schema": "consiliency.lease.v1",
+      "lease_id": "lease-src-mod",
+      "holder": "agent-a",
+      "acquired_at": "2026-01-01T00:00:00Z",
+      "ttl_seconds": 300,
+      "heartbeat_at": "2026-01-01T00:00:00Z",
+      "mode": "soft",
+      "scope": {"granularity": "path-set", "selector": ["src/mod/**"]},
+      "phase": "implement"
+    }
+  }
+}

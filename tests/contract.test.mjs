@@ -122,3 +122,45 @@ test("Python reader produces byte-identical canonical payload", () => {
   };
   assert.equal(py, canonical(jsPayload));
 });
+
+test("governance labels used in decisions are registered governance labels", () => {
+  const governance = new Set(
+    loadRegistry("maturity_labels").labels
+      .filter((label) => label.kind === "governance")
+      .map((label) => label.id),
+  );
+  assert.ok(governance.size >= 3);
+  for (const name of listVectors()) {
+    const { decision } = loadVector(name);
+    for (const label of decision.labels ?? []) {
+      assert.ok(governance.has(label), `${name}: unknown governance label ${label}`);
+    }
+  }
+});
+
+test("coordination inbox messages never mutate lease state (sole-truth guardrail)", () => {
+  let sawMessageVector = false;
+  for (const name of listVectors()) {
+    const vector = loadVector(name);
+    if (vector.input.schema !== "consiliency.coordination_scenario.v1") continue;
+    assert.ok(vector.expected, `${name}: coordination vector needs an expected view`);
+    assert.equal(typeof vector.expected.changed_by_message, "boolean", name);
+    if ((vector.input.messages ?? []).length > 0) {
+      sawMessageVector = true;
+      assert.equal(vector.expected.changed_by_message, false, `${name}: a message must not change lease state`);
+    }
+  }
+  assert.ok(sawMessageVector, "expected at least one coordination vector carrying an inbox message");
+});
+
+test("coordination protocols pin the sole-truth guardrail", () => {
+  const channel = loadSchema("coordination_channel_protocol").properties.authority.properties;
+  assert.equal(channel.inbox_authoritative.const, false);
+  assert.equal(channel.message_may_mutate_lease.const, false);
+  assert.equal(channel.message_leads_to_store_op.const, true);
+  const store = loadSchema("lease_store_protocol").properties;
+  assert.equal(store.source_of_truth.const, "lease-store");
+  assert.equal(store.atomicity.properties.hard_requires_atomic_acquire.const, true);
+  assert.equal(store.atomicity.properties.degrade_without_atomic_backend.const, "soft");
+  assert.equal(store.granularity_ladder.properties.out_of_scope.const, "line");
+});

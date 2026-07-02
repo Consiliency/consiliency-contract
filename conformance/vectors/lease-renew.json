@@ -1,0 +1,36 @@
+{
+  "id": "lease-renew",
+  "description": "A heartbeat renew extends the effective expiry (acquired_at + ttl measured from the last heartbeat), so the lease is still active past its original TTL.",
+  "input": {
+    "schema": "consiliency.coordination_scenario.v1",
+    "now": "2026-01-01T00:06:40Z",
+    "requested_mode": "soft",
+    "backend": "local-file",
+    "atomic_backend": false,
+    "events": [
+      {"event": "acquire", "lease_id": "lease-src-mod", "holder": "agent-a", "at": "2026-01-01T00:00:00Z", "ttl_seconds": 300, "mode": "soft", "scope": {"granularity": "path-set", "selector": ["src/mod/**"]}, "phase": "implement"},
+      {"event": "renew", "lease_id": "lease-src-mod", "holder": "agent-a", "at": "2026-01-01T00:04:10Z"}
+    ]
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "coordination.lease_renewed", "severity": "info", "message": "Heartbeat renew extended the lease; it is active past its original TTL."}]
+  },
+  "expected": {
+    "effective_mode": "soft",
+    "changed_by_message": false,
+    "current_lease": {
+      "schema": "consiliency.lease.v1",
+      "lease_id": "lease-src-mod",
+      "holder": "agent-a",
+      "acquired_at": "2026-01-01T00:00:00Z",
+      "ttl_seconds": 300,
+      "heartbeat_at": "2026-01-01T00:04:10Z",
+      "mode": "soft",
+      "scope": {"granularity": "path-set", "selector": ["src/mod/**"]},
+      "phase": "implement"
+    }
+  }
+}

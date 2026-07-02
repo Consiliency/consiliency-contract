@@ -3,20 +3,46 @@
   "labels": [
     {
       "id": "presence-only",
+      "kind": "evidence",
       "description": "The artifact or edge is declared and can be checked for existence only."
     },
     {
       "id": "hash-checked",
+      "kind": "evidence",
       "description": "The artifact bytes are checked against a recorded digest."
     },
     {
       "id": "realized-edge-observed",
+      "kind": "evidence",
       "description": "The edge was observed from a declared pin, package coordinate, copied literal, or repo-relative source reference."
     },
     {
       "id": "certified",
+      "kind": "evidence",
       "description": "Reserved for post-XG-1 evidence attested by the certificate path; invalid for CS-0.2 Phase 0 vectors."
+    },
+    {
+      "id": "present-nonconforming",
+      "kind": "governance",
+      "governed": true,
+      "description": "The artifact is declared in the governed set and is present, but does not conform to its declared class or contract shape."
+    },
+    {
+      "id": "foreign",
+      "kind": "governance",
+      "governed": false,
+      "description": "A present artifact that is not declared in the governed set (governed:false). Ingestion must never treat it as authoritative or governed; it is neither owed nor checked."
+    },
+    {
+      "id": "unmanaged",
+      "kind": "governance",
+      "governed": false,
+      "description": "A cross-repo edge whose counterpart repo has not adopted the contract (governed:false at the far end). The edge may be observed locally, but the far end is ungoverned and carries no adoption profile."
     }
   ],
+  "label_kinds": {
+    "evidence": "Evidence-strength axis: how strongly the artifact/edge is attested (presence -> hash -> realized -> certified).",
+    "governance": "Governance-status axis: whether and how an artifact/edge is governed. Orthogonal to evidence strength."
+  },
   "phase0_disallowed": ["certified"]
 }

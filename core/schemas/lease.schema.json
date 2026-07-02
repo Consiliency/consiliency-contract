@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/lease.schema.json",
+  "title": "Consiliency coordination lease",
+  "type": "object",
+  "required": ["schema", "lease_id", "holder", "acquired_at", "ttl_seconds", "heartbeat_at", "mode", "scope", "phase"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.lease.v1"},
+    "lease_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.:-]*$"},
+    "holder": {"type": "string", "minLength": 1},
+    "acquired_at": {"type": "string", "minLength": 1},
+    "ttl_seconds": {"type": "integer", "minimum": 1},
+    "heartbeat_at": {"type": "string", "minLength": 1},
+    "mode": {"enum": ["soft", "hard"]},
+    "scope": {"$ref": "#/$defs/scope"},
+    "phase": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "scope": {
+      "type": "object",
+      "required": ["granularity", "selector"],
+      "additionalProperties": false,
+      "properties": {
+        "granularity": {"enum": ["repo", "path-set", "symbol"]},
+        "selector": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "not": {"anyOf": [{"pattern": "^/"}, {"pattern": "(^|/)\\.\\.(/|$)"}, {"pattern": "^[A-Za-z]:[\\\\/]"}]}
+          }
+        }
+      }
+    }
+  }
+}

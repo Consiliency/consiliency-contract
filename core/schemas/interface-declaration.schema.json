@@ -59,6 +59,8 @@
         "interface_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
         "ref": {"$ref": "#/$defs/ref"},
         "maturity": {"enum": ["presence-only", "hash-checked", "realized-edge-observed"]},
+        "governed": {"type": "boolean"},
+        "governance_label": {"enum": ["unmanaged", "foreign"]},
         "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
         "upstream_pin": {"type": "string"}
       }

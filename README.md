@@ -10,6 +10,8 @@ The Consiliency cross-repo **contract package** — the single, neutral rulebook
 - the loop-gate protocol (presence / freshness / integrity / version-skew)
 - the `canonical_html.v1` display schema
 - the version-skew protocol
+- **adoption + governance-scoping (CS-0.12)** — the adoption profile (a partial-adoption profile, not a boolean; its presence = consent to be governed), the governed-set allowlist-by-declaration, the default ignore-set registry, and the `present-nonconforming` / `foreign` / `unmanaged` governance labels
+- **lease + inbox coordination (CS-0.10b)** — the `lease` (TTL + heartbeat + auto-expiry, soft/hard, repo/path-set/symbol scope), the append-only `lease_event` stream, the `lease_store` protocol (sole source of truth) and the `coordination_channel` inbox protocol (never authoritative)
 
 Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/@consiliency/contract) + **PyPI** [`consiliency-contract`](https://pypi.org/project/consiliency-contract/), from shared JSON data + conformance vectors so the two language readers stay byte-identical.
 

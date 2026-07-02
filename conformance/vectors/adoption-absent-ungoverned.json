@@ -1,0 +1,16 @@
+{
+  "id": "adoption-absent-ungoverned",
+  "description": "Without an adoption profile there is no consent to be governed; every doc is ungoverned even when a governed_set selector would match it.",
+  "input": {
+    "schema": "consiliency.governance_scope_scenario.v1",
+    "governed_set": [{"by": "path", "value": "README.md"}],
+    "subject": {"kind": "doc", "path": "README.md"}
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "governance.not_adopted", "severity": "info", "message": "Repo has no adoption profile; the document is ungoverned."}]
+  },
+  "expected": {"governed": false, "reason": "not-adopted"}
+}

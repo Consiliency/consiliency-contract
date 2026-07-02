@@ -218,3 +218,22 @@ test("coordination current-lease view equals the events-only projection (message
   }
   assert.ok(seen >= 8, "expected coordination vectors to project");
 });
+
+test("every additionalProperties:false object keeps required a subset of properties", () => {
+  const check = (node, path) => {
+    if (Array.isArray(node)) {
+      node.forEach((entry, index) => check(entry, `${path}[${index}]`));
+    } else if (node && typeof node === "object") {
+      if (node.additionalProperties === false && Array.isArray(node.required)) {
+        const props = new Set(Object.keys(node.properties ?? {}));
+        for (const key of node.required) {
+          assert.ok(props.has(key), `${path}: required '${key}' absent from properties`);
+        }
+      }
+      for (const [key, value] of Object.entries(node)) check(value, `${path}.${key}`);
+    }
+  };
+  for (const name of Object.keys(CONTRACT.schemas)) {
+    check(loadSchema(name), name);
+  }
+});

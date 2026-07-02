@@ -134,6 +134,22 @@ class ContractReaderTest(unittest.TestCase):
             self.assertEqual(projected["effective_mode"], vector["expected"]["effective_mode"], name)
         self.assertGreaterEqual(seen, 8)
 
+    def test_required_is_subset_of_properties(self) -> None:
+        def check(node: object, path: str) -> None:
+            if isinstance(node, dict):
+                if node.get("additionalProperties") is False and isinstance(node.get("required"), list):
+                    props = set((node.get("properties") or {}).keys())
+                    for key in node["required"]:
+                        self.assertIn(key, props, f"{path}: required '{key}' absent from properties")
+                for k, v in node.items():
+                    check(v, f"{path}.{k}")
+            elif isinstance(node, list):
+                for i, v in enumerate(node):
+                    check(v, f"{path}[{i}]")
+
+        for name in CONTRACT["schemas"]:
+            check(load_schema(name), name)
+
 
 if __name__ == "__main__":
     unittest.main()

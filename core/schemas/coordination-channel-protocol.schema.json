@@ -30,7 +30,7 @@
     "delivery": {"const": "append-only"},
     "authority": {
       "type": "object",
-      "required": ["inbox_authoritative", "message_may_mutate_lease", "message_leads_to_store_op"],
+      "required": ["inbox_authoritative", "message_may_mutate_lease", "message_prompts_actor_to_call_store_op"],
       "additionalProperties": false,
       "properties": {
         "inbox_authoritative": {"const": false},

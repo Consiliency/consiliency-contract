@@ -3,7 +3,7 @@
   "description": "A baseline-only declaration is legal and carries no archetype list.",
   "input": {
     "schema": "consiliency.manifest.v1",
-    "contract_version": "0.1.0",
+    "contract_version": "0.2.0",
     "repo": {"id": "notes", "display_name": "Notes", "default_branch": "main"},
     "declaration": {"mode": "baseline-only"},
     "documents": [

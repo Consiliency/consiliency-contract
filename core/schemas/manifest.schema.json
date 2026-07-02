@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "properties": {
     "schema": {"const": "consiliency.manifest.v1"},
-    "contract_version": {"type": "string", "pattern": "^0\\.1\\.0$"},
+    "contract_version": {"type": "string", "pattern": "^0\\.2\\.0$"},
     "repo": {
       "type": "object",
       "required": ["id", "display_name", "default_branch"],

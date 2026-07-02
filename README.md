@@ -13,7 +13,7 @@ The Consiliency cross-repo **contract package** — the single, neutral rulebook
 
 Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/@consiliency/contract) + **PyPI** [`consiliency-contract`](https://pypi.org/project/consiliency-contract/), from shared JSON data + conformance vectors so the two language readers stay byte-identical.
 
-> **Status — `0.1.0` carries the first normative Phase-0 L0 contract content.**
+> **Status — `0.2.0` adds CS-0.12 adoption/governance-scoping and CS-0.10b lease/inbox coordination on top of the `0.1.0` Phase-0 L0 content.**
 > The shared JSON data lives under `core/` and `conformance/`; npm and PyPI
 > readers are intentionally thin loaders over those same bytes.
 

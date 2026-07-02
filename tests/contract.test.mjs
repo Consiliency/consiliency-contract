@@ -48,13 +48,21 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.2.1");
-  assert.equal(loadContract().contract_version, "0.2.1");
+  assert.equal(CONTRACT_VERSION, "0.2.2");
+  assert.equal(loadContract().contract_version, "0.2.2");
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
   assert.equal(loadSchema("manifest").properties.schema.const, "consiliency.manifest.v1");
   assert.ok(listVectors().length >= 10);
   assert.equal(loadVector("canonical-html-contract-loaded").decision.status, "accepted");
+});
+
+test("package metadata, runtime, and TypeScript declarations agree on version", () => {
+  const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+  const declarations = readFileSync("src/index.d.ts", "utf8");
+  assert.equal(packageJson.version, CONTRACT_VERSION);
+  assert.equal(loadContract().contract_version, CONTRACT_VERSION);
+  assert.ok(declarations.includes(`CONTRACT_VERSION: "${CONTRACT_VERSION}"`));
 });
 
 test("dynamic loaders reject unknown names and traversal", () => {

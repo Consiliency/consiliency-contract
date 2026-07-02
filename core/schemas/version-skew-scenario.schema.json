@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/version-skew-scenario.schema.json",
+  "title": "Consiliency version skew conformance scenario",
+  "type": "object",
+  "required": ["schema", "contract_version", "package_version"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.version_skew_scenario.v1"},
+    "contract_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+    "package_version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"}
+  }
+}

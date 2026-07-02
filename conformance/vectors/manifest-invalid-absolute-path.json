@@ -1,0 +1,20 @@
+{
+  "id": "manifest-invalid-absolute-path",
+  "description": "Host absolute paths are rejected from public package data.",
+  "input": {
+    "schema": "consiliency.manifest.v1",
+    "contract_version": "0.1.0",
+    "repo": {"id": "bad", "display_name": "Bad", "default_branch": "main"},
+    "declaration": {"mode": "baseline-only"},
+    "documents": [
+      {"id": "readme", "class": "index", "path": "/absolute/private/README.md", "maturity": "presence-only", "target_level": "L0", "required": true}
+    ],
+    "interfaces": ".consiliency/interfaces.json"
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "rejected",
+    "maturity": "presence-only",
+    "findings": [{"code": "path.absolute", "severity": "block", "message": "Paths must be repo-relative."}]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "id": "loop-gate-invalid-blocking-default",
+  "description": "Phase 0 contract data must not make blocking the default.",
+  "input": {
+    "schema": "consiliency.loop_gate_scenario.v1",
+    "gate": "presence",
+    "severity_default": "block"
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "rejected",
+    "maturity": "presence-only",
+    "findings": [{"code": "gate.default.blocking", "severity": "block", "message": "Blocking must be opt-in during Phase 0."}]
+  }
+}

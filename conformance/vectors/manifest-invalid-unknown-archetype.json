@@ -1,0 +1,18 @@
+{
+  "id": "manifest-invalid-unknown-archetype",
+  "description": "Unknown archetypes are rejected.",
+  "input": {
+    "schema": "consiliency.manifest.v1",
+    "contract_version": "0.1.0",
+    "repo": {"id": "bad", "display_name": "Bad", "default_branch": "main"},
+    "declaration": {"mode": "archetyped", "archetypes": ["website"], "modifiers": []},
+    "documents": [],
+    "interfaces": ".consiliency/interfaces.json"
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "rejected",
+    "maturity": "presence-only",
+    "findings": [{"code": "archetype.unknown", "severity": "block", "message": "Archetype is not in the contract registry."}]
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "contract_id": "consiliency.contract.v1",
+  "contract_version": "0.1.0",
+  "package_names": {
+    "npm": "@consiliency/contract",
+    "pypi": "consiliency-contract"
+  },
+  "summary": "Normative Consiliency Phase-0 L0 contract data for .consiliency layout, document requirements, interface declarations, loop gates, canonical_html.v1, and version skew.",
+  "phase_posture": {
+    "phase": "CS-0.2",
+    "level": "L0",
+    "default_gate_severity": "warn",
+    "certified_claims_allowed": false,
+    "private_spec_changes_allowed": false
+  },
+  "schemas": {
+    "decision": "core/schemas/decision.schema.json",
+    "manifest": "core/schemas/manifest.schema.json",
+    "contract_version_status": "core/schemas/contract-version-status.schema.json",
+    "interface_declaration": "core/schemas/interface-declaration.schema.json",
+    "loop_gate_protocol": "core/schemas/loop-gate-protocol.schema.json",
+    "loop_gate_scenario": "core/schemas/loop-gate-scenario.schema.json",
+    "version_skew_protocol": "core/schemas/version-skew-protocol.schema.json",
+    "version_skew_scenario": "core/schemas/version-skew-scenario.schema.json",
+    "canonical_html_v1": "core/schemas/canonical-html-v1.schema.json"
+  },
+  "registries": {
+    "document_classes": "core/registries/document-classes.json",
+    "archetypes": "core/registries/archetypes.json",
+    "required_documents": "core/registries/required-documents.json",
+    "maturity_labels": "core/registries/maturity-labels.json"
+  },
+  "protocols": {
+    "loop_gate": "core/schemas/loop-gate-protocol.schema.json",
+    "version_skew": "core/schemas/version-skew-protocol.schema.json"
+  },
+  "canonical_html": {
+    "contract": "core/canonical-html/contract-v1.json",
+    "provenance": "core/canonical-html/provenance.json"
+  },
+  "conformance": {
+    "vector_root": "conformance/vectors",
+    "decision_schema": "core/schemas/decision.schema.json"
+  }
+}

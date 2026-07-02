@@ -1,0 +1,62 @@
+{
+  "schema": "consiliency.archetypes.v1",
+  "baseline_only": {
+    "id": "baseline-only",
+    "legal_declaration": true,
+    "description": "The repo owes only universal baseline artifacts."
+  },
+  "archetypes": [
+    {
+      "id": "product",
+      "description": "Shipped user-facing product, app, or SaaS."
+    },
+    {
+      "id": "service",
+      "description": "Running backend service."
+    },
+    {
+      "id": "library",
+      "description": "Package or library imported by other software."
+    },
+    {
+      "id": "infra",
+      "description": "Infrastructure or IaC module."
+    },
+    {
+      "id": "tooling-meta",
+      "description": "Tooling, configuration, or meta repository that configures other repos."
+    },
+    {
+      "id": "experiment",
+      "description": "Research or experiment repo that is not a shipped product."
+    },
+    {
+      "id": "document",
+      "description": "Repository whose deliverable is a document corpus."
+    }
+  ],
+  "modifiers": [
+    {
+      "id": "data-bearing",
+      "description": "Handles or defines data needing privacy, retention, deletion, or inventory docs."
+    },
+    {
+      "id": "public",
+      "description": "Public or open-source surface."
+    },
+    {
+      "id": "regulated",
+      "description": "Requires compliance or audit controls."
+    },
+    {
+      "id": "user-facing",
+      "description": "Direct user-facing surface."
+    }
+  ],
+  "composition_order": {
+    "baseline": "first",
+    "archetypes": "registry order",
+    "modifiers": "registry order",
+    "duplicate_policy": "byte-identical rows are de-duplicated; conflicting rows fail conformance"
+  }
+}

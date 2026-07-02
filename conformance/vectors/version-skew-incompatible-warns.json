@@ -1,0 +1,15 @@
+{
+  "id": "version-skew-incompatible-warns",
+  "description": "Version skew emits a warning by default during Phase 0.",
+  "input": {
+    "schema": "consiliency.version_skew_scenario.v1",
+    "contract_version": "0.2.0",
+    "package_version": "0.1.0"
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "warn",
+    "maturity": "presence-only",
+    "findings": [{"code": "version_skew.incompatible", "severity": "warn", "message": "Contract and package versions are outside the compatible range."}]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "consiliency.maturity_labels.v1",
+  "labels": [
+    {
+      "id": "presence-only",
+      "description": "The artifact or edge is declared and can be checked for existence only."
+    },
+    {
+      "id": "hash-checked",
+      "description": "The artifact bytes are checked against a recorded digest."
+    },
+    {
+      "id": "realized-edge-observed",
+      "description": "The edge was observed from a declared pin, package coordinate, copied literal, or repo-relative source reference."
+    },
+    {
+      "id": "certified",
+      "description": "Reserved for post-XG-1 evidence attested by the certificate path; invalid for CS-0.2 Phase 0 vectors."
+    }
+  ],
+  "phase0_disallowed": ["certified"]
+}

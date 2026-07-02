@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/loop-gate-scenario.schema.json",
+  "title": "Consiliency loop gate conformance scenario",
+  "type": "object",
+  "required": ["schema", "gate"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.loop_gate_scenario.v1"},
+    "gate": {"enum": ["presence", "freshness", "local-integrity", "cross-repo-integrity", "version-skew"]},
+    "missing": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"}
+    },
+    "severity_default": {"type": "string"},
+    "consumer_policy": {
+      "type": "object",
+      "required": ["blocking_opt_in"],
+      "additionalProperties": false,
+      "properties": {
+        "blocking_opt_in": {"type": "boolean"}
+      }
+    }
+  }
+}

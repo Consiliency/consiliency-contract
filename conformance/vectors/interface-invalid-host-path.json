@@ -1,0 +1,26 @@
+{
+  "id": "interface-invalid-host-path",
+  "description": "Local sibling checkout paths are rejected from public interface data.",
+  "input": {
+    "schema": "consiliency.interface_declaration.v1",
+    "repo_id": "governed-pipeline",
+    "realized_edges": [
+      {
+        "id": "bad-path",
+        "provider_repo": "spec",
+        "consumer_repo": "governed-pipeline",
+        "interface_id": "spec-certificate",
+        "ref": {"kind": "repo-relative-path", "value": "/absolute/private/spec-certificate-canon.mjs"},
+        "maturity": "realized-edge-observed",
+        "evidence": []
+      }
+    ],
+    "promised_edges": []
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "rejected",
+    "maturity": "presence-only",
+    "findings": [{"code": "interface.ref.host_path", "severity": "block", "message": "Interface refs must not contain host absolute paths."}]
+  }
+}

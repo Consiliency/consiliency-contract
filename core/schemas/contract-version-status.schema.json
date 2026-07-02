@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/contract-version-status.schema.json",
+  "title": "Consiliency contract version status",
+  "type": "object",
+  "required": ["schema", "package", "repo_contract_version", "compatibility", "maturity", "checked_at", "evidence"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.contract_version_status.v1"},
+    "package": {
+      "type": "object",
+      "required": ["name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "version": {"type": "string", "pattern": "^0\\.1\\.0$"}
+      }
+    },
+    "repo_contract_version": {"type": "string", "pattern": "^0\\.1\\.0$"},
+    "consumer": {"type": "object"},
+    "compatibility": {"enum": ["compatible", "negotiated", "incompatible", "unknown"]},
+    "maturity": {"enum": ["presence-only", "hash-checked", "realized-edge-observed"]},
+    "checked_at": {"type": "string"},
+    "evidence": {"type": "array"}
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schema": "consiliency.document_classes.v1",
+  "classes": [
+    {
+      "id": "intent-ground",
+      "role": "Human-authored artifact that grounds S after ratification."
+    },
+    {
+      "id": "intent-plan",
+      "role": "Human-authored sequencing or priority artifact that does not ground S."
+    },
+    {
+      "id": "proj-S",
+      "role": "Projection from certified S; Phase 0 may only declare a stub or future target."
+    },
+    {
+      "id": "proj-code",
+      "role": "Projection from code facts E(C)."
+    },
+    {
+      "id": "ops-fact",
+      "role": "Runtime, operational, deployment, or verification fact."
+    },
+    {
+      "id": "static",
+      "role": "Constant policy or static project artifact."
+    },
+    {
+      "id": "index",
+      "role": "Catalog, registry, or pointer artifact."
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/loop-gate-protocol.schema.json",
+  "title": "Consiliency loop gate protocol",
+  "type": "object",
+  "required": ["schema", "gate_families", "default_policy"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.loop_gate_protocol.v1"},
+    "gate_families": {
+      "type": "array",
+      "items": {"enum": ["presence", "freshness", "local-integrity", "cross-repo-integrity", "version-skew"]},
+      "uniqueItems": true
+    },
+    "default_policy": {
+      "type": "object",
+      "required": ["severity_default", "blocking_opt_in"],
+      "additionalProperties": false,
+      "properties": {
+        "severity_default": {"const": "warn"},
+        "blocking_opt_in": {"type": "boolean"}
+      }
+    }
+  }
+}

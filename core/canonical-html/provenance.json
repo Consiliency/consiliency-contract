@@ -1,0 +1,22 @@
+{
+  "schema": "consiliency.canonical_html_provenance.v1",
+  "contract_id": "canonicalHtmlContract.v1",
+  "source": {
+    "repo": "Consiliency/governed-pipeline",
+    "commit": "d36e4cdf16afd8fffe336f276f7bfb034148b20a",
+    "path": "specs/contracts/canonical-html-contract-v1.json",
+    "sha256": "3c0c11b7be8b2301409c47416269dd5579fac90f6e7a4e9ca9c3caef50bd2e28"
+  },
+  "packaged": {
+    "path": "core/canonical-html/contract-v1.json",
+    "sha256": "3c0c11b7be8b2301409c47416269dd5579fac90f6e7a4e9ca9c3caef50bd2e28"
+  },
+  "publishability_review": {
+    "status": "metadata-only-public-contract",
+    "host_absolute_paths_allowed": false,
+    "private_spec_payload_allowed": false,
+    "raw_portal_state_allowed": false,
+    "provider_payload_allowed": false
+  },
+  "phase0_drift_rule": "Existing governed-pipeline and spec-adjacent copies remain in place during Phase 0; consumers compare their vendored bytes against this packaged sha256."
+}

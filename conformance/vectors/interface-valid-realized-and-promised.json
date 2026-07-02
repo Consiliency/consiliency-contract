@@ -1,0 +1,36 @@
+{
+  "id": "interface-valid-realized-and-promised",
+  "description": "Interface declarations can carry realized and promised edges with safe refs.",
+  "input": {
+    "schema": "consiliency.interface_declaration.v1",
+    "repo_id": "governed-pipeline",
+    "realized_edges": [
+      {
+        "id": "harness-pin",
+        "provider_repo": "agent-harness",
+        "consumer_repo": "governed-pipeline",
+        "interface_id": "phase-loop-cli-entrypoint",
+        "ref": {"kind": "git-ref", "value": "v0.1.12"},
+        "maturity": "realized-edge-observed",
+        "evidence": [{"ref": "tools/agent-harness.pin.json", "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"}]
+      }
+    ],
+    "promised_edges": [
+      {
+        "id": "contract-package",
+        "provider_repo": "consiliency-contract",
+        "consumer_repo": "governed-pipeline",
+        "interface_id": "consiliency-contract-v1",
+        "ref": {"kind": "package-coordinate", "value": "@consiliency/contract@^0.1.0"},
+        "maturity": "presence-only",
+        "evidence": []
+      }
+    ]
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "realized-edge-observed",
+    "findings": []
+  }
+}

@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "consiliency-contract"
-version = "0.0.1"
-description = "Consiliency cross-repo contract package (provisioning placeholder; content lands in 0.1.0)."
+version = "0.1.0"
+description = "Consiliency cross-repo contract package: shared JSON contract data, conformance vectors, and thin npm/PyPI readers."
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 keywords = ["consiliency", "contract", "standardization", "canonical-html"]
 
 [project.urls]
@@ -17,3 +17,11 @@ Issues = "https://github.com/Consiliency/consiliency-contract/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["consiliency_contract"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"core" = "consiliency_contract/_data/core"
+"conformance" = "consiliency_contract/_data/conformance"
+
+[tool.hatch.build.targets.sdist.force-include]
+"core" = "core"
+"conformance" = "conformance"

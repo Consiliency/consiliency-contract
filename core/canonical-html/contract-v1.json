@@ -1,0 +1,459 @@
+{
+  "contract_id": "canonicalHtmlContract.v1",
+  "version": 1,
+  "phase": "HTMLCONTRACT",
+  "summary": "HTML-first canonical specification contract for governed-pipeline durable intent documents.",
+  "schemas": {
+    "canonical_html": "canonical_html.v1",
+    "document_identity": "doc_identity.v1",
+    "document_type_catalog": "doc_type_catalog.v1",
+    "json_projection_boundary": "json_projection_boundary.v1",
+    "c4_mermaid_source": "canonical_c4_mermaid_source.v1",
+    "c4_diagram_role": "c4_diagram_role.v1",
+    "c4_source_digest": "c4_source_digest.v1",
+    "c4_source_posture": "c4_source_posture.v1",
+    "repo_canonical_profile": "repo_canonical_profile.v1"
+  },
+  "dialect": {
+    "schema": "canonical_html.v1",
+    "content_type": "text/html; charset=utf-8",
+    "allowed_tags": [
+      "html",
+      "head",
+      "title",
+      "meta",
+      "body",
+      "main",
+      "section",
+      "article",
+      "header",
+      "footer",
+      "nav",
+      "h1",
+      "h2",
+      "h3",
+      "p",
+      "a",
+      "ul",
+      "ol",
+      "li",
+      "table",
+      "thead",
+      "tbody",
+      "tr",
+      "th",
+      "td",
+      "code",
+      "pre",
+      "blockquote",
+      "strong",
+      "em",
+      "span",
+      "dl",
+      "dt",
+      "dd",
+      "time",
+      "data"
+    ],
+    "allowed_attributes": [
+      "id",
+      "class",
+      "href",
+      "rel",
+      "aria-label",
+      "role",
+      "data-*",
+      "datetime",
+      "title",
+      "scope",
+      "colspan",
+      "rowspan"
+    ],
+    "metadata_block": {
+      "required_selector": "section#document-metadata[data-schema=\"doc_identity.v1\"]",
+      "placement": "first child of main"
+    },
+    "link_shapes": {
+      "evidence": {
+        "rel": "evidence",
+        "allowed_href_prefixes": [
+          ".pipeline/",
+          "specs/",
+          "docs/",
+          "packages/",
+          "sha256:"
+        ]
+      },
+      "task": {
+        "rel": "task",
+        "allowed_href_prefixes": [
+          "#task-",
+          ".pipeline/tasks/",
+          "packages/pipeline-runtime/test/fixtures/"
+        ]
+      },
+      "adr": {
+        "data-ref-kind": "adr"
+      },
+      "c4": {
+        "data-ref-kind": "c4"
+      }
+    },
+    "forbidden": [
+      "scripts",
+      "inline_event_handlers",
+      "untrusted_remote_resources",
+      "uncontrolled_styles",
+      "raw_secrets",
+      "credentials",
+      "provider_payloads",
+      "raw_private_evidence",
+      "raw_portal_state",
+      "local_env_values",
+      "host_absolute_paths",
+      "agent_board.* authority"
+    ]
+  },
+  "c4_mermaid_source": {
+    "schema": "canonical_c4_mermaid_source.v1",
+    "roles": ["context", "container", "component"],
+    "role_anchor_map": {
+      "context": "system-context",
+      "container": "containers",
+      "component": "components"
+    },
+    "source_fields": {
+      "context": "c4_context_mermaid",
+      "container": "c4_container_mermaid",
+      "component": "c4_component_mermaid"
+    },
+    "source_origins": [
+      "synthesis_field",
+      "legacy_markdown_mermaid_fence",
+      "standalone_mermaid_file",
+      "canonical_html_inert_code_block",
+      "metadata_sidecar_ref"
+    ],
+    "digest": {
+      "schema": "c4_source_digest.v1",
+      "algorithm": "sha256",
+      "format": "sha256:<64 lowercase hex>",
+      "input": "normalized UTF-8 Mermaid source bytes with LF line endings"
+    },
+    "html_code_block": {
+      "tag_path": "pre > code",
+      "allowed_data_attributes": {
+        "data-diagram-format": "mermaid",
+        "data-diagram-role": ["context", "container", "component"],
+        "data-source-digest": "sha256:<64 lowercase hex>",
+        "data-source-origin": ["synthesis_field", "legacy_markdown_mermaid_fence", "standalone_mermaid_file", "canonical_html_inert_code_block", "metadata_sidecar_ref"]
+      },
+      "inert_display_content": true,
+      "allows_mermaid_runtime_execution": false
+    },
+    "postures": [
+      "verified",
+      "missing_source",
+      "malformed_source",
+      "intentionally_empty",
+      "stale_digest",
+      "unsafe_content"
+    ],
+    "sidecar_relationship": {
+      "schema": "metadata_sidecar_ref",
+      "fields": ["document_id", "canonical_path", "section_anchor", "diagram_role", "source_ref", "source_digest", "metadata_only"]
+    },
+    "non_goals": [
+      "Mermaid renderer implementation",
+      "HTML writer behavior",
+      "Lint execution behavior",
+      "Raw rendered SVG authority",
+      "Raw rendered canvas authority",
+      "Portal source-truth authority"
+    ]
+  },
+  "document_identity": {
+    "schema": "doc_identity.v1",
+    "required_fields": [
+      "document_id",
+      "document_type",
+      "schema_version",
+      "source_role",
+      "content_type",
+      "canonical_path",
+      "digest",
+      "title",
+      "status",
+      "lifecycle_state",
+      "generated_at"
+    ],
+    "stable_across_path_moves": [
+      "document_id",
+      "document_type",
+      "schema_version",
+      "source_role",
+      "content_type",
+      "title"
+    ],
+    "recomputed_on_content_change": [
+      "digest"
+    ],
+    "path_move_fields": [
+      "canonical_path"
+    ],
+    "generated_timestamp_semantics": "Fixtures use deterministic timestamps; runtime artifacts may use run timestamps only when stable digests and provenance are also present."
+  },
+  "document_type_catalog": {
+    "schema": "doc_type_catalog.v1",
+    "families": [
+      {
+        "document_type": "prd",
+        "required_anchors": ["document-metadata", "problem", "goals", "requirements", "acceptance"]
+      },
+      {
+        "document_type": "rfc",
+        "required_anchors": ["document-metadata", "context", "proposal", "alternatives", "decision"]
+      },
+      {
+        "document_type": "adr",
+        "required_anchors": ["document-metadata", "context", "decision", "consequences", "status"]
+      },
+      {
+        "document_type": "c4_architecture",
+        "required_anchors": ["document-metadata", "system-context", "containers", "components", "relationships"]
+      },
+      {
+        "document_type": "roadmap",
+        "required_anchors": ["document-metadata", "north-star", "phases", "dependencies", "exit-criteria"]
+      },
+      {
+        "document_type": "phase_plan",
+        "required_anchors": ["document-metadata", "scope", "interfaces", "lanes", "verification"]
+      },
+      {
+        "document_type": "task_catalog",
+        "required_anchors": ["document-metadata", "task-index", "dependencies", "acceptance", "audiences"]
+      },
+      {
+        "document_type": "test_plan",
+        "required_anchors": ["document-metadata", "scope", "test-matrix", "fixtures", "exit-criteria"]
+      },
+      {
+        "document_type": "risk_register",
+        "required_anchors": ["document-metadata", "risks", "mitigations", "owners", "review-cadence"]
+      },
+      {
+        "document_type": "release_readiness",
+        "required_anchors": ["document-metadata", "release-scope", "gates", "evidence", "decision"]
+      },
+      {
+        "document_type": "governance_registry",
+        "required_anchors": ["document-metadata", "governance-scope", "owners", "policies", "ratification"]
+      },
+      {
+        "document_type": "ratification_record",
+        "required_anchors": ["document-metadata", "proposal", "votes", "decision", "audit-citations"]
+      },
+      {
+        "document_type": "audit_status",
+        "required_anchors": ["document-metadata", "audit-scope", "findings", "status", "next-review"]
+      },
+      {
+        "document_type": "runbook",
+        "required_anchors": ["document-metadata", "purpose", "procedures", "rollback", "contacts"]
+      },
+      {
+        "document_type": "executive_brief",
+        "required_anchors": ["document-metadata", "summary", "status", "risks", "next-actions"]
+      }
+    ]
+  },
+  "required_projection_facts": {
+    "schema": "json_projection_boundary.v1",
+    "json_or_jsonl_authoritative": [
+      "lint_results",
+      "task_indexes",
+      "votes",
+      "ratification_records",
+      "audit_events",
+      "runtime_ledger_entries",
+      "evidence_citations",
+      "portal_projection_envelopes",
+      "mutable_run_state"
+    ],
+    "rule": "These facts may be cited from HTML but are not rehydrated from rendered HTML bodies on every downstream read."
+  },
+  "repo_canonical_profile": {
+    "schema": "repo_canonical_profile.v1",
+    "required_fields": [
+      "schema",
+      "repo_id",
+      "adoption_mode",
+      "source_roots",
+      "generated_exclusions",
+      "protected_source_roles",
+      "canonical_document_families",
+      "c4_source_roles",
+      "task_source_roles",
+      "process_source_roles",
+      "display_eligibility",
+      "provenance",
+      "digest",
+      "metadata_only"
+    ],
+    "adoption_modes": [
+      "governed_pipeline_canonical",
+      "brownfield_native_source",
+      "dotfiles_native_source",
+      "metadata_projection_only"
+    ],
+    "source_root_roles": [
+      "active_canonical_source",
+      "unmanaged_native_input",
+      "generated_mirror",
+      "adoption_manifest",
+      "task_source_doc",
+      "process_source_doc",
+      "c4_source_doc",
+      "phase_loop_process_evidence"
+    ],
+    "protected_source_roles": [
+      "raw_secret",
+      "credential",
+      "provider_payload",
+      "raw_private_evidence",
+      "raw_portal_state",
+      "ignored_local_state",
+      "host_absolute_path",
+      "generated_mirror",
+      "rendered_output",
+      "sibling_repo_mutation"
+    ],
+    "canonical_document_families": [
+      "prd",
+      "rfc",
+      "adr",
+      "c4_architecture",
+      "roadmap",
+      "phase_plan",
+      "task_catalog",
+      "test_plan",
+      "risk_register",
+      "release_readiness",
+      "governance_registry",
+      "ratification_record",
+      "audit_status",
+      "runbook",
+      "executive_brief"
+    ],
+    "c4_source_roles": [
+      "canonical_html_inert_code_block",
+      "metadata_sidecar_ref",
+      "standalone_mermaid_file",
+      "legacy_markdown_mermaid_fence"
+    ],
+    "task_source_roles": [
+      "canonical_task_catalog",
+      "task_projection_index",
+      "task_evidence_ref",
+      "portal_task_audience_ref"
+    ],
+    "process_source_roles": [
+      "phase_loop_closeout",
+      "phase_loop_runner_state",
+      "phase_loop_event_summary",
+      "portal_process_ref"
+    ],
+    "generated_exclusions": [
+      ".dev-skills/",
+      ".phase-loop/runs/",
+      "caches",
+      "credentials",
+      "raw_provider_transcripts",
+      "raw_logs",
+      "ignored_files",
+      "raw_portal_state",
+      "generated_mirrors",
+      "rendered_html",
+      "rendered_mermaid",
+      "sanitized_viewer_caches",
+      "dashboard_summaries"
+    ],
+    "display_eligibility": {
+      "rendered_html_is_display_derivative": true,
+      "rendered_mermaid_is_display_derivative": true,
+      "sanitized_viewer_cache_is_display_derivative": true,
+      "dashboard_summary_is_display_derivative": true,
+      "requires_explicit_canonical_mark": true
+    },
+    "authority_denials": {
+      "raw_secrets_are_canonical": false,
+      "credentials_are_canonical": false,
+      "provider_payloads_are_canonical": false,
+      "raw_private_evidence_is_canonical": false,
+      "raw_portal_state_is_canonical": false,
+      "ignored_local_state_is_canonical": false,
+      "host_absolute_paths_are_canonical": false,
+      "generated_dev_skills_mirrors_are_canonical": false,
+      "rendered_svg_is_source_truth": false,
+      "rendered_canvas_is_source_truth": false,
+      "sibling_repo_mutation_authority": false
+    },
+    "fixture_root": "packages/pipeline-runtime/test/fixtures/canonical-html-contract/gpxcontract/",
+    "metadata_only": true
+  },
+  "redaction": {
+    "metadata_only_sidecars": true,
+    "reject_keys_matching": [
+      "secret",
+      "token",
+      "password",
+      "credential",
+      "private_key",
+      "api_key",
+      "authorization",
+      "env_values",
+      "raw_logs",
+      "raw_evidence_text",
+      "raw_portal_state",
+      "provider_payloads"
+    ],
+    "reject_values_matching": [
+      "Bearer <token>",
+      "secret=<value>",
+      "token=<value>",
+      "password=<value>",
+      "authorization=<value>"
+    ],
+    "reject_host_absolute_paths": true,
+    "allow_sha256_citations": true
+  },
+  "legacy_markdown_compatibility": {
+    "legacy_readers_remain_supported": true,
+    "markdown_removal_allowed_in_this_phase": false,
+    "deprecation_owner_phase": "HTMLSOAK",
+    "compatibility_window_schema": "legacy_markdown_compat_window.v1",
+    "deprecation_plan_schema": "markdown_deprecation_plan.v1",
+    "deprecation_plan_ref": "docs/canonical-html-deprecation-plan.md",
+    "markdown_compatibility_mode": "explicit_legacy_import_export"
+  },
+  "portal_projection_ref": {
+    "contract_id": "portalProjectionContract.v1",
+    "schema": "portal_projection.v2",
+    "path": "specs/contracts/portal-projection-contract-v1.json",
+    "metadata_only": true
+  },
+  "non_goals": [
+    "HTML emitter implementation",
+    "Sanitizer implementation",
+    "Linter implementation",
+    "Artifact server behavior",
+    "Portal ingestion behavior",
+    "Portal DB migrations",
+    "Sibling-repo mutation",
+    "Markdown removal",
+    "Raw canonical HTML storage in Portal",
+    "Rendered HTML authority",
+    "Rendered Mermaid authority"
+  ]
+}

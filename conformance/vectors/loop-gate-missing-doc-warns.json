@@ -1,0 +1,16 @@
+{
+  "id": "loop-gate-missing-doc-warns",
+  "description": "Phase 0 missing document checks warn by default.",
+  "input": {
+    "schema": "consiliency.loop_gate_scenario.v1",
+    "gate": "presence",
+    "missing": ["runbook"],
+    "consumer_policy": {"blocking_opt_in": false}
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "warn",
+    "maturity": "presence-only",
+    "findings": [{"code": "presence.missing_doc", "severity": "warn", "message": "Required document is missing at L0."}]
+  }
+}

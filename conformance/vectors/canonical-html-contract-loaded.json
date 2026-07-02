@@ -1,0 +1,15 @@
+{
+  "id": "canonical-html-contract-loaded",
+  "description": "The relocated canonical_html.v1 contract is present with recorded provenance.",
+  "input": {
+    "contract_path": "core/canonical-html/contract-v1.json",
+    "provenance_path": "core/canonical-html/provenance.json",
+    "expected_sha256": "3c0c11b7be8b2301409c47416269dd5579fac90f6e7a4e9ca9c3caef50bd2e28"
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "hash-checked",
+    "findings": []
+  }
+}

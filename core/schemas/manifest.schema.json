@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/manifest.schema.json",
+  "title": ".consiliency manifest",
+  "type": "object",
+  "required": ["schema", "contract_version", "repo", "declaration", "documents", "interfaces"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.manifest.v1"},
+    "contract_version": {"type": "string", "pattern": "^0\\.1\\.0$"},
+    "repo": {
+      "type": "object",
+      "required": ["id", "display_name", "default_branch"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
+        "display_name": {"type": "string", "minLength": 1},
+        "default_branch": {"type": "string", "minLength": 1},
+        "homepage": {"type": "string"}
+      }
+    },
+    "declaration": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["mode"],
+          "additionalProperties": false,
+          "properties": {"mode": {"const": "baseline-only"}}
+        },
+        {
+          "type": "object",
+          "required": ["mode", "archetypes"],
+          "additionalProperties": false,
+          "properties": {
+            "mode": {"const": "archetyped"},
+            "archetypes": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"enum": ["product", "service", "library", "infra", "tooling-meta", "experiment", "document"]}
+            },
+            "modifiers": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"enum": ["data-bearing", "public", "regulated", "user-facing"]}
+            }
+          }
+        }
+      ]
+    },
+    "documents": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/document"},
+      "uniqueItems": true
+    },
+    "interfaces": {"$ref": "#/$defs/repoRelativePath"},
+    "legacy_layouts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/repoRelativePath"}
+    }
+  },
+  "$defs": {
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "not": {"anyOf": [{"pattern": "^/"}, {"pattern": "(^|/)\\.\\.(/|$)"}, {"pattern": "^[A-Za-z]:[\\\\/]"}]}
+    },
+    "externalRef": {
+      "type": "object",
+      "required": ["kind", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"enum": ["org-ref", "url", "opaque-external-ref"]},
+        "value": {"type": "string", "minLength": 1}
+      }
+    },
+    "document": {
+      "type": "object",
+      "required": ["id", "class", "maturity", "target_level", "required"],
+      "oneOf": [
+        {"required": ["path"], "not": {"required": ["ref"]}},
+        {"required": ["ref"], "not": {"required": ["path"]}}
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
+        "class": {"enum": ["intent-ground", "intent-plan", "proj-S", "proj-code", "ops-fact", "static", "index"]},
+        "path": {"$ref": "#/$defs/repoRelativePath"},
+        "ref": {"$ref": "#/$defs/externalRef"},
+        "maturity": {"enum": ["presence-only", "hash-checked", "realized-edge-observed"]},
+        "target_level": {"enum": ["L0", "L1"]},
+        "required": {"type": "boolean"},
+        "last_attested_at": {"type": "string"}
+      }
+    }
+  }
+}

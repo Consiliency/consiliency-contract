@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/canonical-html-v1.schema.json",
+  "title": "canonical_html.v1 package pointer",
+  "type": "object",
+  "required": ["contract_id", "schemas", "dialect", "document_identity", "document_type_catalog"],
+  "additionalProperties": true,
+  "properties": {
+    "contract_id": {"const": "canonicalHtmlContract.v1"},
+    "schemas": {"type": "object"},
+    "dialect": {"type": "object"},
+    "document_identity": {"type": "object"},
+    "document_type_catalog": {"type": "object"}
+  }
+}

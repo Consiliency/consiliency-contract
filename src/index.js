@@ -1,8 +1,48 @@
-// @consiliency/contract — provisioning placeholder (v0.0.x).
-//
-// The normative contract (the `.consiliency/` layout + manifest schema, the archetype
-// registry, required-doc sets, the interface-declaration schema, the loop-gate
-// protocol, `canonical_html.v1`, and the version-skew protocol) lands in 0.1.0 as
-// shared JSON data + conformance vectors, in byte-parity with the PyPI reader.
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 export const CONTRACT_PACKAGE = "@consiliency/contract";
-export const STATUS = "placeholder";
+export const CONTRACT_VERSION = "0.1.0";
+
+const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+
+function readJson(relativePath) {
+  return JSON.parse(readFileSync(join(packageRoot, relativePath), "utf8"));
+}
+
+function assertKnown(mapping, name, type) {
+  const relativePath = mapping[name];
+  if (!relativePath) {
+    throw new Error(`Unknown ${type}: ${name}`);
+  }
+  return relativePath;
+}
+
+export const CONTRACT = readJson("core/contract.json");
+
+export function loadContract() {
+  return readJson("core/contract.json");
+}
+
+export function loadSchema(name) {
+  return readJson(assertKnown(CONTRACT.schemas, name, "schema"));
+}
+
+export function loadRegistry(name) {
+  return readJson(assertKnown(CONTRACT.registries, name, "registry"));
+}
+
+export function listVectors() {
+  return readdirSync(join(packageRoot, CONTRACT.conformance.vector_root))
+    .filter((name) => name.endsWith(".json"))
+    .sort();
+}
+
+export function loadVector(name) {
+  const filename = name.endsWith(".json") ? name : `${name}.json`;
+  if (!listVectors().includes(filename)) {
+    throw new Error(`Unknown vector: ${name}`);
+  }
+  return readJson(join(CONTRACT.conformance.vector_root, filename));
+}

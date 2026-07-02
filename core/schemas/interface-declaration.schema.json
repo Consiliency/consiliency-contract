@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/interface-declaration.schema.json",
+  "title": "Consiliency interface declaration",
+  "type": "object",
+  "required": ["schema", "repo_id", "realized_edges", "promised_edges"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.interface_declaration.v1"},
+    "repo_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
+    "realized_edges": {"type": "array", "items": {"$ref": "#/$defs/edge"}},
+    "promised_edges": {"type": "array", "items": {"$ref": "#/$defs/edge"}}
+  },
+  "$defs": {
+    "repoRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "not": {"anyOf": [{"pattern": "^/"}, {"pattern": "(^|/)\\.\\.(/|$)"}, {"pattern": "^[A-Za-z]:[\\\\/]"}]}
+    },
+    "ref": {
+      "type": "object",
+      "required": ["kind", "value"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {"kind": {"const": "repo-relative-path"}},
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {"value": {"$ref": "#/$defs/repoRelativePath"}}
+          }
+        }
+      ],
+      "properties": {
+        "kind": {"enum": ["git-ref", "package-coordinate", "repo-relative-path", "copied-literal", "opaque-external-ref"]},
+        "value": {"type": "string", "minLength": 1},
+        "path": {"$ref": "#/$defs/repoRelativePath"},
+        "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["ref", "digest"],
+      "additionalProperties": false,
+      "properties": {
+        "ref": {"$ref": "#/$defs/repoRelativePath"},
+        "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["id", "provider_repo", "consumer_repo", "interface_id", "ref", "maturity", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
+        "provider_repo": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
+        "consumer_repo": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
+        "interface_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
+        "ref": {"$ref": "#/$defs/ref"},
+        "maturity": {"enum": ["presence-only", "hash-checked", "realized-edge-observed"]},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
+        "upstream_pin": {"type": "string"}
+      }
+    }
+  }
+}

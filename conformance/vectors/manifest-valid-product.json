@@ -1,0 +1,21 @@
+{
+  "id": "manifest-valid-product",
+  "description": "An archetyped product manifest with repo-relative documents is accepted at L0.",
+  "input": {
+    "schema": "consiliency.manifest.v1",
+    "contract_version": "0.1.0",
+    "repo": {"id": "portal", "display_name": "Consiliency Portal", "default_branch": "main"},
+    "declaration": {"mode": "archetyped", "archetypes": ["product"], "modifiers": ["user-facing"]},
+    "documents": [
+      {"id": "readme", "class": "index", "path": "README.md", "maturity": "presence-only", "target_level": "L0", "required": true},
+      {"id": "contract-version-status", "class": "index", "path": ".consiliency/status.json", "maturity": "presence-only", "target_level": "L0", "required": true}
+    ],
+    "interfaces": ".consiliency/interfaces.json"
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": []
+  }
+}

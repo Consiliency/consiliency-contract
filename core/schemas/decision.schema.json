@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/decision.schema.json",
+  "title": "Consiliency conformance decision",
+  "type": "object",
+  "required": ["schema", "status", "maturity", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.conformance_decision.v1"},
+    "status": {"enum": ["accepted", "rejected", "warn"]},
+    "maturity": {"enum": ["presence-only", "hash-checked", "realized-edge-observed"]},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "severity", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "code": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
+          "severity": {"enum": ["info", "warn", "block"]},
+          "message": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

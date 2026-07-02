@@ -1,16 +1,22 @@
 {
   "name": "@consiliency/contract",
-  "version": "0.0.1",
-  "description": "Consiliency cross-repo contract package: the .consiliency layout, archetype registry, required-doc sets, interface-declaration schema, loop-gate protocol, canonical_html.v1, and the version-skew protocol. Vendored by agent-harness and governed-pipeline; owned by neither. v0.0.x is a provisioning placeholder — contract content lands in 0.1.0.",
+  "version": "0.1.0",
+  "description": "Consiliency cross-repo contract package: shared JSON contract data, conformance vectors, thin npm/PyPI readers, and the canonical_html.v1 public contract surface.",
   "license": "MIT",
   "type": "module",
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "files": [
+    "core",
+    "conformance",
     "src",
     "README.md",
     "LICENSE"
   ],
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "pack:check": "node tests/package-content.test.mjs"
+  },
   "publishConfig": {
     "access": "public"
   },

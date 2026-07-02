@@ -1,0 +1,20 @@
+{
+  "id": "manifest-invalid-path-and-ref",
+  "description": "A document declaration must use exactly one of path or ref.",
+  "input": {
+    "schema": "consiliency.manifest.v1",
+    "contract_version": "0.1.0",
+    "repo": {"id": "bad", "display_name": "Bad", "default_branch": "main"},
+    "declaration": {"mode": "baseline-only"},
+    "documents": [
+      {"id": "readme", "class": "index", "path": "README.md", "ref": {"kind": "url", "value": "https://example.invalid"}, "maturity": "presence-only", "target_level": "L0", "required": true}
+    ],
+    "interfaces": ".consiliency/interfaces.json"
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "rejected",
+    "maturity": "presence-only",
+    "findings": [{"code": "document.path_ref.exclusive", "severity": "block", "message": "Document declarations must use exactly one of path or ref."}]
+  }
+}

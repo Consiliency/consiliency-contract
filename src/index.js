@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const CONTRACT_PACKAGE = "@consiliency/contract";
-export const CONTRACT_VERSION = "0.2.0";
+export const CONTRACT_VERSION = "0.2.1";
 
 const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 

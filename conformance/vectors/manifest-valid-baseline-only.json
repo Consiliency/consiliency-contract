@@ -3,11 +3,16 @@
   "description": "A baseline-only declaration is legal and carries no archetype list.",
   "input": {
     "schema": "consiliency.manifest.v1",
-    "contract_version": "0.2.0",
+    "contract_version": "0.3.0",
     "repo": {"id": "notes", "display_name": "Notes", "default_branch": "main"},
     "declaration": {"mode": "baseline-only"},
     "documents": [
-      {"id": "readme", "class": "index", "path": "README.md", "maturity": "presence-only", "target_level": "L0", "required": true}
+      {"id": "readme", "class": "index", "path": "README.md", "maturity": "presence-only", "target_level": "L0", "required": true},
+      {"id": "doc-contract-index", "class": "index", "path": "docs/CONTRACT_INDEX.md", "maturity": "presence-only", "target_level": "L0", "required": true},
+      {"id": "contract-version-status", "class": "index", "path": ".consiliency/status.json", "maturity": "presence-only", "target_level": "L0", "required": true},
+      {"id": "glossary", "class": "proj-S", "path": "docs/glossary.html", "maturity": "presence-only", "target_level": "L0", "required": true},
+      {"id": "interface-declaration", "class": "index", "path": "docs/INTERFACES.md", "maturity": "presence-only", "target_level": "L0", "required": true},
+      {"id": "codeowners", "class": "index", "path": "CODEOWNERS", "maturity": "presence-only", "target_level": "L0", "required": true}
     ],
     "interfaces": ".consiliency/interfaces.json"
   },

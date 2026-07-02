@@ -29,7 +29,11 @@
         "additionalProperties": false,
         "properties": {
           "by": {"enum": ["path", "glob", "class"]},
-          "value": {"type": "string", "minLength": 1}
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "not": {"anyOf": [{"pattern": "^/"}, {"pattern": "(^|/)\\.\\.(/|$)"}, {"pattern": "^[A-Za-z]:[\\\\/]"}]}
+          }
         }
       }
     },

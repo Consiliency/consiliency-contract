@@ -1,0 +1,19 @@
+{
+  "id": "ignore-set-nested-path-any-depth",
+  "description": "A bare-directory ignore entry (.claude/) matches at ANY depth, so a nested tools/.claude/notes.md is ungoverned even when a governed_set glob would match it.",
+  "input": {
+    "schema": "consiliency.governance_scope_scenario.v1",
+    "adoption": {"adopted": true, "adopted_scope": ["layout"]},
+    "governed_set": [{"by": "glob", "value": "**/*.md"}],
+    "ignore_set": [".claude/"],
+    "facet": "layout",
+    "subject": {"kind": "doc", "path": "tools/.claude/notes.md"}
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "governance.ignored", "severity": "info", "message": "A bare-directory ignore entry matches at any depth; the nested path is ungoverned and never ingested."}]
+  },
+  "expected": {"governed": false, "reason": "ignored-nested"}
+}

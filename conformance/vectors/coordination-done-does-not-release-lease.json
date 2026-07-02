@@ -1,0 +1,38 @@
+{
+  "id": "coordination-done-does-not-release-lease",
+  "description": "Sole-truth guardrail: a done message is advisory. It does NOT release the lease; the projected view still shows the holder. Only an explicit release store op frees the lease.",
+  "input": {
+    "schema": "consiliency.coordination_scenario.v1",
+    "now": "2026-01-01T00:00:30Z",
+    "requested_mode": "soft",
+    "backend": "local-file",
+    "atomic_backend": false,
+    "events": [
+      {"event": "acquire", "lease_id": "lease-src-mod", "holder": "agent-a", "at": "2026-01-01T00:00:00Z", "ttl_seconds": 300, "mode": "soft", "scope": {"granularity": "path-set", "selector": ["src/mod/**"]}, "phase": "implement"}
+    ],
+    "messages": [
+      {"type": "done", "from": "agent-a", "target_lease": "lease-src-mod"}
+    ]
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "coordination.done_advisory_only", "severity": "info", "message": "A done message does not release the lease; the holder still holds it until an explicit release store op."}]
+  },
+  "expected": {
+    "effective_mode": "soft",
+    "changed_by_message": false,
+    "current_lease": {
+      "schema": "consiliency.lease.v1",
+      "lease_id": "lease-src-mod",
+      "holder": "agent-a",
+      "acquired_at": "2026-01-01T00:00:00Z",
+      "ttl_seconds": 300,
+      "heartbeat_at": "2026-01-01T00:00:00Z",
+      "mode": "soft",
+      "scope": {"granularity": "path-set", "selector": ["src/mod/**"]},
+      "phase": "implement"
+    }
+  }
+}

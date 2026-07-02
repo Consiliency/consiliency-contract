@@ -1,0 +1,38 @@
+{
+  "id": "coordination-announce-intent-does-not-lease",
+  "description": "Sole-truth guardrail: an announce-intent message from a non-holder does NOT create or transfer a lease. The projected view still shows the original holder; announcing intent never grants a lease.",
+  "input": {
+    "schema": "consiliency.coordination_scenario.v1",
+    "now": "2026-01-01T00:00:30Z",
+    "requested_mode": "soft",
+    "backend": "local-file",
+    "atomic_backend": false,
+    "events": [
+      {"event": "acquire", "lease_id": "lease-src-mod", "holder": "agent-a", "at": "2026-01-01T00:00:00Z", "ttl_seconds": 300, "mode": "soft", "scope": {"granularity": "path-set", "selector": ["src/mod/**"]}, "phase": "implement"}
+    ],
+    "messages": [
+      {"type": "announce-intent", "from": "agent-b", "target_lease": "lease-src-mod"}
+    ]
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "coordination.announce_intent_advisory_only", "severity": "info", "message": "Announce-intent is advisory; it does not create or transfer a lease. agent-a remains the holder."}]
+  },
+  "expected": {
+    "effective_mode": "soft",
+    "changed_by_message": false,
+    "current_lease": {
+      "schema": "consiliency.lease.v1",
+      "lease_id": "lease-src-mod",
+      "holder": "agent-a",
+      "acquired_at": "2026-01-01T00:00:00Z",
+      "ttl_seconds": 300,
+      "heartbeat_at": "2026-01-01T00:00:00Z",
+      "mode": "soft",
+      "scope": {"granularity": "path-set", "selector": ["src/mod/**"]},
+      "phase": "implement"
+    }
+  }
+}

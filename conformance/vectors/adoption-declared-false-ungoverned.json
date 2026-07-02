@@ -1,0 +1,17 @@
+{
+  "id": "adoption-declared-false-ungoverned",
+  "description": "An explicit adopted:false profile is a recorded declaration of non-adoption: the repo is ungoverned for every doc even when a governed_set selector would match. It is the auditable form of having no profile at all.",
+  "input": {
+    "schema": "consiliency.governance_scope_scenario.v1",
+    "adoption": {"adopted": false, "adopted_scope": []},
+    "governed_set": [{"by": "path", "value": "README.md"}],
+    "subject": {"kind": "doc", "path": "README.md"}
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [{"code": "governance.adoption_declined", "severity": "info", "message": "Adoption is explicitly declined (adopted:false); the document is ungoverned."}]
+  },
+  "expected": {"governed": false, "reason": "adoption-declined"}
+}

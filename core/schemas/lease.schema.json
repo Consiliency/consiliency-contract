@@ -9,14 +9,18 @@
     "schema": {"const": "consiliency.lease.v1"},
     "lease_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.:-]*$"},
     "holder": {"type": "string", "minLength": 1},
-    "acquired_at": {"type": "string", "minLength": 1},
-    "ttl_seconds": {"type": "integer", "minimum": 1},
-    "heartbeat_at": {"type": "string", "minLength": 1},
+    "acquired_at": {"$ref": "#/$defs/isoTimestamp"},
+    "ttl_seconds": {"type": "integer", "minimum": 1, "maximum": 7200},
+    "heartbeat_at": {"$ref": "#/$defs/isoTimestamp"},
     "mode": {"enum": ["soft", "hard"]},
     "scope": {"$ref": "#/$defs/scope"},
     "phase": {"type": "string", "minLength": 1}
   },
   "$defs": {
+    "isoTimestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
     "scope": {
       "type": "object",
       "required": ["granularity", "selector"],

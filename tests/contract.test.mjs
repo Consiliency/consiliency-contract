@@ -154,13 +154,67 @@ test("coordination inbox messages never mutate lease state (sole-truth guardrail
 });
 
 test("coordination protocols pin the sole-truth guardrail", () => {
-  const channel = loadSchema("coordination_channel_protocol").properties.authority.properties;
-  assert.equal(channel.inbox_authoritative.const, false);
-  assert.equal(channel.message_may_mutate_lease.const, false);
-  assert.equal(channel.message_leads_to_store_op.const, true);
+  const channel = loadSchema("coordination_channel_protocol").properties;
+  assert.equal(channel.authority.properties.inbox_authoritative.const, false);
+  assert.equal(channel.authority.properties.message_may_mutate_lease.const, false);
+  assert.equal(channel.authority.properties.message_prompts_actor_to_call_store_op.const, true);
+  assert.equal(channel.lease_state_projection.properties.formula.const, "current_lease = project(lease-store events, now)");
+  assert.equal(channel.lease_state_projection.properties.inbox_included_in_projection.const, false);
   const store = loadSchema("lease_store_protocol").properties;
   assert.equal(store.source_of_truth.const, "lease-store");
   assert.equal(store.atomicity.properties.hard_requires_atomic_acquire.const, true);
   assert.equal(store.atomicity.properties.degrade_without_atomic_backend.const, "soft");
   assert.equal(store.granularity_ladder.properties.out_of_scope.const, "line");
+  assert.equal(store.expiry.properties.expires_at_formula.const, "heartbeat_at + ttl_seconds");
+  assert.equal(store.expiry.properties.boundary.const, "exclusive");
+  assert.equal(store.operation_semantics.properties.renew.properties.holder_only.const, true);
+  assert.equal(store.operation_semantics.properties.release.properties.holder_only.const, true);
+});
+
+// Reference projection: fold the lease-EVENT stream ONLY (coordination messages
+// are structurally excluded), then apply heartbeat-anchored, exclusive-boundary
+// TTL expiry at `now`. This makes the sole-truth guardrail a computed proof and
+// validates each fixture's expiry math.
+function projectLeaseView(input) {
+  const mode = input.requested_mode === "hard" && input.atomic_backend === true ? "hard" : "soft";
+  const parse = (iso) => Date.parse(iso) / 1000;
+  let lease = null;
+  for (const e of input.events ?? []) {
+    if (e.event === "acquire") {
+      lease = {
+        schema: "consiliency.lease.v1",
+        lease_id: e.lease_id,
+        holder: e.holder,
+        acquired_at: e.at,
+        ttl_seconds: e.ttl_seconds,
+        heartbeat_at: e.at,
+        mode,
+        scope: e.scope,
+        phase: e.phase,
+      };
+    } else if (e.event === "renew") {
+      if (lease && lease.lease_id === e.lease_id && lease.holder === e.holder) {
+        lease = { ...lease, heartbeat_at: e.at };
+      }
+    } else if (e.event === "release" || e.event === "expire") {
+      if (lease && lease.lease_id === e.lease_id) lease = null;
+    }
+  }
+  if (lease && parse(input.now) >= parse(lease.heartbeat_at) + lease.ttl_seconds) {
+    lease = null; // exclusive boundary: expired at now == expires_at
+  }
+  return { current_lease: lease, effective_mode: mode };
+}
+
+test("coordination current-lease view equals the events-only projection (messages excluded)", () => {
+  let seen = 0;
+  for (const name of listVectors()) {
+    const vector = loadVector(name);
+    if (vector.input.schema !== "consiliency.coordination_scenario.v1") continue;
+    seen += 1;
+    const projected = projectLeaseView(vector.input);
+    assert.deepEqual(projected.current_lease, vector.expected.current_lease ?? null, `${name}: current_lease`);
+    assert.equal(projected.effective_mode, vector.expected.effective_mode, `${name}: effective_mode`);
+  }
+  assert.ok(seen >= 8, "expected coordination vectors to project");
 });

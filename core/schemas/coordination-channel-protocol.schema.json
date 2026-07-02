@@ -2,12 +2,21 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://consiliency.io/contracts/coordination-channel-protocol.schema.json",
   "title": "Consiliency coordination channel protocol",
-  "description": "The CoordinationChannel (inbox) interface. GUARDRAIL: the inbox is NEVER authoritative for lock state. A message never mutates a lease; it only leads to a lease-store operation. The lease store is the sole source of truth.",
+  "description": "The CoordinationChannel (inbox) interface. GUARDRAIL: the inbox is NEVER authoritative for lock state. Lease state is defined solely by projecting the LeaseStore event stream: current_lease = project(LeaseStore events, now), computed independently of inbox contents. A coordination message is not a lease event and never becomes one: it may PROMPT an actor to CALL a LeaseStore operation (acquire/renew/release), but the message itself never mutates, transfers, or transitions a lease. Excluding messages from the projection is normative, not incidental.",
   "type": "object",
-  "required": ["schema", "operations", "message_types", "delivery", "authority"],
+  "required": ["schema", "operations", "message_types", "delivery", "authority", "lease_state_projection"],
   "additionalProperties": false,
   "properties": {
     "schema": {"const": "consiliency.coordination_channel_protocol.v1"},
+    "lease_state_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["formula", "inbox_included_in_projection"],
+      "properties": {
+        "formula": {"const": "current_lease = project(lease-store events, now)"},
+        "inbox_included_in_projection": {"const": false}
+      }
+    },
     "operations": {
       "type": "array",
       "uniqueItems": true,
@@ -26,7 +35,10 @@
       "properties": {
         "inbox_authoritative": {"const": false},
         "message_may_mutate_lease": {"const": false},
-        "message_leads_to_store_op": {"const": true}
+        "message_prompts_actor_to_call_store_op": {
+          "const": true,
+          "description": "A message may cause an actor (a human or agent) to CALL a LeaseStore operation. It does not itself become or trigger a store mutation; the actor's explicit acquire/renew/release is the only thing that changes lease state."
+        }
       }
     },
     "omniagent_plus_mapping": {

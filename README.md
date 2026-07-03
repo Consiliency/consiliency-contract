@@ -18,7 +18,13 @@ The Consiliency cross-repo **contract package** — the single, neutral rulebook
 
 Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/@consiliency/contract) + **PyPI** [`consiliency-contract`](https://pypi.org/project/consiliency-contract/), from shared JSON data + conformance vectors so the two language readers stay byte-identical.
 
-> **Status — `0.5.0` adds the XG-1 Slice 1 authority-event contract core: the
+> **Status — `0.5.1` pins the authority canonical-bytes to spec **canon-core v2**
+> (`canonical_bytes`, not a 4th canon — proven byte-identical + digest-pinned in
+> `core/authority-canon/provenance.json`) and applies the settled XG-4
+> domain-separation decision: the Ed25519 signature covers the authority-profile
+> digest preimage `spec-canon:v2:authority\n ‖ canonical_bytes(core)`, converging
+> to zero re-signing when canon-core adds the profile. `0.5.0` added the XG-1
+> Slice 1 authority-event contract core: the
 > `authority_event_protocol.v1` schema (core/chain signing split), the
 > `authority_key_registry.v1` Ed25519 root of trust, the canonical-bytes interop
 > algorithm + Ed25519 verify reference in both readers, and 13 forgery

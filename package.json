@@ -1,6 +1,6 @@
 {
   "name": "@consiliency/contract",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Consiliency cross-repo contract package: shared JSON contract data, conformance vectors, thin npm/PyPI readers, and the canonical_html.v1 public contract surface.",
   "license": "MIT",
   "type": "module",

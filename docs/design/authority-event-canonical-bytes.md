@@ -1,13 +1,62 @@
 # Authority-event canonical bytes — the interop contract
 
-This is the **normative** definition of the bytes an authority event's signature
-covers. It is the interop contract between the Portal signer (Python), the spec
-ledger (Python), and the governed-pipeline (gp) verifier (dependency-free JS on
-Node 20). The two reference implementations —
-[`consiliency_contract/authority.py`](../../consiliency_contract/authority.py)
-and [`src/authority.js`](../../src/authority.js) — MUST produce byte-identical
-output for every input, and the conformance suite proves it empirically
-(`authority canonical core bytes match the Python reference byte-for-byte`).
+This is the definition of the bytes an authority event's signature covers, the
+interop contract between the Portal signer (Python), the spec ledger (Python),
+and the governed-pipeline (gp) verifier (dependency-free JS on Node 20).
+
+## Canon ownership — this is NOT a new canon
+
+The signed-core bytes **are** spec **canon-core v2** `canonical_bytes(core)`
+(normative source: `spec/canon/SPEC.md`, `spec/canon/py/canon.py`,
+`spec/canon/ts/canon.ts`). This contract does **not** author its own
+canonicalization — that is exactly the mistake (three incompatible "authority"
+shapes) that XG-1 exists to fix. Instead it carries a **metadata-safe-ASCII /
+integer-only PORT** of that one algorithm — the **authority profile** — where
+non-ASCII, floats, and null are **fail-closed rejected by design** (amendment
+#3). That restriction is the whole point: it is precisely the subset on which
+canon-core v2's full rules (raw non-ASCII emission, control-char escaping, astral
+code-point sort, bigint) and this port emit **identical bytes**, with none of the
+divergence-prone machinery reachable.
+
+Parity is enforced two ways, both durable:
+
+- **Per-vector byte pin** — every vector carries `input.canon_core_v2_bytes`,
+  produced by running spec's real `canon.py` at generation time (an independent
+  witness, not this port). The committed tests
+  (`authority signed-core bytes are pinned byte-identical to canon-core v2`)
+  assert `canonicalCoreBytes(core).hex() == canon_core_v2_bytes` — an offline,
+  spec-free proof in contract CI.
+- **Digest-pinned source** — [`core/authority-canon/provenance.json`](../../core/authority-canon/provenance.json)
+  records the spec commit + SHA-256 of `canon.py`/`canon.ts`/`SPEC.md` the port
+  was proven against; a change to spec's canon trips re-verification. A live
+  skip-when-absent gate (`scripts/authority_canon_parity.py`) additionally checks
+  the pins against the *current* spec canon when a checkout is present.
+
+## Signature domain separation (SETTLED — XG-4 decision, 2026-07-03)
+
+The Ed25519 signature covers the **domain-prefixed authority-profile digest
+preimage**, NOT bare bytes:
+
+```
+signing_preimage(core) = "spec-canon:v2:authority\n"  ‖  canonical_bytes(core)
+ed25519_signature       = Sign(private_key, signing_preimage(core))
+```
+
+This prevents cross-context signature reuse and matches canon-core v2's rule of
+domain-prefixing **every** profile (`spec-canon:v2:<profile>\n`). canon-core v2
+does not yet register an `authority` profile (its four are `semantic-content`,
+`run`, `artifact-byte`, `certificate`); XG-4 will add it. The prefix above is
+**byte-identical** to what `canon.digest(core, "authority")` will hash once XG-4
+lands, so there is **zero re-signing** at XG-4 — the convergence obligation. A
+generator + live-gate check asserts the prefix equals canon-core v2's
+`_DOMAIN_PREFIX + "authority\n"` so it cannot silently drift.
+
+`canonicalCoreBytes(core)` / `canonical_core_bytes(core)` remain the canon-core v2
+canonical bytes (pinned per vector as `input.canon_core_v2_bytes`);
+`authoritySigningPreimage` / `authority_signing_preimage` prepend the domain
+prefix and are what the signature actually covers.
+
+The rest of this document specifies the port precisely.
 
 Related contract artifacts:
 
@@ -98,7 +147,7 @@ authoritative for scheme and public key, never the event's self-declared fields:
 | 8 | `core.approver` == the key's registered approver | `signer_approver_mismatch` |
 | 9 | `core.cert_digest` == caller's `expected_cert_digest` | `cert_digest_mismatch` |
 | 10 | `now` within `core.validity` | `core_validity_expired` |
-| 11 | Ed25519 verify over `canonical_core_bytes(core)` | `bad_signature` |
+| 11 | Ed25519 verify over `authoritySigningPreimage(core)` (prefix ‖ canonical bytes) | `bad_signature` |
 | — | all pass | `ok: true`, `verified` |
 
 `expected_cert_digest` (the digest of the cert being ratified) and `now` are

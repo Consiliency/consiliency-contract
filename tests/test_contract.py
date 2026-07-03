@@ -19,6 +19,7 @@ from consiliency_contract import (
     load_vector,
 )
 from consiliency_contract.authority import (
+    authority_signing_preimage,
     canonical_core_bytes,
     canonicalize_core,
     verify_authority_event,
@@ -31,8 +32,8 @@ def _stable_jcs(value: object) -> str:
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.5.0")
-        self.assertEqual(load_contract()["contract_version"], "0.5.0")
+        self.assertEqual(CONTRACT_VERSION, "0.5.1")
+        self.assertEqual(load_contract()["contract_version"], "0.5.1")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")
@@ -303,6 +304,56 @@ class ContractReaderTest(unittest.TestCase):
     def _authority_vector_names() -> list[str]:
         return [name for name in list_vectors() if name.startswith("authority-")]
 
+    @classmethod
+    def _validate_against(cls, schema: dict, value: object, root: dict) -> bool:
+        # Compact validator for the constructs the authority schema uses
+        # ($ref/$defs, const, enum, type, pattern, minLength, required,
+        # additionalProperties:false, properties) — no jsonschema dependency.
+        if "$ref" in schema:
+            node: object = root
+            for key in schema["$ref"].lstrip("#/").split("/"):
+                node = node[key]  # type: ignore[index]
+            return cls._validate_against(node, value, root)  # type: ignore[arg-type]
+        if "const" in schema:
+            return value == schema["const"]
+        if "enum" in schema:
+            return value in schema["enum"]
+        if schema.get("type") == "string":
+            if not isinstance(value, str):
+                return False
+            if "minLength" in schema and len(value) < schema["minLength"]:
+                return False
+            if "pattern" in schema and not re.match(schema["pattern"], value):
+                return False
+            return True
+        if schema.get("type") == "object" or "properties" in schema:
+            if not isinstance(value, dict):
+                return False
+            props = schema.get("properties", {})
+            for req in schema.get("required", []):
+                if req not in value:
+                    return False
+            if schema.get("additionalProperties") is False:
+                for key in value:
+                    if key not in props:
+                        return False
+            return all(key not in props or cls._validate_against(props[key], entry, root) for key, entry in value.items())
+        return True
+
+    def test_authority_vectors_match_schema_valid_flag(self) -> None:
+        schema = load_schema("authority_event_protocol")
+        saw_valid_conform = saw_invalid = False
+        for name in self._authority_vector_names():
+            vector = load_vector(name)
+            conforms = self._validate_against(schema, vector["input"]["event"], schema)
+            self.assertEqual(conforms, vector["expected"]["schema_valid"], f"{name}: schema conformance")
+            if vector["id"] == "authority-valid":
+                saw_valid_conform = conforms
+            if not vector["expected"]["schema_valid"]:
+                saw_invalid = True
+        self.assertTrue(saw_valid_conform, "the valid vector must conform to the shipped schema")
+        self.assertTrue(saw_invalid, "at least one malformed vector must be rejected by the shipped schema")
+
     def test_authority_schema_pins_core_chain_split(self) -> None:
         schema = load_schema("authority_event_protocol")
         self.assertEqual(schema["properties"]["schema"]["const"], "consiliency.authority_event_protocol.v1")
@@ -379,6 +430,66 @@ class ContractReaderTest(unittest.TestCase):
         for name in self._authority_vector_names():
             core = load_vector(name)["input"]["event"]["core"]
             self.assertEqual(canonicalize_core(core), _stable_jcs(core), f"{name}: canonicalizer must equal sorted JSON")
+
+    def test_authority_signature_covers_prefixed_preimage(self) -> None:
+        # Domain separation (XG-4): the signature covers spec-canon:v2:authority\n
+        # || canonical_bytes(core), NOT bare bytes. Proven: the valid signature
+        # verifies over the preimage and FAILS over the bare bytes.
+        from cryptography.exceptions import InvalidSignature
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+        reg = load_registry("authority_key_registry")
+        vector = load_vector("authority-valid")
+        core = vector["input"]["event"]["core"]
+        key = next(k for k in reg["keys"] if k["key_id"] == core["key_id"])
+        pub = Ed25519PublicKey.from_public_bytes(bytes.fromhex(key["public_key"]))
+        sig = bytes.fromhex(vector["input"]["event"]["signature"]["signature"])
+        pub.verify(sig, authority_signing_preimage(core))  # verifies over the preimage
+        with self.assertRaises(InvalidSignature):
+            pub.verify(sig, canonical_core_bytes(core))  # must NOT verify over bare bytes
+        self.assertEqual(
+            authority_signing_preimage(core),
+            b"spec-canon:v2:authority\n" + canonical_core_bytes(core),
+        )
+
+    def test_authority_bytes_pinned_to_canon_core_v2(self) -> None:
+        # The signed bytes ARE canon-core v2 canonical_bytes(core); our canonicalizer
+        # is a metadata-safe/integer-only PORT. The pin was produced from spec's
+        # canon.py, so this proves parity offline (see core/authority-canon/provenance.json).
+        for name in self._authority_vector_names():
+            vector = load_vector(name)
+            self.assertEqual(
+                canonical_core_bytes(vector["input"]["event"]["core"]).hex(),
+                vector["input"]["canon_core_v2_bytes"],
+                f"{vector['id']}: signed-core bytes must equal the pinned canon-core v2 canonical_bytes",
+            )
+
+    def test_authority_canon_provenance_pins_spec_source(self) -> None:
+        from pathlib import Path
+
+        prov = json.loads(Path("core/authority-canon/provenance.json").read_text(encoding="utf-8"))
+        self.assertEqual(prov["schema"], "consiliency.authority_canon_provenance.v1")
+        self.assertEqual(prov["canon_version"], "spec-canon:v2")
+        self.assertRegex(prov["normative_source"]["files"]["canon/py/canon.py"], r"^[0-9a-f]{64}$")
+        self.assertIn("spec-canon:v2:authority", prov["authority_profile"]["signed_preimage"])
+        self.assertIn("SETTLED", prov["authority_profile"]["domain_separation"])
+
+    def test_authority_canon_parity_gate(self) -> None:
+        # Confirms the committed pins still match the CURRENT spec canon; skips
+        # (does not vacuously pass) when no spec checkout is present.
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        proc = subprocess.run(
+            [sys.executable, "scripts/authority_canon_parity.py"],
+            cwd=root, capture_output=True, text=True,
+        )
+        report = json.loads(proc.stdout.strip())
+        if report["status"] == "skip":
+            self.skipTest(report["reason"])
+        self.assertEqual(report["status"], "pass", report)
 
     def test_authority_canonicalizer_is_fail_closed(self) -> None:
         from consiliency_contract.authority import AuthorityCanonicalError

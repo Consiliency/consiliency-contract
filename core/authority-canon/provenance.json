@@ -1,0 +1,21 @@
+{
+  "schema": "consiliency.authority_canon_provenance.v1",
+  "$comment": "The authority signed-core bytes ARE canon-core v2 `canonical_bytes(core)`. This contract carries a metadata-safe-ASCII / integer-only PORT of that one normative algorithm (the AUTHORITY PROFILE — non-ASCII/float/null are fail-closed rejected by design, amendment #3), NOT a fourth canon. These digests pin the exact spec canon-core v2 source the port was proven byte-identical against; a change here must re-verify parity.",
+  "canon_version": "spec-canon:v2",
+  "normative_source": {
+    "repo": "spec",
+    "spec_commit": "8b7903ac3f688f66afe082a910e566964ae08e75",
+    "files": {
+      "canon/py/canon.py": "c07bbe85508f36ce53d0d859dce42f607382b3ccacca138d07389dc8fe1765c1",
+      "canon/ts/canon.ts": "0ccfb5b3fda31afd8bf887648bd0181916d138c1acec6bc5e912b3cfb155fa21",
+      "canon/SPEC.md": "d318ef13bf584d335434b32947618f1d39c56a21f1fa673fbe49973fa7620e91"
+    }
+  },
+  "authority_profile": {
+    "signed_preimage": "\"spec-canon:v2:authority\\n\" || canon_core_v2.canonical_bytes(core)",
+    "canonical_bytes": "canon_core_v2.canonical_bytes(core) (pinned per vector as input.canon_core_v2_bytes)",
+    "field_constraints": "every signed-core string is metadata-safe ASCII (0x21-0x7E minus '\"' and '\\\\'); no floats/NaN/Inf; no null; ASCII snake_case keys",
+    "signature": "ed25519 over the signed_preimage above",
+    "domain_separation": "SETTLED (XG-4 decision, 2026-07-03): the signature covers the DOMAIN-PREFIXED authority-profile digest preimage `spec-canon:v2:authority\\n || canonical_bytes(core)`, NOT bare bytes — preventing cross-context signature reuse and matching canon-core v2's per-profile prefixing. canon-core v2 does not yet register an `authority` profile (the four are semantic-content, run, artifact-byte, certificate); this prefix is byte-identical to what `canon.digest(core, \"authority\")` will hash once XG-4 adds it, so there is ZERO re-signing at XG-4 (the convergence obligation)."
+  }
+}

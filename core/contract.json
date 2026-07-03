@@ -1,6 +1,6 @@
 {
   "contract_id": "consiliency.contract.v1",
-  "contract_version": "0.5.0",
+  "contract_version": "0.5.1",
   "package_names": {
     "npm": "@consiliency/contract",
     "pypi": "consiliency-contract"
@@ -54,6 +54,9 @@
   "canonical_html": {
     "contract": "core/canonical-html/contract-v1.json",
     "provenance": "core/canonical-html/provenance.json"
+  },
+  "authority_canon": {
+    "provenance": "core/authority-canon/provenance.json"
   },
   "conformance": {
     "vector_root": "conformance/vectors",

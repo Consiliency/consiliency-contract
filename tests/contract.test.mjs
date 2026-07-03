@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { createHash, createPublicKey, verify as cryptoVerify } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -8,6 +8,7 @@ import test from "node:test";
 import {
   CONTRACT,
   CONTRACT_VERSION,
+  authoritySigningPreimage,
   canonicalCoreBytes,
   canonicalizeCore,
   listVectors,
@@ -51,8 +52,8 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.5.0");
-  assert.equal(loadContract().contract_version, "0.5.0");
+  assert.equal(CONTRACT_VERSION, "0.5.1");
+  assert.equal(loadContract().contract_version, "0.5.1");
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
   assert.equal(loadSchema("manifest").properties.schema.const, "consiliency.manifest.v1");
@@ -435,6 +436,36 @@ function authorityVectorNames() {
   return listVectors().filter((name) => name.startsWith("authority-"));
 }
 
+// A compact JSON-Schema validator covering exactly the constructs the
+// authority-event schema uses ($ref/$defs, const, enum, type, pattern,
+// minLength, required, additionalProperties:false, properties). Enough to prove
+// the shipped schema actually accepts the valid event and rejects the malformed
+// forgeries — without adding an ajv dependency the repo doesn't carry.
+function validateAgainst(schema, value, root) {
+  if (schema.$ref) {
+    const node = schema.$ref.replace(/^#\//, "").split("/").reduce((acc, key) => acc[key], root);
+    return validateAgainst(node, value, root);
+  }
+  if ("const" in schema) return value === schema.const;
+  if (schema.enum) return schema.enum.includes(value);
+  if (schema.type === "string") {
+    if (typeof value !== "string") return false;
+    if (schema.minLength != null && value.length < schema.minLength) return false;
+    if (schema.pattern && !new RegExp(schema.pattern, "u").test(value)) return false;
+    return true;
+  }
+  if (schema.type === "object" || schema.properties) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    const props = schema.properties || {};
+    for (const req of schema.required || []) if (!(req in value)) return false;
+    if (schema.additionalProperties === false) {
+      for (const key of Object.keys(value)) if (!(key in props)) return false;
+    }
+    return Object.entries(value).every(([key, entry]) => !props[key] || validateAgainst(props[key], entry, root));
+  }
+  return true;
+}
+
 test("authority-event protocol schema pins the core/chain signing split", () => {
   const schema = loadSchema("authority_event_protocol");
   assert.equal(schema.properties.schema.const, "consiliency.authority_event_protocol.v1");
@@ -527,6 +558,60 @@ test("authority canonicalizer equals the constrained JCS form (JS)", () => {
   }
 });
 
+test("the authority signature covers the domain-prefixed preimage, not bare bytes", () => {
+  // Domain separation (XG-4 decision): the signature covers
+  // `spec-canon:v2:authority\n` ‖ canonical_bytes(core), NOT bare bytes. Proven
+  // key-free: the valid vector's signature verifies over the preimage and FAILS
+  // over the bare bytes.
+  const reg = loadRegistry("authority_key_registry");
+  const vector = loadVector("authority-valid");
+  const core = vector.input.event.core;
+  const key = reg.keys.find((k) => k.key_id === core.key_id);
+  const der = Buffer.concat([Buffer.from("302a300506032b6570032100", "hex"), Buffer.from(key.public_key, "hex")]);
+  const pub = createPublicKey({ key: der, format: "der", type: "spki" });
+  const sig = Buffer.from(vector.input.event.signature.signature, "hex");
+  const preimage = authoritySigningPreimage(core);
+  const bare = canonicalCoreBytes(core);
+  assert.equal(cryptoVerify(null, preimage, pub, sig), true, "signature must verify over the prefixed preimage");
+  assert.equal(cryptoVerify(null, bare, pub, sig), false, "signature must NOT verify over bare canonical bytes");
+  // The preimage is exactly the authority-profile prefix ‖ canon-core v2 bytes.
+  assert.equal(preimage.toString("latin1"), "spec-canon:v2:authority\n" + bare.toString("latin1"));
+});
+
+test("authority signed-core bytes are pinned byte-identical to canon-core v2", () => {
+  // The signed bytes ARE canon-core v2 `canonical_bytes(core)`; our canonicalizer
+  // is a metadata-safe/integer-only PORT of that one algorithm, not a 4th canon.
+  // The pin is produced from spec's canon.py at generation time, so this is an
+  // offline, committed proof of parity (see core/authority-canon/provenance.json).
+  for (const name of authorityVectorNames()) {
+    const vector = loadVector(name);
+    assert.equal(
+      canonicalCoreBytes(vector.input.event.core).toString("hex"),
+      vector.input.canon_core_v2_bytes,
+      `${vector.id}: signed-core bytes must equal the pinned canon-core v2 canonical_bytes`,
+    );
+  }
+});
+
+test("the canon-core v2 provenance pins the spec canon source", () => {
+  const prov = JSON.parse(readFileSync("core/authority-canon/provenance.json", "utf8"));
+  assert.equal(prov.schema, "consiliency.authority_canon_provenance.v1");
+  assert.equal(prov.canon_version, "spec-canon:v2");
+  assert.match(prov.normative_source.files["canon/py/canon.py"], /^[0-9a-f]{64}$/);
+  assert.match(prov.authority_profile.signed_preimage, /spec-canon:v2:authority/);
+  assert.match(prov.authority_profile.domain_separation, /SETTLED/);
+});
+
+test("committed canon pins still match the CURRENT spec canon-core v2 (skips without spec)", (t) => {
+  const proc = spawnSync("python3", ["scripts/authority_canon_parity.py"], { encoding: "utf8" });
+  const report = JSON.parse(proc.stdout.trim());
+  if (report.status === "skip") {
+    t.skip(report.reason);
+    return;
+  }
+  assert.equal(report.status, "pass", JSON.stringify(report));
+});
+
 test("authority canonical core bytes match the Python reference byte-for-byte", () => {
   const py = JSON.parse(execFileSync("python3", ["scripts/authority_canonical_dump.py"], { encoding: "utf8" }));
   for (const name of authorityVectorNames()) {
@@ -534,6 +619,21 @@ test("authority canonical core bytes match the Python reference byte-for-byte", 
     const jsHex = canonicalCoreBytes(vector.input.event.core).toString("hex");
     assert.equal(jsHex, py[vector.id], `${vector.id}: JS and Python canonical core bytes must be identical`);
   }
+});
+
+test("authority vectors conform (or not) to the shipped protocol schema as flagged", () => {
+  const schema = loadSchema("authority_event_protocol");
+  let sawValidConform = false;
+  let sawInvalid = false;
+  for (const name of authorityVectorNames()) {
+    const vector = loadVector(name);
+    const conforms = validateAgainst(schema, vector.input.event, schema);
+    assert.equal(conforms, vector.expected.schema_valid, `${name}: schema conformance vs schema_valid flag`);
+    if (vector.id === "authority-valid") sawValidConform = conforms;
+    if (!vector.expected.schema_valid) sawInvalid = true;
+  }
+  assert.ok(sawValidConform, "the valid vector must conform to the shipped schema");
+  assert.ok(sawInvalid, "at least one malformed vector must be rejected by the shipped schema");
 });
 
 test("the canonicalizer is fail-closed on ambiguous input", () => {

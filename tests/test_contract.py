@@ -32,18 +32,34 @@ def _stable_jcs(value: object) -> str:
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.5.1")
-        self.assertEqual(load_contract()["contract_version"], "0.5.1")
+        self.assertEqual(CONTRACT_VERSION, "0.6.0")
+        self.assertEqual(load_contract()["contract_version"], "0.6.0")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")
         self.assertGreaterEqual(len(list_vectors()), 10)
 
     def test_vector_decisions_are_phase0_safe(self) -> None:
+        certified_tiers = set(load_registry("maturity_labels")["phase0_disallowed"])
+        self.assertEqual(certified_tiers, {"certified", "parity-certified", "authority-certified"})
         for name in list_vectors():
             vector = load_vector(name)
             self.assertEqual(vector["decision"]["schema"], "consiliency.conformance_decision.v1", name)
-            self.assertNotEqual(vector["decision"]["maturity"], "certified", name)
+            self.assertNotIn(vector["decision"]["maturity"], certified_tiers, name)
+
+    def test_certified_label_rescope_cs1_4(self) -> None:
+        # CS-1.4: the bare 'certified' evidence label is split into two honest
+        # tiers. 'certified' survives ONLY as a deprecated alias of
+        # parity-certified (never authority-certified — aliasing an unratified
+        # artifact upward would manufacture the false-green this rescope exists
+        # to close).
+        labels = {label["id"]: label for label in load_registry("maturity_labels")["labels"]}
+        for label_id in ("parity-certified", "authority-certified"):
+            self.assertIn(label_id, labels)
+            self.assertEqual(labels[label_id]["kind"], "evidence")
+            self.assertFalse(labels[label_id].get("deprecated", False))
+        self.assertTrue(labels["certified"].get("deprecated"))
+        self.assertEqual(labels["certified"].get("deprecated_alias_of"), "parity-certified")
 
     def test_dynamic_loaders_reject_unknown_names_and_traversal(self) -> None:
         with self.assertRaises(ValueError):
@@ -273,12 +289,24 @@ class ContractReaderTest(unittest.TestCase):
             self.assertNotIn(f, entry["required"], f)
         code_block = next(b for b in entry["allOf"] if "proj-code-sbom" in b["if"]["properties"]["kind"].get("enum", []))
         cert_block = next(b for b in entry["allOf"] if b["if"]["properties"]["kind"].get("const") == "proj-S-certified")
-        # proj-code: two-sided cap at [presence-only, hash-checked].
+        # proj-code: two-sided cap at [presence-only, hash-checked] — CS-1.4
+        # keeps this cap unchanged, so proj-code can reach neither certified
+        # tier (parity-certified nor authority-certified).
         self.assertEqual(sorted(code_block["then"]["required"]), ["facts_digest", "facts_path", "pinned_commit"])
-        self.assertEqual(code_block["then"]["properties"]["maturity_label"]["enum"], ["presence-only", "hash-checked"])
-        # certified: [realized-edge-observed, certified]; certified permitted ONLY here.
+        code_maturity_enum = code_block["then"]["properties"]["maturity_label"]["enum"]
+        self.assertEqual(code_maturity_enum, ["presence-only", "hash-checked"])
+        self.assertNotIn("certified", code_maturity_enum)
+        self.assertNotIn("parity-certified", code_maturity_enum)
+        self.assertNotIn("authority-certified", code_maturity_enum)
+        # proj-S-certified: [realized-edge-observed, certified, parity-certified,
+        # authority-certified] — CS-1.4 splits the certified rung into two
+        # honest tiers, keeping the deprecated bare id as an alias; any
+        # certified-tier value is permitted ONLY for this kind.
         self.assertIn("source_S_digest", cert_block["then"]["required"])
-        self.assertEqual(cert_block["then"]["properties"]["maturity_label"]["enum"], ["realized-edge-observed", "certified"])
+        self.assertEqual(
+            cert_block["then"]["properties"]["maturity_label"]["enum"],
+            ["realized-edge-observed", "certified", "parity-certified", "authority-certified"],
+        )
 
     # --- Slice X: the §12.3 interchangeability test ---
 

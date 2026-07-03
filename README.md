@@ -15,10 +15,19 @@ The Consiliency cross-repo **contract package** — the single, neutral rulebook
 - **projection discovery + git-discipline (Slice C0)** — the `projections.index.v1` schema (a deterministic pure-merge index of per-artifact projection manifests, no `generated_at`, so every driver reproduces byte-identical entries), the `git_discipline_protocol` (pipeline-owned ref classes, lease + write-footprint, merge policy, and the **NEVER-DELETE-HUMAN-REFS** invariant as a schema-level rule), and the `pipeline_ref_classes` registry both runtimes read to agree on ref ownership
 - **interchangeability conformance (Slice X)** — `scripts/interchangeability/run_driver_equivalence.py` proves the pure-merge claim above isn't just asserted by this package's own reference mergers: it feeds the `projections-index-pure-merge-deterministic` vector through the real `spec-render/build_projections_index.py` producer and asserts byte-identical output, honestly scoped (see `scripts/interchangeability/README.md`)
 - **authority-event contract core (XG-1 Slice 1)** — the single, cryptographically-authenticated `authority_event_protocol.v1` schema with the **core/chain signing split** (Portal signs the slot-independent `core`; spec appends `chain` OUTSIDE the signature and never re-signs), one **canonical-bytes algorithm** implementable in dependency-free JS on Node 20 (see [`docs/design/authority-event-canonical-bytes.md`](docs/design/authority-event-canonical-bytes.md)), the vendored digest-pinned `authority_key_registry.v1` **Ed25519 root of trust** (public keys only), an Ed25519 verify reference in both readers, and 13 conformance vectors — a valid event VERIFIES in both readers and every forgery class (bad/missing signature, unknown/attacker key_id, algorithm-confusion, signer↔approver mismatch, revoked/expired key, cert_digest mismatch) REJECTS
+- **the certified label rescope (CS-1.4, XG-1 Slice 5)** — splits the single `certified` evidence label into `parity-certified` (byte-reproducible parity cert, no authority event — what CS proj-S certification ships today) and `authority-certified` (parity PLUS a verified, human-ratified authority event — reserved until the XG-1 authority loop lands end-to-end); `certified` survives only as a deprecated alias of `parity-certified`, never `authority-certified`, so existing producers/consumers keep validating (see [`docs/design/CS-1.4-certified-label-rescope.md`](docs/design/CS-1.4-certified-label-rescope.md))
 
 Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/@consiliency/contract) + **PyPI** [`consiliency-contract`](https://pypi.org/project/consiliency-contract/), from shared JSON data + conformance vectors so the two language readers stay byte-identical.
 
-> **Status — `0.5.1` pins the authority canonical-bytes to spec **canon-core v2**
+> **Status — `0.6.0` splits the `certified` evidence label into
+> `parity-certified` (byte-parity cert, no authority event — what CS proj-S
+> certification ships today) and `authority-certified` (parity PLUS a
+> verified, human-ratified authority event — reserved until the XG-1
+> authority loop lands end-to-end), keeping `certified` as a deprecated alias
+> of `parity-certified` only, so existing producers/consumers keep validating
+> (CS-1.4, XG-1 Slice 5; see
+> [`docs/design/CS-1.4-certified-label-rescope.md`](docs/design/CS-1.4-certified-label-rescope.md)).
+> `0.5.1` pins the authority canonical-bytes to spec **canon-core v2**
 > (`canonical_bytes`, not a 4th canon — proven byte-identical + digest-pinned in
 > `core/authority-canon/provenance.json`) and applies the settled XG-4
 > domain-separation decision: the Ed25519 signature covers the authority-profile

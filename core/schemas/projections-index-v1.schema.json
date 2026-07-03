@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://consiliency.io/contracts/projections-index-v1.schema.json",
   "title": "Consiliency projections index (projections.index.v1)",
-  "description": "A deterministic pure-merge index of per-artifact projection manifests (+ portal_projection.v2 envelopes + refresh sidecars). Carries NO generated_at / generated_at_commit so a --check rebuild is byte-identical across source commits that touch no manifest (determinism). Per-entry pinned_commit carries the meaningful provenance. The wire schema id is 'projections.index.v1' (non-namespaced, per DESIGN §2.3 — the interchangeability wire value the producer emits) while the file and loader key follow the package's hyphen/snake conventions. v0.4.1: facts_path/facts_digest/pinned_commit are conditionally required (proj-code kinds only); proj-S-certified requires source_S_digest instead and is the only kind permitted maturity_label=certified. v0.4.2: the per-kind maturity caps are TWO-SIDED enums — proj-code is [presence-only, hash-checked] (never realized-edge-observed or certified) and proj-S-certified is [realized-edge-observed, certified] (floor-revert semantics), replacing the one-sided not:certified guard.",
+  "description": "A deterministic pure-merge index of per-artifact projection manifests (+ portal_projection.v2 envelopes + refresh sidecars). Carries NO generated_at / generated_at_commit so a --check rebuild is byte-identical across source commits that touch no manifest (determinism). Per-entry pinned_commit carries the meaningful provenance. The wire schema id is 'projections.index.v1' (non-namespaced, per DESIGN §2.3 — the interchangeability wire value the producer emits) while the file and loader key follow the package's hyphen/snake conventions. v0.4.1: facts_path/facts_digest/pinned_commit are conditionally required (proj-code kinds only); proj-S-certified requires source_S_digest instead and is the only kind permitted a certified-tier maturity_label. v0.4.2: the per-kind maturity caps are TWO-SIDED enums — proj-code is [presence-only, hash-checked] (never realized-edge-observed or any certified tier) and proj-S-certified is [realized-edge-observed, certified] (floor-revert semantics), replacing the one-sided not:certified guard. v0.6.0 (CS-1.4): splits the single certified rung into parity-certified (byte-parity cert, no authority event) and authority-certified (parity PLUS a verified, human-ratified authority event) — the bare 'certified' id is kept in both maturity_label enums below ONLY as a deprecated alias of parity-certified (never authority-certified), so existing producers/consumers keep validating; new entries should emit parity-certified or authority-certified. See docs/design/CS-1.4-certified-label-rescope.md and core/registries/maturity-labels.json.",
   "type": "object",
   "required": [
     "schema",
@@ -116,8 +116,11 @@
             "presence-only",
             "hash-checked",
             "realized-edge-observed",
-            "certified"
-          ]
+            "certified",
+            "parity-certified",
+            "authority-certified"
+          ],
+          "description": "'certified' is a DEPRECATED alias of parity-certified, kept for existing producers/consumers (CS-1.4). See the per-kind caps below for which entries may use which values."
         },
         "gate_state": {
           "enum": [
@@ -150,7 +153,7 @@
             "string",
             "null"
           ],
-          "description": "Present for certified entries (from portal_projection.v2); null / absent otherwise."
+          "description": "Present for parity-certified / authority-certified entries (from portal_projection.v2); null / absent otherwise."
         },
         "not_certified_reason": {
           "type": "string",
@@ -184,7 +187,7 @@
                   "presence-only",
                   "hash-checked"
                 ],
-                "description": "proj-code kinds are capped at hash-checked (no S-model/parity cert): presence-only | hash-checked only — never realized-edge-observed or certified."
+                "description": "proj-code kinds are capped at hash-checked (no S-model/parity cert): presence-only | hash-checked only — never realized-edge-observed nor any certified tier (certified, parity-certified, authority-certified)."
               }
             }
           }
@@ -208,9 +211,11 @@
               "maturity_label": {
                 "enum": [
                   "realized-edge-observed",
-                  "certified"
+                  "certified",
+                  "parity-certified",
+                  "authority-certified"
                 ],
-                "description": "certified proj-S is either certified (C1-C5 cert bind passed) or floor-reverts to realized-edge-observed when it does not — matching the slice-1 gate's floor-revert semantics. certified is permitted ONLY for this kind."
+                "description": "a proj-S-certified entry either floor-reverts to realized-edge-observed (cert bind failed) or carries a certified-tier label when the C1-C5 cert bind passes — matching the slice-1 gate's floor-revert semantics. Any certified-tier value is permitted ONLY for this kind (two-sided cap: proj-code never reaches it). CS-1.4 splits that tier: parity-certified (byte parity, no authority event) is the honest label for what this kind proves today; authority-certified additionally requires a verified authority event (enforced upstream by the delivery/gate layer, not by this schema). 'certified' remains valid here as a DEPRECATED alias of parity-certified."
               }
             }
           }

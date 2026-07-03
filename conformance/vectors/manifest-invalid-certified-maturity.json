@@ -1,6 +1,6 @@
 {
   "id": "manifest-invalid-certified-maturity",
-  "description": "Phase 0 vectors must not claim certified maturity.",
+  "description": "Phase 0 vectors must not claim certified maturity. Structural, not just semantic: manifest.schema.json's document.maturity enum is [presence-only, hash-checked, realized-edge-observed] and has never included any certified-tier value, so this also rejects the two CS-1.4 tiers (parity-certified, authority-certified) the same way — a document declaration cannot claim any of them at Phase 0, by construction. This vector keeps exercising the bare 'certified' id as the representative case; the phase0_disallowed set in maturity-labels.json now lists all three ids for the semantic layer's benefit.",
   "input": {
     "schema": "consiliency.manifest.v1",
     "contract_version": "0.4.2",

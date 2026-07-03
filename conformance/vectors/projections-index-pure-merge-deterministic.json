@@ -1,6 +1,6 @@
 {
   "id": "projections-index-pure-merge-deterministic",
-  "description": "The projections index is a deterministic pure merge of the per-artifact manifests (+ refresh sidecars): field-copy, no generated_at, entries sorted by (repo, kind, predicate). Manifests are supplied out of sort order to prove the merge sorts; a stale refresh sidecar merges into its entry without touching the manifest. Any driver (Portal+pipeline, harness standalone, headless gp) must reproduce expected.index byte-for-byte (DESIGN §2.2/§2.3/§12.3). v0.4.1: also exercises a proj-S-certified entry (source_S_digest pin, no code pin) — the kind-coverage gap that let the flat-required v0.4.0 schema ship.",
+  "description": "The projections index is a deterministic pure merge of the per-artifact manifests (+ refresh sidecars): field-copy, no generated_at, entries sorted by (repo, kind, predicate). Manifests are supplied out of sort order to prove the merge sorts; a stale refresh sidecar merges into its entry without touching the manifest. Any driver (Portal+pipeline, harness standalone, headless gp) must reproduce expected.index byte-for-byte (DESIGN §2.2/§2.3/§12.3). v0.4.1: also exercises a proj-S-certified entry (source_S_digest pin, no code pin) — the kind-coverage gap that let the flat-required v0.4.0 schema ship. v0.6.0 (CS-1.4): the graphbase entry is re-labeled parity-certified (it has a parity cert, no authority event — the honest label per the CS-1.4 rescope) and a second proj-S-certified entry on the same repo demonstrates authority-certified is a distinct, independently valid tier; proj-code entries stay at hash-checked, proving the two-sided cap still excludes both certified tiers.",
   "input": {
     "schema": "consiliency.projections_index_scenario.v1",
     "manifests": [
@@ -51,11 +51,28 @@
         "output_path": "spec-render/certified/graphbase/graphbase.c4.html",
         "manifest_path": "spec-render/certified/graphbase/graphbase.manifest.json",
         "body_content_type": "text/html",
-        "maturity_label": "certified",
+        "maturity_label": "parity-certified",
         "gate_verdict": {
           "state": "pass"
         },
         "display_route": "/specs/graphbase/c4"
+      },
+      {
+        "schema": "certified_projection_manifest.v1",
+        "target": "graphbase",
+        "kind": "proj-S-certified",
+        "predicate": "certified-projection-authority-pilot",
+        "source_S_digest": "d19bbc75eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "body_digest": "a11ce59100000000000000000000000000000000000000000000000000000000",
+        "body_digest_domain": "spec-render:html:v1",
+        "output_path": "spec-render/certified/graphbase/graphbase.xg1-pilot.c4.html",
+        "manifest_path": "spec-render/certified/graphbase/graphbase.xg1-pilot.manifest.json",
+        "body_content_type": "text/html",
+        "maturity_label": "authority-certified",
+        "gate_verdict": {
+          "state": "pass"
+        },
+        "display_route": "/specs/graphbase/xg1-pilot"
       }
     ],
     "refresh_sidecars": [
@@ -108,9 +125,23 @@
           "body_digest": "c03e9d9cffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
           "body_digest_domain": "spec-render:html:v1",
           "source_S_digest": "d19bbc75eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-          "maturity_label": "certified",
+          "maturity_label": "parity-certified",
           "gate_state": "pass",
           "display_route": "/specs/graphbase/c4"
+        },
+        {
+          "repo": "graphbase",
+          "kind": "proj-S-certified",
+          "predicate": "certified-projection-authority-pilot",
+          "body_path": "spec-render/certified/graphbase/graphbase.xg1-pilot.c4.html",
+          "body_content_type": "text/html",
+          "manifest_path": "spec-render/certified/graphbase/graphbase.xg1-pilot.manifest.json",
+          "body_digest": "a11ce59100000000000000000000000000000000000000000000000000000000",
+          "body_digest_domain": "spec-render:html:v1",
+          "source_S_digest": "d19bbc75eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "maturity_label": "authority-certified",
+          "gate_state": "pass",
+          "display_route": "/specs/graphbase/xg1-pilot"
         },
         {
           "repo": "portal",

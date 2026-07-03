@@ -52,8 +52,8 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.5.1");
-  assert.equal(loadContract().contract_version, "0.5.1");
+  assert.equal(CONTRACT_VERSION, "0.6.0");
+  assert.equal(loadContract().contract_version, "0.6.0");
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
   assert.equal(loadSchema("manifest").properties.schema.const, "consiliency.manifest.v1");
@@ -97,16 +97,23 @@ test("canonical_html contract matches recorded provenance", () => {
 });
 
 test("decisions are canonical and Phase-0 safe", () => {
+  const certifiedTiers = new Set(loadRegistry("maturity_labels").phase0_disallowed);
+  assert.deepEqual([...certifiedTiers].sort(), ["authority-certified", "certified", "parity-certified"]);
   for (const vectorName of listVectors()) {
     const vector = loadVector(vectorName);
     assert.equal(vector.decision.schema, "consiliency.conformance_decision.v1", vectorName);
-    assert.notEqual(vector.decision.maturity, "certified", vectorName);
+    assert.ok(!certifiedTiers.has(vector.decision.maturity), vectorName);
     assert.equal(canonical(JSON.parse(canonical(vector.decision))), canonical(vector.decision), vectorName);
   }
 });
 
-test("package data avoids host absolute paths and accepted certified claims", () => {
+test("package data avoids host absolute paths and accepted certified-tier claims outside proj-S-certified", () => {
   const files = ["core", "conformance"].flatMap(jsonFiles);
+  // certified / parity-certified / authority-certified (CS-1.4) — real
+  // evidence only for proj-S-certified (post-XG-1 slice 1 + the label
+  // rescope). No accepted vector may smuggle a certified-tier claim onto
+  // any other kind.
+  const certifiedTierLabels = new Set(["certified", "parity-certified", "authority-certified"]);
   for (const file of files) {
     const value = JSON.parse(readFileSync(file, "utf8"));
     walk(value, (entry, path) => {
@@ -114,21 +121,11 @@ test("package data avoids host absolute paths and accepted certified claims", ()
       assert.doesNotMatch(entry, /^\/home\//, `${file}:${path.join(".")}`);
       assert.doesNotMatch(entry, /^[A-Za-z]:[\\/]/, `${file}:${path.join(".")}`);
     });
-    if (file.includes("conformance/vectors/")) {
-      if (value.decision?.status === "accepted") {
-        // v0.4.1 exemption: the projections-index vector legitimately exercises a
-        // proj-S-certified entry whose maturity_label comes from the CERTIFICATE path
-        // (post-XG-1 slice 1 — certified evidence is real for proj-S). The guard
-        // still bars every other accepted vector from smuggling certified claims.
-        if (value.id !== "projections-index-pure-merge-deterministic") {
-          assert.doesNotMatch(JSON.stringify(value.input), /"certified"/, file);
-        } else {
-          const certifiedCarriers = (value.input.manifests ?? []).filter((m) =>
-            JSON.stringify(m).includes('"certified"'));
-          for (const m of certifiedCarriers) {
-            assert.equal(m.kind, "proj-S-certified", `${file}: certified claim outside the certified kind`);
-          }
-        }
+    if (file.includes("conformance/vectors/") && value.decision?.status === "accepted") {
+      const certifiedCarriers = (value.input.manifests ?? []).filter((m) =>
+        certifiedTierLabels.has(m.maturity_label));
+      for (const m of certifiedCarriers) {
+        assert.equal(m.kind, "proj-S-certified", `${file}: certified-tier claim outside the certified kind`);
       }
     }
   }
@@ -390,13 +387,33 @@ test("projections index entry has per-kind conditional requireds with two-sided 
   const certBlock = entry.allOf.find((b) => b.if.properties.kind.const === "proj-S-certified");
   assert.ok(codeBlock && certBlock, "both per-kind conditional blocks must exist");
   // proj-code: pins a commit + facts; maturity capped TWO-SIDED at
-  // [presence-only, hash-checked] — never realized-edge-observed or certified.
+  // [presence-only, hash-checked] — never realized-edge-observed nor any
+  // certified tier (certified, parity-certified, authority-certified; CS-1.4
+  // keeps this cap unchanged).
   assert.deepEqual(codeBlock.then.required.slice().sort(), ["facts_digest", "facts_path", "pinned_commit"]);
   assert.deepEqual(codeBlock.then.properties.maturity_label.enum, ["presence-only", "hash-checked"]);
-  // certified: pins a graph S; maturity is [realized-edge-observed, certified]
-  // (floor-revert semantics), and certified is permitted ONLY here.
+  // proj-S-certified: pins a graph S; maturity is [realized-edge-observed,
+  // certified, parity-certified, authority-certified] (floor-revert
+  // semantics). CS-1.4 splits the certified rung into two honest tiers
+  // (parity-certified: byte parity only; authority-certified: + a verified
+  // authority event), keeping the deprecated bare 'certified' id as an alias.
+  // Any certified-tier value is permitted ONLY for this kind.
   assert.ok(certBlock.then.required.includes("source_S_digest"));
-  assert.deepEqual(certBlock.then.properties.maturity_label.enum, ["realized-edge-observed", "certified"]);
+  assert.deepEqual(
+    certBlock.then.properties.maturity_label.enum,
+    ["realized-edge-observed", "certified", "parity-certified", "authority-certified"],
+  );
+});
+
+test("certified label rescope (CS-1.4): parity-certified/authority-certified are new, certified is a deprecated alias of parity-certified only", () => {
+  const labels = Object.fromEntries(loadRegistry("maturity_labels").labels.map((label) => [label.id, label]));
+  for (const labelId of ["parity-certified", "authority-certified"]) {
+    assert.ok(labels[labelId], `${labelId} must be registered`);
+    assert.equal(labels[labelId].kind, "evidence");
+    assert.ok(!labels[labelId].deprecated);
+  }
+  assert.ok(labels.certified.deprecated);
+  assert.equal(labels.certified.deprecated_alias_of, "parity-certified");
 });
 
 // --- Slice X: the §12.3 interchangeability test ---

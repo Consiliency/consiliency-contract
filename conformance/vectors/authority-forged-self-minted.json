@@ -1,0 +1,61 @@
+{
+  "id": "authority-forged-self-minted",
+  "description": "THE EXPLOIT: an attacker mints an event with their own key_id, own approver, own decision_id, and signs it with their own key (zero Portal). The keyless digest stack ACCEPTED this; the real signature stack REJECTs it because attacker-key-001 is not in the pinned registry (unknown_key_id).",
+  "input": {
+    "schema": "consiliency.authority_verification_scenario.v1",
+    "registry": "authority_key_registry",
+    "now": "2026-07-03T12:00:00Z",
+    "expected_cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+    "event": {
+      "schema": "consiliency.authority_event_protocol.v1",
+      "core": {
+        "authority_event_version": "1",
+        "event_type": "ratify",
+        "decision_id": "attacker-decision-9999",
+        "audience": {
+          "repo": "governed-pipeline",
+          "env": "pilot",
+          "lineage": "main",
+          "policy_epoch": "2026Q3",
+          "canon_version": "v2",
+          "phase": "XG1",
+          "subgraph": "graphbase.bundle.deterministic-export"
+        },
+        "cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+        "approver": "attacker:self-approved",
+        "key_id": "attacker-key-001",
+        "validity": {
+          "not_before": "2026-01-01T00:00:00Z",
+          "not_after": "2027-01-01T00:00:00Z"
+        },
+        "custody_binding": {
+          "phase_loop_driver_allowed": false
+        },
+        "proposal_ref": "portal:proposal:0001",
+        "ratify_ref": "portal:ratify:0001"
+      },
+      "signature": {
+        "scheme": "ed25519",
+        "key_id": "attacker-key-001",
+        "signature": "a0f4ee563fa531142d59fba5c89e2b2a87f07a3b31858258d02e6f0ced8f32516225827eb51694d5c732f3f5f415d2e08d2f005c6e5da6baaaaafd4f048cd404"
+      }
+    }
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "rejected",
+    "maturity": "presence-only",
+    "findings": [
+      {
+        "code": "authority.unknown_key_id",
+        "severity": "block",
+        "message": "Signing key_id is not in the pinned authority-key registry."
+      }
+    ]
+  },
+  "expected": {
+    "verifies": false,
+    "reason": "unknown_key_id",
+    "schema_valid": true
+  }
+}

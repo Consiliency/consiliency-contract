@@ -1,0 +1,61 @@
+{
+  "id": "authority-key-revoked",
+  "description": "A valid signature by a key the registry marks revoked:true -> REJECT (key_revoked) despite the signature verifying.",
+  "input": {
+    "schema": "consiliency.authority_verification_scenario.v1",
+    "registry": "authority_key_registry",
+    "now": "2026-07-03T12:00:00Z",
+    "expected_cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+    "event": {
+      "schema": "consiliency.authority_event_protocol.v1",
+      "core": {
+        "authority_event_version": "1",
+        "event_type": "ratify",
+        "decision_id": "d1f0c0de-0000-4000-8000-000000000001",
+        "audience": {
+          "repo": "governed-pipeline",
+          "env": "pilot",
+          "lineage": "main",
+          "policy_epoch": "2026Q3",
+          "canon_version": "v2",
+          "phase": "XG1",
+          "subgraph": "graphbase.bundle.deterministic-export"
+        },
+        "cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+        "approver": "consiliency:portal:governance",
+        "key_id": "portal-authority-ed25519-rotated-out",
+        "validity": {
+          "not_before": "2026-01-01T00:00:00Z",
+          "not_after": "2027-01-01T00:00:00Z"
+        },
+        "custody_binding": {
+          "phase_loop_driver_allowed": false
+        },
+        "proposal_ref": "portal:proposal:0001",
+        "ratify_ref": "portal:ratify:0001"
+      },
+      "signature": {
+        "scheme": "ed25519",
+        "key_id": "portal-authority-ed25519-rotated-out",
+        "signature": "006a2fad6400b40e8cf41015153aaf15bcaaed9b1c7873aa53d5c0136a4b54019c0de5fd05718b443525c83610d35614c250421df93c958aa2d6ba59fdf62607"
+      }
+    }
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "rejected",
+    "maturity": "presence-only",
+    "findings": [
+      {
+        "code": "authority.key_revoked",
+        "severity": "block",
+        "message": "Signing key is revoked in the registry."
+      }
+    ]
+  },
+  "expected": {
+    "verifies": false,
+    "reason": "key_revoked",
+    "schema_valid": true
+  }
+}

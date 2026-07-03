@@ -1,0 +1,61 @@
+{
+  "id": "authority-key-expired",
+  "description": "A valid signature by a key whose registry validity window ended before `now` -> REJECT (key_expired).",
+  "input": {
+    "schema": "consiliency.authority_verification_scenario.v1",
+    "registry": "authority_key_registry",
+    "now": "2026-07-03T12:00:00Z",
+    "expected_cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+    "event": {
+      "schema": "consiliency.authority_event_protocol.v1",
+      "core": {
+        "authority_event_version": "1",
+        "event_type": "ratify",
+        "decision_id": "d1f0c0de-0000-4000-8000-000000000001",
+        "audience": {
+          "repo": "governed-pipeline",
+          "env": "pilot",
+          "lineage": "main",
+          "policy_epoch": "2026Q3",
+          "canon_version": "v2",
+          "phase": "XG1",
+          "subgraph": "graphbase.bundle.deterministic-export"
+        },
+        "cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+        "approver": "consiliency:portal:governance",
+        "key_id": "portal-authority-ed25519-expired",
+        "validity": {
+          "not_before": "2026-01-01T00:00:00Z",
+          "not_after": "2027-01-01T00:00:00Z"
+        },
+        "custody_binding": {
+          "phase_loop_driver_allowed": false
+        },
+        "proposal_ref": "portal:proposal:0001",
+        "ratify_ref": "portal:ratify:0001"
+      },
+      "signature": {
+        "scheme": "ed25519",
+        "key_id": "portal-authority-ed25519-expired",
+        "signature": "0d9b56cb1892f2cc2a655f9e95394ec072e9d3c20da7777c67b3499614baa9d732b6100fa48917eb425e47a42949f87facd419750948bb188b2240b41d7e7002"
+      }
+    }
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "rejected",
+    "maturity": "presence-only",
+    "findings": [
+      {
+        "code": "authority.key_expired",
+        "severity": "block",
+        "message": "Signing key is outside its registry validity window."
+      }
+    ]
+  },
+  "expected": {
+    "verifies": false,
+    "reason": "key_expired",
+    "schema_valid": true
+  }
+}

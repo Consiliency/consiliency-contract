@@ -1,0 +1,61 @@
+{
+  "id": "authority-algorithm-confusion",
+  "description": "The event self-declares signature.scheme=hmac-sha256 while the registry key is ed25519 -> REJECT (algorithm_confusion). Verification trusts the REGISTRY scheme, never the event's. Schema-invalid (signature.scheme const is ed25519).",
+  "input": {
+    "schema": "consiliency.authority_verification_scenario.v1",
+    "registry": "authority_key_registry",
+    "now": "2026-07-03T12:00:00Z",
+    "expected_cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+    "event": {
+      "schema": "consiliency.authority_event_protocol.v1",
+      "core": {
+        "authority_event_version": "1",
+        "event_type": "ratify",
+        "decision_id": "d1f0c0de-0000-4000-8000-000000000001",
+        "audience": {
+          "repo": "governed-pipeline",
+          "env": "pilot",
+          "lineage": "main",
+          "policy_epoch": "2026Q3",
+          "canon_version": "v2",
+          "phase": "XG1",
+          "subgraph": "graphbase.bundle.deterministic-export"
+        },
+        "cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+        "approver": "consiliency:portal:governance",
+        "key_id": "portal-authority-ed25519-v1",
+        "validity": {
+          "not_before": "2026-01-01T00:00:00Z",
+          "not_after": "2027-01-01T00:00:00Z"
+        },
+        "custody_binding": {
+          "phase_loop_driver_allowed": false
+        },
+        "proposal_ref": "portal:proposal:0001",
+        "ratify_ref": "portal:ratify:0001"
+      },
+      "signature": {
+        "scheme": "hmac-sha256",
+        "key_id": "portal-authority-ed25519-v1",
+        "signature": "3b78458cbf5b7e2ae7068eef263f9ddd2bed902ae1d70304179679b87f21534c8cf5050884f69f44ee35ff80cfb924f478e7663d38b7bcd47ea9d793766a930b"
+      }
+    }
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "rejected",
+    "maturity": "presence-only",
+    "findings": [
+      {
+        "code": "authority.algorithm_confusion",
+        "severity": "block",
+        "message": "Declared scheme disagrees with the registry key scheme."
+      }
+    ]
+  },
+  "expected": {
+    "verifies": false,
+    "reason": "algorithm_confusion",
+    "schema_valid": false
+  }
+}

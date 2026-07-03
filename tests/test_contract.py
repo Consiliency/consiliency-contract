@@ -20,8 +20,8 @@ from consiliency_contract import (
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.4.1")
-        self.assertEqual(load_contract()["contract_version"], "0.4.1")
+        self.assertEqual(CONTRACT_VERSION, "0.4.2")
+        self.assertEqual(load_contract()["contract_version"], "0.4.2")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")
@@ -254,6 +254,19 @@ class ContractReaderTest(unittest.TestCase):
         self.assertEqual(canon(built), canon(vector["expected"]["index"]))
         self.assertEqual(canon(self._build_projections_index(vector["input"])), canon(built))
         self.assertNotIn("generated_at", canon(vector["expected"]["index"]))
+
+    def test_projections_index_entry_has_per_kind_conditional_requireds(self) -> None:
+        entry = load_schema("projections_index_v1")["$defs"]["entry"]
+        for f in ("pinned_commit", "facts_path", "facts_digest", "source_S_digest"):
+            self.assertNotIn(f, entry["required"], f)
+        code_block = next(b for b in entry["allOf"] if "proj-code-sbom" in b["if"]["properties"]["kind"].get("enum", []))
+        cert_block = next(b for b in entry["allOf"] if b["if"]["properties"]["kind"].get("const") == "proj-S-certified")
+        # proj-code: two-sided cap at [presence-only, hash-checked].
+        self.assertEqual(sorted(code_block["then"]["required"]), ["facts_digest", "facts_path", "pinned_commit"])
+        self.assertEqual(code_block["then"]["properties"]["maturity_label"]["enum"], ["presence-only", "hash-checked"])
+        # certified: [realized-edge-observed, certified]; certified permitted ONLY here.
+        self.assertIn("source_S_digest", cert_block["then"]["required"])
+        self.assertEqual(cert_block["then"]["properties"]["maturity_label"]["enum"], ["realized-edge-observed", "certified"])
 
 
 if __name__ == "__main__":

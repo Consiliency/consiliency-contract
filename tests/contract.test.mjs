@@ -48,8 +48,8 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.4.1");
-  assert.equal(loadContract().contract_version, "0.4.1");
+  assert.equal(CONTRACT_VERSION, "0.4.2");
+  assert.equal(loadContract().contract_version, "0.4.2");
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
   assert.equal(loadSchema("manifest").properties.schema.const, "consiliency.manifest.v1");
@@ -373,4 +373,24 @@ test("projections index is a deterministic pure merge of the manifests (§12.3 f
   assert.equal(canonical(buildProjectionsIndex(input)), canonical(built));
   // No timestamp field anywhere — the property that makes --check stable.
   assert.doesNotMatch(canonical(expected.index), /generated_at/);
+});
+
+test("projections index entry has per-kind conditional requireds with two-sided maturity caps", () => {
+  const entry = loadSchema("projections_index_v1").$defs.entry;
+  // The code-shaped pins are NOT unconditional entry requirements (a certified
+  // entry has none of them).
+  for (const f of ["pinned_commit", "facts_path", "facts_digest", "source_S_digest"]) {
+    assert.ok(!entry.required.includes(f), `${f} must not be an unconditional entry requirement`);
+  }
+  const codeBlock = entry.allOf.find((b) => (b.if.properties.kind.enum ?? []).includes("proj-code-sbom"));
+  const certBlock = entry.allOf.find((b) => b.if.properties.kind.const === "proj-S-certified");
+  assert.ok(codeBlock && certBlock, "both per-kind conditional blocks must exist");
+  // proj-code: pins a commit + facts; maturity capped TWO-SIDED at
+  // [presence-only, hash-checked] — never realized-edge-observed or certified.
+  assert.deepEqual(codeBlock.then.required.slice().sort(), ["facts_digest", "facts_path", "pinned_commit"]);
+  assert.deepEqual(codeBlock.then.properties.maturity_label.enum, ["presence-only", "hash-checked"]);
+  // certified: pins a graph S; maturity is [realized-edge-observed, certified]
+  // (floor-revert semantics), and certified is permitted ONLY here.
+  assert.ok(certBlock.then.required.includes("source_S_digest"));
+  assert.deepEqual(certBlock.then.properties.maturity_label.enum, ["realized-edge-observed", "certified"]);
 });

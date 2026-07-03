@@ -23,6 +23,17 @@ which is the structural expression of "Portal is a consumer, not the owner."
 A deterministic **pure-merge** index of the per-artifact projection manifests
 (+ `portal_projection.v2` envelopes + refresh sidecars). Load-bearing choices:
 
+- **Per-kind entry shape (v0.4.1) with two-sided maturity caps (v0.4.2).**
+  `pinned_commit` / `facts_path` / `facts_digest` are proj-code-shaped and are
+  conditionally required (`allOf` + `if/then` on `kind`) for the proj-code kinds
+  only; `proj-S-certified` requires **`source_S_digest`** (a desired-state graph
+  pin, no facts/commit — the neutral field the aggregator maps from spec's
+  `graph_digest` / `desired_graph_digest`, as `code_head_sha` → `pinned_commit`).
+  v0.4.2 makes the maturity caps **two-sided enums**: proj-code is
+  `[presence-only, hash-checked]` (never `realized-edge-observed` or `certified`)
+  and `proj-S-certified` is `[realized-edge-observed, certified]` (the slice-1
+  gate's floor-revert semantics), replacing v0.4.1's one-sided `not:certified`
+  guard that still admitted `realized-edge-observed` on proj-code.
 - **No `generated_at` / `generated_at_commit`.** The index is a pure function of
   the manifests, so an in-memory `--check` rebuild is byte-identical across
   source commits that touch no manifest, and across all four drivers

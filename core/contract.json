@@ -1,6 +1,6 @@
 {
   "contract_id": "consiliency.contract.v1",
-  "contract_version": "0.4.2",
+  "contract_version": "0.5.0",
   "package_names": {
     "npm": "@consiliency/contract",
     "pypi": "consiliency-contract"
@@ -31,7 +31,8 @@
     "coordination_channel_protocol": "core/schemas/coordination-channel-protocol.schema.json",
     "coordination_scenario": "core/schemas/coordination-scenario.schema.json",
     "projections_index_v1": "core/schemas/projections-index-v1.schema.json",
-    "git_discipline_protocol": "core/schemas/git-discipline-protocol.schema.json"
+    "git_discipline_protocol": "core/schemas/git-discipline-protocol.schema.json",
+    "authority_event_protocol": "core/schemas/authority-event-protocol.schema.json"
   },
   "registries": {
     "document_classes": "core/registries/document-classes.json",
@@ -39,14 +40,16 @@
     "required_documents": "core/registries/required-documents.json",
     "maturity_labels": "core/registries/maturity-labels.json",
     "default_ignore_set": "core/registries/default-ignore-set.json",
-    "pipeline_ref_classes": "core/registries/pipeline-ref-classes.json"
+    "pipeline_ref_classes": "core/registries/pipeline-ref-classes.json",
+    "authority_key_registry": "core/registries/authority-key-registry.json"
   },
   "protocols": {
     "loop_gate": "core/schemas/loop-gate-protocol.schema.json",
     "version_skew": "core/schemas/version-skew-protocol.schema.json",
     "lease_store": "core/schemas/lease-store-protocol.schema.json",
     "coordination_channel": "core/schemas/coordination-channel-protocol.schema.json",
-    "git_discipline": "core/schemas/git-discipline-protocol.schema.json"
+    "git_discipline": "core/schemas/git-discipline-protocol.schema.json",
+    "authority_event": "core/schemas/authority-event-protocol.schema.json"
   },
   "canonical_html": {
     "contract": "core/canonical-html/contract-v1.json",

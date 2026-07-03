@@ -8,11 +8,14 @@ import test from "node:test";
 import {
   CONTRACT,
   CONTRACT_VERSION,
+  canonicalCoreBytes,
+  canonicalizeCore,
   listVectors,
   loadContract,
   loadRegistry,
   loadSchema,
   loadVector,
+  verifyAuthorityEvent,
 } from "../src/index.js";
 
 function canonical(value) {
@@ -48,8 +51,8 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.4.2");
-  assert.equal(loadContract().contract_version, "0.4.2");
+  assert.equal(CONTRACT_VERSION, "0.5.0");
+  assert.equal(loadContract().contract_version, "0.5.0");
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
   assert.equal(loadSchema("manifest").properties.schema.const, "consiliency.manifest.v1");
@@ -412,4 +415,130 @@ test("the real spec-render producer reproduces the vector byte-for-byte (skips w
   }
   assert.equal(report.status, "pass", JSON.stringify(report));
   assert.ok(report.byte_identical_to_vector, JSON.stringify(report));
+});
+
+// --- Slice 1 (XG-1): the authority-event contract core (root of trust) ---
+
+// Recursively key-sorted, whitespace-free JSON — the constrained JCS form the
+// authority canonicalizer must equal on the metadata-safe ASCII / integer
+// subset. If canonicalizeCore ever drifts from this, JS and Python signers
+// stop agreeing.
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function authorityVectorNames() {
+  return listVectors().filter((name) => name.startsWith("authority-"));
+}
+
+test("authority-event protocol schema pins the core/chain signing split", () => {
+  const schema = loadSchema("authority_event_protocol");
+  assert.equal(schema.properties.schema.const, "consiliency.authority_event_protocol.v1");
+  // The signature covers exactly `core`; `chain` and `signature` sit OUTSIDE it.
+  const core = schema.properties.core;
+  assert.ok(!core.properties.chain, "chain must not live inside the signed core");
+  assert.ok(!core.properties.signature, "signature must not live inside the signed core");
+  for (const field of ["decision_id", "cert_digest", "key_id", "approver", "validity", "audience", "custody_binding"]) {
+    assert.ok(core.required.includes(field), `signed core must require ${field}`);
+  }
+  assert.equal(core.properties.authority_event_version.const, "1");
+  // phase_loop_driver_allowed is hard-pinned false (authority never minted by the driver).
+  assert.equal(core.properties.custody_binding.properties.phase_loop_driver_allowed.const, false);
+  // decision_id is the authority identity; phase/subgraph are SCOPED audience fields.
+  assert.ok(!core.required.includes("phase"), "the phase is not the authority identity; decision_id is");
+  for (const field of ["phase", "subgraph", "canon_version"]) {
+    assert.ok(core.properties.audience.required.includes(field), `audience must scope ${field}`);
+  }
+  // ed25519-only signature; chain is optional (appended after signing).
+  assert.equal(schema.properties.signature.properties.scheme.const, "ed25519");
+  assert.deepEqual(schema.required.slice().sort(), ["core", "schema", "signature"]);
+});
+
+test("authority-key registry is the pinned Ed25519 root of trust", () => {
+  const reg = loadRegistry("authority_key_registry");
+  assert.equal(reg.schema, "consiliency.authority_key_registry.v1");
+  assert.ok(reg.keys.length >= 3);
+  for (const key of reg.keys) {
+    assert.equal(key.scheme, "ed25519");
+    assert.match(key.public_key, /^[0-9a-f]{64}$/); // 32-byte raw Ed25519 public key
+    assert.equal(typeof key.approver, "string");
+    assert.ok(key.validity.not_before && key.validity.not_after);
+    assert.equal(typeof key.revoked, "boolean");
+  }
+  assert.ok(reg.keys.some((key) => key.revoked === true), "registry must model a revoked key");
+  // No private/secret material may ever ship in the contract.
+  assert.doesNotMatch(JSON.stringify(reg), /private_key|secret|seed/i);
+});
+
+test("authority vectors verify/reject exactly as the vector expects (JS reader)", () => {
+  const reg = loadRegistry("authority_key_registry");
+  const names = authorityVectorNames();
+  assert.ok(names.length >= 12, "expected the full authority conformance vector set");
+  let sawValid = false;
+  let sawForged = false;
+  for (const name of names) {
+    const vector = loadVector(name);
+    const { event, now, expected_cert_digest: expectedCertDigest } = vector.input;
+    const res = verifyAuthorityEvent(event, reg, { now, expectedCertDigest });
+    assert.equal(res.ok, vector.expected.verifies, `${name}: ok`);
+    assert.equal(res.reason, vector.expected.reason, `${name}: reason`);
+    // The conformance decision must agree with the crypto verdict.
+    assert.equal(vector.decision.status, vector.expected.verifies ? "accepted" : "rejected", `${name}: decision`);
+    if (vector.expected.verifies) sawValid = true;
+    if (name.includes("forged")) sawForged = true;
+  }
+  assert.ok(sawValid, "at least one valid Ed25519-signed event must verify");
+  assert.ok(sawForged, "the forged self-minted vector must be present");
+});
+
+test("the forged self-minted authority event REJECTS (the closed hole)", () => {
+  const reg = loadRegistry("authority_key_registry");
+  const vector = loadVector("authority-forged-self-minted");
+  const { event, now, expected_cert_digest: expectedCertDigest } = vector.input;
+  const res = verifyAuthorityEvent(event, reg, { now, expectedCertDigest });
+  assert.equal(res.ok, false, "a self-minted event must never verify");
+  assert.equal(res.reason, "unknown_key_id");
+});
+
+test("appending ledger chain data does NOT invalidate the core signature", () => {
+  const reg = loadRegistry("authority_key_registry");
+  const vector = loadVector("authority-valid");
+  const opts = { now: vector.input.now, expectedCertDigest: vector.input.expected_cert_digest };
+  assert.equal(verifyAuthorityEvent(vector.input.event, reg, opts).ok, true);
+  const digest = "a".repeat(64);
+  const chain = {
+    entry_digest: digest,
+    previous_entry_digest: "0".repeat(64),
+    root_digest: "b".repeat(64),
+    inclusion_proof: { entry_digest: digest, previous_entry_digest: "0".repeat(64), root_digest: "b".repeat(64) },
+  };
+  const withChain = { ...vector.input.event, chain };
+  assert.equal(verifyAuthorityEvent(withChain, reg, opts).ok, true, "core signature must survive chain append");
+});
+
+test("authority canonicalizer equals the constrained JCS form (JS)", () => {
+  for (const name of authorityVectorNames()) {
+    const core = loadVector(name).input.event.core;
+    assert.equal(canonicalizeCore(core), stableStringify(core), `${name}: canonicalizer must equal recursively-sorted JSON`);
+  }
+});
+
+test("authority canonical core bytes match the Python reference byte-for-byte", () => {
+  const py = JSON.parse(execFileSync("python3", ["scripts/authority_canonical_dump.py"], { encoding: "utf8" }));
+  for (const name of authorityVectorNames()) {
+    const vector = loadVector(name);
+    const jsHex = canonicalCoreBytes(vector.input.event.core).toString("hex");
+    assert.equal(jsHex, py[vector.id], `${vector.id}: JS and Python canonical core bytes must be identical`);
+  }
+});
+
+test("the canonicalizer is fail-closed on ambiguous input", () => {
+  assert.throws(() => canonicalizeCore({ n: 1.5 }), /non-integer/); // float forbidden
+  assert.throws(() => canonicalizeCore({ s: "a b" }), /metadata-safe/); // space not metadata-safe
+  assert.throws(() => canonicalizeCore({ s: "é" }), /metadata-safe/); // non-ASCII
+  assert.throws(() => canonicalizeCore({ x: null }), /unsupported/); // null forbidden
 });

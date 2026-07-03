@@ -1,0 +1,61 @@
+{
+  "id": "authority-signer-approver-mismatch",
+  "description": "A cryptographically-valid signature by the real portal key, but core.approver does not match the approver the key is registered to -> REJECT (signer_approver_mismatch). Amendment #4: signer==approver is a key-binding-in-registry check.",
+  "input": {
+    "schema": "consiliency.authority_verification_scenario.v1",
+    "registry": "authority_key_registry",
+    "now": "2026-07-03T12:00:00Z",
+    "expected_cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+    "event": {
+      "schema": "consiliency.authority_event_protocol.v1",
+      "core": {
+        "authority_event_version": "1",
+        "event_type": "ratify",
+        "decision_id": "d1f0c0de-0000-4000-8000-000000000001",
+        "audience": {
+          "repo": "governed-pipeline",
+          "env": "pilot",
+          "lineage": "main",
+          "policy_epoch": "2026Q3",
+          "canon_version": "v2",
+          "phase": "XG1",
+          "subgraph": "graphbase.bundle.deterministic-export"
+        },
+        "cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+        "approver": "attacker:self-approved",
+        "key_id": "portal-authority-ed25519-v1",
+        "validity": {
+          "not_before": "2026-01-01T00:00:00Z",
+          "not_after": "2027-01-01T00:00:00Z"
+        },
+        "custody_binding": {
+          "phase_loop_driver_allowed": false
+        },
+        "proposal_ref": "portal:proposal:0001",
+        "ratify_ref": "portal:ratify:0001"
+      },
+      "signature": {
+        "scheme": "ed25519",
+        "key_id": "portal-authority-ed25519-v1",
+        "signature": "1280f8bad2be431695fa17c702273c573694554a24a4a65ef9d862661b5d87f7467a8d3f56c7c52d9ed001c9f28254673321e9e2539b8683bdd12fd0d945650e"
+      }
+    }
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "rejected",
+    "maturity": "presence-only",
+    "findings": [
+      {
+        "code": "authority.signer_approver_mismatch",
+        "severity": "block",
+        "message": "Signing key is not registered to the core's approver."
+      }
+    ]
+  },
+  "expected": {
+    "verifies": false,
+    "reason": "signer_approver_mismatch",
+    "schema_valid": true
+  }
+}

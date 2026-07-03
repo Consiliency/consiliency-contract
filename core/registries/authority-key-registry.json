@@ -1,0 +1,47 @@
+{
+  "schema": "consiliency.authority_key_registry.v1",
+  "$comment": "The vendored, digest-pinned root of trust. This registry living IN the contract repo — gated by the repo's merge gate — IS the physical root of trust; there is deliberately no live-fetch/Portal-served option (panel amendment #2). Verification selects a key by the SIGNED core's key_id and takes scheme + public_key + approver + validity + revoked FROM HERE, never from the event. Only PUBLIC keys live here; the Portal holds the private key.",
+  "rotation": {
+    "policy": "Add a new key_id with its own validity window; overlap windows to roll signers. Never reuse a retired key_id.",
+    "identity_binding": "A key_id is bound to exactly one approver identity; a signature verifies only if core.approver == the key's registered approver."
+  },
+  "revocation": {
+    "policy": "Set revoked:true (or let validity lapse) to retire a key_id. A revoked or out-of-window key fails verification regardless of an otherwise-valid signature.",
+    "irreversible": true
+  },
+  "keys": [
+    {
+      "key_id": "portal-authority-ed25519-v1",
+      "scheme": "ed25519",
+      "public_key": "119836c4adf9da9ad3049d42da2dc126f82a43d8a0c6da9189c536e8fa7f40d3",
+      "approver": "consiliency:portal:governance",
+      "validity": {
+        "not_before": "2026-01-01T00:00:00Z",
+        "not_after": "2027-01-01T00:00:00Z"
+      },
+      "revoked": false
+    },
+    {
+      "key_id": "portal-authority-ed25519-rotated-out",
+      "scheme": "ed25519",
+      "public_key": "525ca9174d568e5ac9f1209de27e0483dcf3eb766dc9ce3ba123ff538508a17d",
+      "approver": "consiliency:portal:governance",
+      "validity": {
+        "not_before": "2026-01-01T00:00:00Z",
+        "not_after": "2027-01-01T00:00:00Z"
+      },
+      "revoked": true
+    },
+    {
+      "key_id": "portal-authority-ed25519-expired",
+      "scheme": "ed25519",
+      "public_key": "6db198ca668218d6c0782ba4baccfed834b4c7805bd6e205d4b0747ef0327e9a",
+      "approver": "consiliency:portal:governance",
+      "validity": {
+        "not_before": "2025-01-01T00:00:00Z",
+        "not_after": "2025-06-01T00:00:00Z"
+      },
+      "revoked": false
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "id": "authority-core-validity-expired",
+  "description": "A valid signature by a current key, but the event's own validity window ended before `now` -> REJECT (core_validity_expired).",
+  "input": {
+    "schema": "consiliency.authority_verification_scenario.v1",
+    "registry": "authority_key_registry",
+    "now": "2026-07-03T12:00:00Z",
+    "expected_cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+    "event": {
+      "schema": "consiliency.authority_event_protocol.v1",
+      "core": {
+        "authority_event_version": "1",
+        "event_type": "ratify",
+        "decision_id": "d1f0c0de-0000-4000-8000-000000000001",
+        "audience": {
+          "repo": "governed-pipeline",
+          "env": "pilot",
+          "lineage": "main",
+          "policy_epoch": "2026Q3",
+          "canon_version": "v2",
+          "phase": "XG1",
+          "subgraph": "graphbase.bundle.deterministic-export"
+        },
+        "cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+        "approver": "consiliency:portal:governance",
+        "key_id": "portal-authority-ed25519-v1",
+        "validity": {
+          "not_before": "2025-01-01T00:00:00Z",
+          "not_after": "2025-06-01T00:00:00Z"
+        },
+        "custody_binding": {
+          "phase_loop_driver_allowed": false
+        },
+        "proposal_ref": "portal:proposal:0001",
+        "ratify_ref": "portal:ratify:0001"
+      },
+      "signature": {
+        "scheme": "ed25519",
+        "key_id": "portal-authority-ed25519-v1",
+        "signature": "5dd79a08d11767657238ef410fc595dc6cb64a153d9b958ef4650348d6bade889d231a01f2ec9e61c15cb83739b9067934647bc4ec4602ac3cf1199112828904"
+      }
+    }
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "rejected",
+    "maturity": "presence-only",
+    "findings": [
+      {
+        "code": "authority.core_validity_expired",
+        "severity": "block",
+        "message": "Authority event is outside its own validity window."
+      }
+    ]
+  },
+  "expected": {
+    "verifies": false,
+    "reason": "core_validity_expired",
+    "schema_valid": true
+  }
+}

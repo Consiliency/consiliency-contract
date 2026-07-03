@@ -1,0 +1,61 @@
+{
+  "id": "authority-wrong-key-valid-id",
+  "description": "core.key_id names a real registered key, but the signature was produced by a DIFFERENT (attacker) private key -> REJECT (bad_signature): the registry pubkey does not verify the attacker signature.",
+  "input": {
+    "schema": "consiliency.authority_verification_scenario.v1",
+    "registry": "authority_key_registry",
+    "now": "2026-07-03T12:00:00Z",
+    "expected_cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+    "event": {
+      "schema": "consiliency.authority_event_protocol.v1",
+      "core": {
+        "authority_event_version": "1",
+        "event_type": "ratify",
+        "decision_id": "d1f0c0de-0000-4000-8000-000000000001",
+        "audience": {
+          "repo": "governed-pipeline",
+          "env": "pilot",
+          "lineage": "main",
+          "policy_epoch": "2026Q3",
+          "canon_version": "v2",
+          "phase": "XG1",
+          "subgraph": "graphbase.bundle.deterministic-export"
+        },
+        "cert_digest": "1108aad36b1e108dd2f2a5d88adff5b9da59647a82c009a53d7260a957e3b9de",
+        "approver": "consiliency:portal:governance",
+        "key_id": "portal-authority-ed25519-v1",
+        "validity": {
+          "not_before": "2026-01-01T00:00:00Z",
+          "not_after": "2027-01-01T00:00:00Z"
+        },
+        "custody_binding": {
+          "phase_loop_driver_allowed": false
+        },
+        "proposal_ref": "portal:proposal:0001",
+        "ratify_ref": "portal:ratify:0001"
+      },
+      "signature": {
+        "scheme": "ed25519",
+        "key_id": "portal-authority-ed25519-v1",
+        "signature": "2aa4260a7ee700572056f7bee09ef3cd86f8056589f32888b94fe8576f63dd307fd9345df7c5d40e9867aac5c9987489c8291f2dd603e8cda875763863c7b603"
+      }
+    }
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "rejected",
+    "maturity": "presence-only",
+    "findings": [
+      {
+        "code": "authority.bad_signature",
+        "severity": "block",
+        "message": "Registry public key does not verify the signature."
+      }
+    ]
+  },
+  "expected": {
+    "verifies": false,
+    "reason": "bad_signature",
+    "schema_valid": true
+  }
+}

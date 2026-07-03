@@ -3,8 +3,8 @@
   "description": "Contract and package versions in the 0.4 range are compatible.",
   "input": {
     "schema": "consiliency.version_skew_scenario.v1",
-    "contract_version": "0.4.0",
-    "package_version": "0.4.0"
+    "contract_version": "0.4.1",
+    "package_version": "0.4.1"
   },
   "decision": {
     "schema": "consiliency.conformance_decision.v1",

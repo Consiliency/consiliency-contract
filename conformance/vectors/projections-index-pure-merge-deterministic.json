@@ -1,6 +1,6 @@
 {
   "id": "projections-index-pure-merge-deterministic",
-  "description": "The projections index is a deterministic pure merge of the per-artifact manifests (+ refresh sidecars): field-copy, no generated_at, entries sorted by (repo, kind, predicate). Manifests are supplied out of sort order to prove the merge sorts; a stale refresh sidecar merges into its entry without touching the manifest. Any driver (Portal+pipeline, harness standalone, headless gp) must reproduce expected.index byte-for-byte (DESIGN §2.2/§2.3/§12.3).",
+  "description": "The projections index is a deterministic pure merge of the per-artifact manifests (+ refresh sidecars): field-copy, no generated_at, entries sorted by (repo, kind, predicate). Manifests are supplied out of sort order to prove the merge sorts; a stale refresh sidecar merges into its entry without touching the manifest. Any driver (Portal+pipeline, harness standalone, headless gp) must reproduce expected.index byte-for-byte (DESIGN §2.2/§2.3/§12.3). v0.4.1: also exercises a proj-S-certified entry (source_S_digest pin, no code pin) — the kind-coverage gap that let the flat-required v0.4.0 schema ship.",
   "input": {
     "schema": "consiliency.projections_index_scenario.v1",
     "manifests": [
@@ -18,7 +18,9 @@
         "manifest_path": "spec-render/projcode/portal/portal-sbom.manifest.json",
         "body_content_type": "text/markdown",
         "maturity_label": "hash-checked",
-        "gate_verdict": {"state": "pass"}
+        "gate_verdict": {
+          "state": "pass"
+        }
       },
       {
         "schema": "proj_code_api_manifest.v1",
@@ -34,7 +36,26 @@
         "manifest_path": "spec-render/projcode/gp/gp-api-surface.manifest.json",
         "body_content_type": "text/markdown",
         "maturity_label": "hash-checked",
-        "gate_verdict": {"state": "pass"}
+        "gate_verdict": {
+          "state": "pass"
+        }
+      },
+      {
+        "schema": "certified_projection_manifest.v1",
+        "target": "graphbase",
+        "kind": "proj-S-certified",
+        "predicate": "certified-projection",
+        "source_S_digest": "d19bbc75eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "body_digest": "c03e9d9cffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "body_digest_domain": "spec-render:html:v1",
+        "output_path": "spec-render/certified/graphbase/graphbase.c4.html",
+        "manifest_path": "spec-render/certified/graphbase/graphbase.manifest.json",
+        "body_content_type": "text/html",
+        "maturity_label": "certified",
+        "gate_verdict": {
+          "state": "pass"
+        },
+        "display_route": "/specs/graphbase/c4"
       }
     ],
     "refresh_sidecars": [
@@ -51,7 +72,11 @@
     "status": "accepted",
     "maturity": "hash-checked",
     "findings": [
-      {"code": "projections_index.pure_merge", "severity": "info", "message": "Index entries are a pure field-copy of the manifests plus sidecar refresh state, deterministically sorted, with no generated_at."}
+      {
+        "code": "projections_index.pure_merge",
+        "severity": "info",
+        "message": "Index entries are a pure field-copy of the manifests plus sidecar refresh state, deterministically sorted, with no generated_at."
+      }
     ]
   },
   "expected": {
@@ -72,6 +97,20 @@
           "pinned_commit": "aa11bb2200000000000000000000000000000000",
           "maturity_label": "hash-checked",
           "gate_state": "pass"
+        },
+        {
+          "repo": "graphbase",
+          "kind": "proj-S-certified",
+          "predicate": "certified-projection",
+          "body_path": "spec-render/certified/graphbase/graphbase.c4.html",
+          "body_content_type": "text/html",
+          "manifest_path": "spec-render/certified/graphbase/graphbase.manifest.json",
+          "body_digest": "c03e9d9cffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "body_digest_domain": "spec-render:html:v1",
+          "source_S_digest": "d19bbc75eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "maturity_label": "certified",
+          "gate_state": "pass",
+          "display_route": "/specs/graphbase/c4"
         },
         {
           "repo": "portal",

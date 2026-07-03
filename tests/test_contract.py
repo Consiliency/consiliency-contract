@@ -20,8 +20,8 @@ from consiliency_contract import (
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.4.0")
-        self.assertEqual(load_contract()["contract_version"], "0.4.0")
+        self.assertEqual(CONTRACT_VERSION, "0.4.1")
+        self.assertEqual(load_contract()["contract_version"], "0.4.1")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")
@@ -223,15 +223,21 @@ class ContractReaderTest(unittest.TestCase):
                 "predicate": m["predicate"],
                 "body_path": m["output_path"],
                 "body_content_type": m["body_content_type"],
-                "facts_path": m["facts_path"],
                 "manifest_path": m["manifest_path"],
                 "body_digest": m["body_digest"],
                 "body_digest_domain": m["body_digest_domain"],
-                "facts_digest": m["facts_digest"],
-                "pinned_commit": m["code_head_sha"],
                 "maturity_label": m["maturity_label"],
                 "gate_state": m["gate_verdict"]["state"],
             }
+            if m["kind"] == "proj-S-certified":
+                # v0.4.1: certified pins the desired-state graph S, not a code commit.
+                e["source_S_digest"] = m["source_S_digest"]
+                if m.get("display_route") is not None:
+                    e["display_route"] = m["display_route"]
+            else:
+                e["facts_path"] = m["facts_path"]
+                e["facts_digest"] = m["facts_digest"]
+                e["pinned_commit"] = m["code_head_sha"]
             s = sidecar.get(m["manifest_path"])
             if s:
                 for k in ("refresh_status", "refresh_failure_class", "attempted_code_head_sha"):

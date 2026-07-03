@@ -2,25 +2,50 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://consiliency.io/contracts/projections-index-v1.schema.json",
   "title": "Consiliency projections index (projections.index.v1)",
-  "description": "A deterministic pure-merge index of per-artifact projection manifests (+ portal_projection.v2 envelopes + refresh sidecars). Carries NO generated_at / generated_at_commit so a --check rebuild is byte-identical across source commits that touch no manifest (determinism). Per-entry pinned_commit carries the meaningful provenance. The wire schema id is 'projections.index.v1' (non-namespaced, per DESIGN §2.3 — the interchangeability wire value the producer emits) while the file and loader key follow the package's hyphen/snake conventions.",
+  "description": "A deterministic pure-merge index of per-artifact projection manifests (+ portal_projection.v2 envelopes + refresh sidecars). Carries NO generated_at / generated_at_commit so a --check rebuild is byte-identical across source commits that touch no manifest (determinism). Per-entry pinned_commit carries the meaningful provenance. The wire schema id is 'projections.index.v1' (non-namespaced, per DESIGN §2.3 — the interchangeability wire value the producer emits) while the file and loader key follow the package's hyphen/snake conventions. v0.4.1: facts_path/facts_digest/pinned_commit are conditionally required (proj-code kinds only); proj-S-certified requires source_S_digest instead and is the only kind permitted maturity_label=certified.",
   "type": "object",
-  "required": ["schema", "entries"],
+  "required": [
+    "schema",
+    "entries"
+  ],
   "additionalProperties": false,
   "properties": {
-    "schema": {"const": "projections.index.v1"},
+    "schema": {
+      "const": "projections.index.v1"
+    },
     "entries": {
       "type": "array",
-      "items": {"$ref": "#/$defs/entry"}
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
     }
   },
   "$defs": {
     "repoRelativePath": {
       "type": "string",
       "minLength": 1,
-      "not": {"anyOf": [{"pattern": "^/"}, {"pattern": "(^|/)\\.\\.(/|$)"}, {"pattern": "^[A-Za-z]:[\\\\/]"}]}
+      "not": {
+        "anyOf": [
+          {
+            "pattern": "^/"
+          },
+          {
+            "pattern": "(^|/)\\.\\.(/|$)"
+          },
+          {
+            "pattern": "^[A-Za-z]:[\\\\/]"
+          }
+        ]
+      }
     },
-    "sha256Hex": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "commitSha": {"type": "string", "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"},
+    "sha256Hex": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "commitSha": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+    },
     "entry": {
       "type": "object",
       "required": [
@@ -29,47 +54,158 @@
         "predicate",
         "body_path",
         "body_content_type",
-        "facts_path",
         "manifest_path",
         "body_digest",
         "body_digest_domain",
-        "facts_digest",
-        "pinned_commit",
         "maturity_label",
         "gate_state"
       ],
       "additionalProperties": false,
       "properties": {
-        "repo": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
-        "kind": {"enum": ["proj-code-sbom", "proj-code-api", "proj-S-certified"]},
-        "predicate": {"type": "string", "minLength": 1},
-        "body_path": {"$ref": "#/$defs/repoRelativePath"},
-        "body_content_type": {"enum": ["text/markdown", "text/html"]},
-        "facts_path": {"$ref": "#/$defs/repoRelativePath"},
-        "manifest_path": {"$ref": "#/$defs/repoRelativePath"},
-        "body_digest": {"$ref": "#/$defs/sha256Hex"},
-        "body_digest_domain": {"enum": ["raw-sha256", "spec-render:html:v1"]},
-        "facts_digest": {"$ref": "#/$defs/sha256Hex"},
-        "pinned_commit": {"$ref": "#/$defs/commitSha"},
-        "maturity_label": {"enum": ["presence-only", "hash-checked", "realized-edge-observed", "certified"]},
-        "gate_state": {"enum": ["pass", "fail", "not_evaluated"]},
+        "repo": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_.-]*$"
+        },
+        "kind": {
+          "enum": [
+            "proj-code-sbom",
+            "proj-code-api",
+            "proj-S-certified"
+          ]
+        },
+        "predicate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "body_path": {
+          "$ref": "#/$defs/repoRelativePath"
+        },
+        "body_content_type": {
+          "enum": [
+            "text/markdown",
+            "text/html"
+          ]
+        },
+        "facts_path": {
+          "$ref": "#/$defs/repoRelativePath"
+        },
+        "manifest_path": {
+          "$ref": "#/$defs/repoRelativePath"
+        },
+        "body_digest": {
+          "$ref": "#/$defs/sha256Hex"
+        },
+        "body_digest_domain": {
+          "enum": [
+            "raw-sha256",
+            "spec-render:html:v1"
+          ]
+        },
+        "facts_digest": {
+          "$ref": "#/$defs/sha256Hex"
+        },
+        "pinned_commit": {
+          "$ref": "#/$defs/commitSha"
+        },
+        "source_S_digest": {
+          "$ref": "#/$defs/sha256Hex",
+          "description": "REQUIRED for kind proj-S-certified: the canon semantic-content digest of the desired-state graph S this certified projection renders (the certificate's desired_graph_digest). A certified proj-S pins S, not a code commit — pinned_commit/facts_* are proj-code concepts and are conditionally required for the proj-code kinds only (v0.4.1)."
+        },
+        "maturity_label": {
+          "enum": [
+            "presence-only",
+            "hash-checked",
+            "realized-edge-observed",
+            "certified"
+          ]
+        },
+        "gate_state": {
+          "enum": [
+            "pass",
+            "fail",
+            "not_evaluated"
+          ]
+        },
         "branch": {
           "type": "string",
           "minLength": 1,
           "description": "OPTIONAL pipeline-owned contract branch this projection was generated on (DESIGN §11.1). Omitted keeps the entry a pure function of the manifest per §2.3 / §10.4 (single pin per commit; currency is a display-time comparison, not a per-branch generation matrix). Populated only when the branch is available in the generation context; never required for pure-merge determinism."
         },
         "refresh_status": {
-          "enum": ["current", "stale"],
+          "enum": [
+            "current",
+            "stale"
+          ],
           "description": "REFRESH-LAYER field (§5), NOT a manifest verdict. Merged from the committed <artifact>.refresh.json SIDECAR, never from the manifest (manifests are additionalProperties:false single-writer gate records). Absent when no sidecar exists."
         },
-        "refresh_failure_class": {"type": "string", "minLength": 1},
-        "attempted_code_head_sha": {"$ref": "#/$defs/commitSha"},
+        "refresh_failure_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attempted_code_head_sha": {
+          "$ref": "#/$defs/commitSha"
+        },
         "display_route": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Present for certified entries (from portal_projection.v2); null / absent otherwise."
         },
-        "not_certified_reason": {"type": "string", "minLength": 1}
-      }
+        "not_certified_reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "proj-code-sbom",
+                  "proj-code-api"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "facts_path",
+              "facts_digest",
+              "pinned_commit"
+            ],
+            "properties": {
+              "maturity_label": {
+                "not": {
+                  "const": "certified"
+                },
+                "description": "proj-code kinds are capped below certified (no S-model/parity cert)"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "proj-S-certified"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "source_S_digest"
+            ]
+          }
+        }
+      ]
     }
   }
 }

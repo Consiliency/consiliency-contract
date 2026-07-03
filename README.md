@@ -16,7 +16,11 @@ The Consiliency cross-repo **contract package** — the single, neutral rulebook
 
 Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/@consiliency/contract) + **PyPI** [`consiliency-contract`](https://pypi.org/project/consiliency-contract/), from shared JSON data + conformance vectors so the two language readers stay byte-identical.
 
-> **Status — `0.4.0` adds the Slice C0 projection-discovery + git-discipline
+> **Status — `0.4.1` makes `projections.index.v1` entries per-kind: the
+> proj-code kinds require a code commit + facts, while `proj-S-certified`
+> requires `source_S_digest` (a desired-state graph pin, no facts/commit) and
+> may carry the `certified` maturity — via conditional requireds keyed on
+> `kind`. `0.4.0` added the Slice C0 projection-discovery + git-discipline
 > contracts (`projections.index.v1`, `git_discipline_protocol`,
 > `pipeline_ref_classes`) on top of the `0.3.0` required-document rebalance,
 > the `0.2.0` CS-0.12 adoption/governance-scoping + CS-0.10b lease/inbox

@@ -23,6 +23,19 @@ which is the structural expression of "Portal is a consumer, not the owner."
 A deterministic **pure-merge** index of the per-artifact projection manifests
 (+ `portal_projection.v2` envelopes + refresh sidecars). Load-bearing choices:
 
+- **Per-kind entry shape (v0.4.1 fix).** The three index fields `pinned_commit`,
+  `facts_path`, `facts_digest` are proj-code-shaped and are **conditionally
+  required** (JSON-Schema `allOf` + `if/then` on `kind`): required for
+  `proj-code-sbom` / `proj-code-api`, absent for `proj-S-certified`. A certified
+  entry pins a desired-state graph S via **`source_S_digest`** (the neutral index
+  field the aggregator maps from spec's `graph_digest` / `desired_graph_digest`,
+  just as `code_head_sha` → `pinned_commit`) and carries no facts file or code
+  commit. `maturity_label` is capped two-sided per kind — `presence-only` /
+  `hash-checked` for proj-code, `realized-edge-observed` / `certified` for
+  certified — so a proj-code entry can never claim `certified` and a certified
+  entry can never drop to `hash-checked`. The v0.4.0 schema put the proj-code
+  trio in one flat `required` array, which made a certified entry structurally
+  unrepresentable (found on first use by the spec-side aggregator).
 - **No `generated_at` / `generated_at_commit`.** The index is a pure function of
   the manifests, so an in-memory `--check` rebuild is byte-identical across
   source commits that touch no manifest, and across all four drivers

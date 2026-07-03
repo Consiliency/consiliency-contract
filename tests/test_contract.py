@@ -18,12 +18,21 @@ from consiliency_contract import (
     load_schema,
     load_vector,
 )
+from consiliency_contract.authority import (
+    canonical_core_bytes,
+    canonicalize_core,
+    verify_authority_event,
+)
+
+
+def _stable_jcs(value: object) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
 
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.4.2")
-        self.assertEqual(load_contract()["contract_version"], "0.4.2")
+        self.assertEqual(CONTRACT_VERSION, "0.5.0")
+        self.assertEqual(load_contract()["contract_version"], "0.5.0")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")
@@ -287,6 +296,112 @@ class ContractReaderTest(unittest.TestCase):
             self.skipTest(report["reason"])
         self.assertEqual(report["status"], "pass", report)
         self.assertTrue(report["byte_identical_to_vector"], report)
+
+    # --- Slice 1 (XG-1): the authority-event contract core (root of trust) ---
+
+    @staticmethod
+    def _authority_vector_names() -> list[str]:
+        return [name for name in list_vectors() if name.startswith("authority-")]
+
+    def test_authority_schema_pins_core_chain_split(self) -> None:
+        schema = load_schema("authority_event_protocol")
+        self.assertEqual(schema["properties"]["schema"]["const"], "consiliency.authority_event_protocol.v1")
+        core = schema["properties"]["core"]
+        self.assertNotIn("chain", core["properties"])
+        self.assertNotIn("signature", core["properties"])
+        for field in ("decision_id", "cert_digest", "key_id", "approver", "validity", "audience", "custody_binding"):
+            self.assertIn(field, core["required"], field)
+        self.assertEqual(core["properties"]["authority_event_version"]["const"], "1")
+        self.assertEqual(core["properties"]["custody_binding"]["properties"]["phase_loop_driver_allowed"]["const"], False)
+        self.assertNotIn("phase", core["required"])
+        for field in ("phase", "subgraph", "canon_version"):
+            self.assertIn(field, core["properties"]["audience"]["required"], field)
+        self.assertEqual(schema["properties"]["signature"]["properties"]["scheme"]["const"], "ed25519")
+        self.assertEqual(sorted(schema["required"]), ["core", "schema", "signature"])
+
+    def test_authority_key_registry_is_pinned_root_of_trust(self) -> None:
+        reg = load_registry("authority_key_registry")
+        self.assertEqual(reg["schema"], "consiliency.authority_key_registry.v1")
+        self.assertGreaterEqual(len(reg["keys"]), 3)
+        for key in reg["keys"]:
+            self.assertEqual(key["scheme"], "ed25519")
+            self.assertRegex(key["public_key"], r"^[0-9a-f]{64}$")
+            self.assertIsInstance(key["approver"], str)
+            self.assertTrue(key["validity"]["not_before"] and key["validity"]["not_after"])
+            self.assertIsInstance(key["revoked"], bool)
+        self.assertTrue(any(key["revoked"] for key in reg["keys"]))
+        self.assertNotRegex(json.dumps(reg), r"(?i)private_key|secret|seed")
+
+    def test_authority_vectors_verify_or_reject_as_expected(self) -> None:
+        reg = load_registry("authority_key_registry")
+        names = self._authority_vector_names()
+        self.assertGreaterEqual(len(names), 12)
+        saw_valid = saw_forged = False
+        for name in names:
+            inp = load_vector(name)["input"]
+            expected = load_vector(name)["expected"]
+            decision = load_vector(name)["decision"]
+            res = verify_authority_event(
+                inp["event"], reg, now=inp["now"], expected_cert_digest=inp["expected_cert_digest"]
+            )
+            self.assertEqual(res["ok"], expected["verifies"], f"{name}: ok")
+            self.assertEqual(res["reason"], expected["reason"], f"{name}: reason")
+            self.assertEqual(decision["status"], "accepted" if expected["verifies"] else "rejected", f"{name}: decision")
+            saw_valid = saw_valid or expected["verifies"]
+            saw_forged = saw_forged or "forged" in name
+        self.assertTrue(saw_valid and saw_forged)
+
+    def test_forged_self_minted_event_rejects(self) -> None:
+        reg = load_registry("authority_key_registry")
+        inp = load_vector("authority-forged-self-minted")["input"]
+        res = verify_authority_event(
+            inp["event"], reg, now=inp["now"], expected_cert_digest=inp["expected_cert_digest"]
+        )
+        self.assertFalse(res["ok"])
+        self.assertEqual(res["reason"], "unknown_key_id")
+
+    def test_chain_append_preserves_core_signature(self) -> None:
+        reg = load_registry("authority_key_registry")
+        inp = load_vector("authority-valid")["input"]
+        kwargs = dict(now=inp["now"], expected_cert_digest=inp["expected_cert_digest"])
+        self.assertTrue(verify_authority_event(inp["event"], reg, **kwargs)["ok"])
+        digest = "a" * 64
+        chained = dict(inp["event"])
+        chained["chain"] = {
+            "entry_digest": digest,
+            "previous_entry_digest": "0" * 64,
+            "root_digest": "b" * 64,
+            "inclusion_proof": {"entry_digest": digest, "previous_entry_digest": "0" * 64, "root_digest": "b" * 64},
+        }
+        self.assertTrue(verify_authority_event(chained, reg, **kwargs)["ok"], "core signature must survive chain append")
+
+    def test_authority_canonicalizer_equals_jcs(self) -> None:
+        for name in self._authority_vector_names():
+            core = load_vector(name)["input"]["event"]["core"]
+            self.assertEqual(canonicalize_core(core), _stable_jcs(core), f"{name}: canonicalizer must equal sorted JSON")
+
+    def test_authority_canonicalizer_is_fail_closed(self) -> None:
+        from consiliency_contract.authority import AuthorityCanonicalError
+
+        for bad in ({"n": 1.5}, {"s": "a b"}, {"s": "é"}, {"x": None}):
+            with self.assertRaises(AuthorityCanonicalError):
+                canonicalize_core(bad)
+
+    def test_authority_regenerates_deterministically(self) -> None:
+        try:
+            import cryptography  # noqa: F401
+        except ImportError:  # pragma: no cover
+            self.skipTest("cryptography not installed")
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        proc = subprocess.run(
+            [sys.executable, "scripts/gen_authority_vectors.py", "--check"],
+            cwd=root, capture_output=True, text=True,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
 
 
 if __name__ == "__main__":

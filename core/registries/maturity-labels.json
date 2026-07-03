@@ -17,9 +17,21 @@
       "description": "The edge was observed from a declared pin, package coordinate, copied literal, or repo-relative source reference."
     },
     {
+      "id": "parity-certified",
+      "kind": "evidence",
+      "description": "Attested by a byte-reproducible parity certificate: the artifact's rendered bytes fail-closed re-verify against a digest bind to the certified desired-state graph S (C1-C5 cert bind passed). Proves BYTE PARITY with certified truth. Does NOT prove a human or authority ratified it — no authority event is required or checked for this tier. This is exactly what CS proj-S certification (spec #74, portal #165) ships today. Supersedes the bare 'certified' id (CS-1.4 label rescope, docs/design/CS-1.4-certified-label-rescope.md)."
+    },
+    {
+      "id": "authority-certified",
+      "kind": "evidence",
+      "description": "Everything parity-certified proves, PLUS a valid, signature-verified authority event (authority_event_protocol.v1 core/chain split, Ed25519) bound to the same cert_digest, ratified by a human through the XG-1 authority path. Proves BYTE PARITY *and* AUTHORITY RATIFICATION. Reserved: no artifact earns this label until the XG-1 authority loop (contract Slices 1-4; DESIGN-xg1-completion.md §4) lands end-to-end and delivers a verified authority-event.json alongside the cert. The higher of the two certified tiers (CS-1.4 label rescope)."
+    },
+    {
       "id": "certified",
       "kind": "evidence",
-      "description": "Reserved for post-XG-1 evidence attested by the certificate path; invalid for CS-0.2 Phase 0 vectors."
+      "deprecated": true,
+      "deprecated_alias_of": "parity-certified",
+      "description": "DEPRECATED (CS-1.4 label rescope). The bare 'certified' id was ambiguous about whether it meant byte-parity or authority ratification; in practice every artifact that has ever carried it had parity only, never a verified authority event. Alias of parity-certified — NEVER authority-certified, since aliasing an unratified artifact upward would manufacture the exact false-green this rescope exists to close. Retained so producers/consumers already emitting the bare 'certified' id keep validating; new artifacts MUST emit parity-certified or authority-certified. Do not use in new manifests."
     },
     {
       "id": "present-nonconforming",
@@ -41,8 +53,8 @@
     }
   ],
   "label_kinds": {
-    "evidence": "Evidence-strength axis: how strongly the artifact/edge is attested (presence -> hash -> realized -> certified).",
+    "evidence": "Evidence-strength axis: how strongly the artifact/edge is attested (presence -> hash -> realized -> parity-certified -> authority-certified). CS-1.4 splits the former single 'certified' rung into two honest tiers: parity-certified (byte parity, no authority event) and authority-certified (parity PLUS a verified, human-ratified authority event) — see each entry's description. The bare 'certified' id is kept only as a deprecated alias of parity-certified; it is never an alias of authority-certified.",
     "governance": "Governance-status axis: whether and how an artifact/edge is governed. Orthogonal to evidence strength."
   },
-  "phase0_disallowed": ["certified"]
+  "phase0_disallowed": ["certified", "parity-certified", "authority-certified"]
 }

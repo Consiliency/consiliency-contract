@@ -48,8 +48,8 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.4.0");
-  assert.equal(loadContract().contract_version, "0.4.0");
+  assert.equal(CONTRACT_VERSION, "0.4.1");
+  assert.equal(loadContract().contract_version, "0.4.1");
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
   assert.equal(loadSchema("manifest").properties.schema.const, "consiliency.manifest.v1");
@@ -112,7 +112,19 @@ test("package data avoids host absolute paths and accepted certified claims", ()
     });
     if (file.includes("conformance/vectors/")) {
       if (value.decision?.status === "accepted") {
-        assert.doesNotMatch(JSON.stringify(value.input), /"certified"/, file);
+        // v0.4.1 exemption: the projections-index vector legitimately exercises a
+        // proj-S-certified entry whose maturity_label comes from the CERTIFICATE path
+        // (post-XG-1 slice 1 — certified evidence is real for proj-S). The guard
+        // still bars every other accepted vector from smuggling certified claims.
+        if (value.id !== "projections-index-pure-merge-deterministic") {
+          assert.doesNotMatch(JSON.stringify(value.input), /"certified"/, file);
+        } else {
+          const certifiedCarriers = (value.input.manifests ?? []).filter((m) =>
+            JSON.stringify(m).includes('"certified"'));
+          for (const m of certifiedCarriers) {
+            assert.equal(m.kind, "proj-S-certified", `${file}: certified claim outside the certified kind`);
+          }
+        }
       }
     }
   }
@@ -325,15 +337,21 @@ function buildProjectionsIndex(input) {
       predicate: m.predicate,
       body_path: m.output_path,
       body_content_type: m.body_content_type,
-      facts_path: m.facts_path,
       manifest_path: m.manifest_path,
       body_digest: m.body_digest,
       body_digest_domain: m.body_digest_domain,
-      facts_digest: m.facts_digest,
-      pinned_commit: m.code_head_sha,
       maturity_label: m.maturity_label,
       gate_state: m.gate_verdict.state,
     };
+    if (m.kind === "proj-S-certified") {
+      // v0.4.1: certified pins the desired-state graph S, not a code commit.
+      e.source_S_digest = m.source_S_digest;
+      if (m.display_route != null) e.display_route = m.display_route;
+    } else {
+      e.facts_path = m.facts_path;
+      e.facts_digest = m.facts_digest;
+      e.pinned_commit = m.code_head_sha;
+    }
     const s = sidecar.get(m.manifest_path);
     if (s) {
       for (const k of ["refresh_status", "refresh_failure_class", "attempted_code_head_sha"]) {

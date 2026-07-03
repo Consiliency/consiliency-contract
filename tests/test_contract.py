@@ -20,8 +20,8 @@ from consiliency_contract import (
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.4.0")
-        self.assertEqual(load_contract()["contract_version"], "0.4.0")
+        self.assertEqual(CONTRACT_VERSION, "0.4.1")
+        self.assertEqual(load_contract()["contract_version"], "0.4.1")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")
@@ -223,15 +223,22 @@ class ContractReaderTest(unittest.TestCase):
                 "predicate": m["predicate"],
                 "body_path": m["output_path"],
                 "body_content_type": m["body_content_type"],
-                "facts_path": m["facts_path"],
                 "manifest_path": m["manifest_path"],
-                "body_digest": m["body_digest"],
+                "body_digest": m["html_digest"] if m["kind"] == "proj-S-certified" else m["body_digest"],
                 "body_digest_domain": m["body_digest_domain"],
-                "facts_digest": m["facts_digest"],
-                "pinned_commit": m["code_head_sha"],
                 "maturity_label": m["maturity_label"],
                 "gate_state": m["gate_verdict"]["state"],
             }
+            # Per-kind shape: proj-code pins a code commit + facts; certified pins
+            # a desired-state graph S (source_S_digest) with no facts or commit.
+            if m["kind"] == "proj-S-certified":
+                e["source_S_digest"] = m["graph_digest"]
+                if "display_route" in m:
+                    e["display_route"] = m["display_route"]
+            else:
+                e["pinned_commit"] = m["code_head_sha"]
+                e["facts_path"] = m["facts_path"]
+                e["facts_digest"] = m["facts_digest"]
             s = sidecar.get(m["manifest_path"])
             if s:
                 for k in ("refresh_status", "refresh_failure_class", "attempted_code_head_sha"):
@@ -248,6 +255,19 @@ class ContractReaderTest(unittest.TestCase):
         self.assertEqual(canon(built), canon(vector["expected"]["index"]))
         self.assertEqual(canon(self._build_projections_index(vector["input"])), canon(built))
         self.assertNotIn("generated_at", canon(vector["expected"]["index"]))
+
+    def test_projections_index_entry_has_per_kind_conditional_requireds(self) -> None:
+        entry = load_schema("projections_index_v1")["$defs"]["entry"]
+        # The code-shaped pins are NOT entry-level required (the v0.4.1 defect
+        # that made a certified entry unrepresentable).
+        for f in ("pinned_commit", "facts_path", "facts_digest", "source_S_digest"):
+            self.assertNotIn(f, entry["required"], f)
+        code_block = next(b for b in entry["allOf"] if "proj-code-sbom" in b["if"]["properties"]["kind"].get("enum", []))
+        cert_block = next(b for b in entry["allOf"] if b["if"]["properties"]["kind"].get("const") == "proj-S-certified")
+        self.assertEqual(sorted(code_block["then"]["required"]), ["facts_digest", "facts_path", "pinned_commit"])
+        self.assertEqual(code_block["then"]["properties"]["maturity_label"]["enum"], ["presence-only", "hash-checked"])
+        self.assertIn("source_S_digest", cert_block["then"]["required"])
+        self.assertEqual(cert_block["then"]["properties"]["maturity_label"]["enum"], ["realized-edge-observed", "certified"])
 
 
 if __name__ == "__main__":

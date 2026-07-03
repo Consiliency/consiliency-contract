@@ -1,6 +1,6 @@
 {
   "id": "projections-index-pure-merge-deterministic",
-  "description": "The projections index is a deterministic pure merge of the per-artifact manifests (+ refresh sidecars): field-copy, no generated_at, entries sorted by (repo, kind, predicate). Manifests are supplied out of sort order to prove the merge sorts; a stale refresh sidecar merges into its entry without touching the manifest. Any driver (Portal+pipeline, harness standalone, headless gp) must reproduce expected.index byte-for-byte (DESIGN §2.2/§2.3/§12.3).",
+  "description": "The projections index is a deterministic pure merge of the per-artifact manifests (+ refresh sidecars): field-copy, no generated_at, entries sorted by (repo, kind, predicate). Covers all three kinds: two proj-code manifests (pin a code commit + facts) and one proj-S-certified manifest (pins a desired-state graph S, has NO facts file or code commit — source_S_digest instead). Manifests are supplied out of sort order to prove the merge sorts; a stale refresh sidecar merges into its entry without touching the manifest. Any driver (Portal+pipeline, harness standalone, headless gp) must reproduce expected.index byte-for-byte (DESIGN §2.2/§2.3/§12.3).",
   "input": {
     "schema": "consiliency.projections_index_scenario.v1",
     "manifests": [
@@ -35,6 +35,21 @@
         "body_content_type": "text/markdown",
         "maturity_label": "hash-checked",
         "gate_verdict": {"state": "pass"}
+      },
+      {
+        "schema": "certified_projection_manifest.v1",
+        "target": "graphbase",
+        "kind": "proj-S-certified",
+        "predicate": "proj-S-certified",
+        "graph_digest": "9a3f5e17eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "html_digest": "c0ffee00ffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "body_digest_domain": "spec-render:html:v1",
+        "output_path": "spec-render/certified/graphbase/graphbase.c4.html",
+        "manifest_path": "spec-render/certified/graphbase/graphbase.manifest.json",
+        "body_content_type": "text/html",
+        "maturity_label": "realized-edge-observed",
+        "gate_verdict": {"state": "pass"},
+        "display_route": "/specs/graphbase/c4"
       }
     ],
     "refresh_sidecars": [
@@ -72,6 +87,20 @@
           "pinned_commit": "aa11bb2200000000000000000000000000000000",
           "maturity_label": "hash-checked",
           "gate_state": "pass"
+        },
+        {
+          "repo": "graphbase",
+          "kind": "proj-S-certified",
+          "predicate": "proj-S-certified",
+          "body_path": "spec-render/certified/graphbase/graphbase.c4.html",
+          "body_content_type": "text/html",
+          "manifest_path": "spec-render/certified/graphbase/graphbase.manifest.json",
+          "body_digest": "c0ffee00ffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "body_digest_domain": "spec-render:html:v1",
+          "maturity_label": "realized-edge-observed",
+          "gate_state": "pass",
+          "source_S_digest": "9a3f5e17eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "display_route": "/specs/graphbase/c4"
         },
         {
           "repo": "portal",

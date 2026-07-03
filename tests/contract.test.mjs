@@ -48,8 +48,8 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.4.0");
-  assert.equal(loadContract().contract_version, "0.4.0");
+  assert.equal(CONTRACT_VERSION, "0.4.1");
+  assert.equal(loadContract().contract_version, "0.4.1");
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
   assert.equal(loadSchema("manifest").properties.schema.const, "consiliency.manifest.v1");
@@ -325,15 +325,22 @@ function buildProjectionsIndex(input) {
       predicate: m.predicate,
       body_path: m.output_path,
       body_content_type: m.body_content_type,
-      facts_path: m.facts_path,
       manifest_path: m.manifest_path,
-      body_digest: m.body_digest,
+      body_digest: m.kind === "proj-S-certified" ? m.html_digest : m.body_digest,
       body_digest_domain: m.body_digest_domain,
-      facts_digest: m.facts_digest,
-      pinned_commit: m.code_head_sha,
       maturity_label: m.maturity_label,
       gate_state: m.gate_verdict.state,
     };
+    // Per-kind shape: proj-code pins a code commit + facts; certified pins a
+    // desired-state graph S (source_S_digest) with no facts or code commit.
+    if (m.kind === "proj-S-certified") {
+      e.source_S_digest = m.graph_digest;
+      if (m.display_route !== undefined) e.display_route = m.display_route;
+    } else {
+      e.pinned_commit = m.code_head_sha;
+      e.facts_path = m.facts_path;
+      e.facts_digest = m.facts_digest;
+    }
     const s = sidecar.get(m.manifest_path);
     if (s) {
       for (const k of ["refresh_status", "refresh_failure_class", "attempted_code_head_sha"]) {
@@ -355,4 +362,22 @@ test("projections index is a deterministic pure merge of the manifests (§12.3 f
   assert.equal(canonical(buildProjectionsIndex(input)), canonical(built));
   // No timestamp field anywhere — the property that makes --check stable.
   assert.doesNotMatch(canonical(expected.index), /generated_at/);
+});
+
+test("projections index entry has per-kind conditional requireds (proj-code vs proj-S-certified)", () => {
+  const entry = loadSchema("projections_index_v1").$defs.entry;
+  // The code-shaped pins are NOT entry-level required (that was the v0.4.1 defect
+  // that made a certified entry unrepresentable).
+  for (const f of ["pinned_commit", "facts_path", "facts_digest", "source_S_digest"]) {
+    assert.ok(!entry.required.includes(f), `${f} must not be an unconditional entry requirement`);
+  }
+  const codeBlock = entry.allOf.find((b) => (b.if.properties.kind.enum ?? []).includes("proj-code-sbom"));
+  const certBlock = entry.allOf.find((b) => b.if.properties.kind.const === "proj-S-certified");
+  assert.ok(codeBlock && certBlock, "both per-kind conditional blocks must exist");
+  // proj-code: pins a commit + facts, maturity capped at hash-checked.
+  assert.deepEqual(codeBlock.then.required.slice().sort(), ["facts_digest", "facts_path", "pinned_commit"]);
+  assert.deepEqual(codeBlock.then.properties.maturity_label.enum, ["presence-only", "hash-checked"]);
+  // certified: pins a graph S, maturity may be certified ONLY here (floor realized-edge-observed).
+  assert.ok(certBlock.then.required.includes("source_S_digest"));
+  assert.deepEqual(certBlock.then.properties.maturity_label.enum, ["realized-edge-observed", "certified"]);
 });

@@ -1,5 +1,5 @@
 export declare const CONTRACT_PACKAGE: "@consiliency/contract";
-export declare const CONTRACT_VERSION: "0.4.0";
+export declare const CONTRACT_VERSION: "0.4.1";
 export declare const CONTRACT: Record<string, unknown>;
 export declare function loadContract(): Record<string, unknown>;
 export declare function loadSchema(name: string): Record<string, unknown>;

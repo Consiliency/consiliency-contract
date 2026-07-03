@@ -435,6 +435,36 @@ function authorityVectorNames() {
   return listVectors().filter((name) => name.startsWith("authority-"));
 }
 
+// A compact JSON-Schema validator covering exactly the constructs the
+// authority-event schema uses ($ref/$defs, const, enum, type, pattern,
+// minLength, required, additionalProperties:false, properties). Enough to prove
+// the shipped schema actually accepts the valid event and rejects the malformed
+// forgeries — without adding an ajv dependency the repo doesn't carry.
+function validateAgainst(schema, value, root) {
+  if (schema.$ref) {
+    const node = schema.$ref.replace(/^#\//, "").split("/").reduce((acc, key) => acc[key], root);
+    return validateAgainst(node, value, root);
+  }
+  if ("const" in schema) return value === schema.const;
+  if (schema.enum) return schema.enum.includes(value);
+  if (schema.type === "string") {
+    if (typeof value !== "string") return false;
+    if (schema.minLength != null && value.length < schema.minLength) return false;
+    if (schema.pattern && !new RegExp(schema.pattern, "u").test(value)) return false;
+    return true;
+  }
+  if (schema.type === "object" || schema.properties) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    const props = schema.properties || {};
+    for (const req of schema.required || []) if (!(req in value)) return false;
+    if (schema.additionalProperties === false) {
+      for (const key of Object.keys(value)) if (!(key in props)) return false;
+    }
+    return Object.entries(value).every(([key, entry]) => !props[key] || validateAgainst(props[key], entry, root));
+  }
+  return true;
+}
+
 test("authority-event protocol schema pins the core/chain signing split", () => {
   const schema = loadSchema("authority_event_protocol");
   assert.equal(schema.properties.schema.const, "consiliency.authority_event_protocol.v1");
@@ -534,6 +564,21 @@ test("authority canonical core bytes match the Python reference byte-for-byte", 
     const jsHex = canonicalCoreBytes(vector.input.event.core).toString("hex");
     assert.equal(jsHex, py[vector.id], `${vector.id}: JS and Python canonical core bytes must be identical`);
   }
+});
+
+test("authority vectors conform (or not) to the shipped protocol schema as flagged", () => {
+  const schema = loadSchema("authority_event_protocol");
+  let sawValidConform = false;
+  let sawInvalid = false;
+  for (const name of authorityVectorNames()) {
+    const vector = loadVector(name);
+    const conforms = validateAgainst(schema, vector.input.event, schema);
+    assert.equal(conforms, vector.expected.schema_valid, `${name}: schema conformance vs schema_valid flag`);
+    if (vector.id === "authority-valid") sawValidConform = conforms;
+    if (!vector.expected.schema_valid) sawInvalid = true;
+  }
+  assert.ok(sawValidConform, "the valid vector must conform to the shipped schema");
+  assert.ok(sawInvalid, "at least one malformed vector must be rejected by the shipped schema");
 });
 
 test("the canonicalizer is fail-closed on ambiguous input", () => {

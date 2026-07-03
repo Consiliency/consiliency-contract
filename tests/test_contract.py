@@ -303,6 +303,56 @@ class ContractReaderTest(unittest.TestCase):
     def _authority_vector_names() -> list[str]:
         return [name for name in list_vectors() if name.startswith("authority-")]
 
+    @classmethod
+    def _validate_against(cls, schema: dict, value: object, root: dict) -> bool:
+        # Compact validator for the constructs the authority schema uses
+        # ($ref/$defs, const, enum, type, pattern, minLength, required,
+        # additionalProperties:false, properties) — no jsonschema dependency.
+        if "$ref" in schema:
+            node: object = root
+            for key in schema["$ref"].lstrip("#/").split("/"):
+                node = node[key]  # type: ignore[index]
+            return cls._validate_against(node, value, root)  # type: ignore[arg-type]
+        if "const" in schema:
+            return value == schema["const"]
+        if "enum" in schema:
+            return value in schema["enum"]
+        if schema.get("type") == "string":
+            if not isinstance(value, str):
+                return False
+            if "minLength" in schema and len(value) < schema["minLength"]:
+                return False
+            if "pattern" in schema and not re.match(schema["pattern"], value):
+                return False
+            return True
+        if schema.get("type") == "object" or "properties" in schema:
+            if not isinstance(value, dict):
+                return False
+            props = schema.get("properties", {})
+            for req in schema.get("required", []):
+                if req not in value:
+                    return False
+            if schema.get("additionalProperties") is False:
+                for key in value:
+                    if key not in props:
+                        return False
+            return all(key not in props or cls._validate_against(props[key], entry, root) for key, entry in value.items())
+        return True
+
+    def test_authority_vectors_match_schema_valid_flag(self) -> None:
+        schema = load_schema("authority_event_protocol")
+        saw_valid_conform = saw_invalid = False
+        for name in self._authority_vector_names():
+            vector = load_vector(name)
+            conforms = self._validate_against(schema, vector["input"]["event"], schema)
+            self.assertEqual(conforms, vector["expected"]["schema_valid"], f"{name}: schema conformance")
+            if vector["id"] == "authority-valid":
+                saw_valid_conform = conforms
+            if not vector["expected"]["schema_valid"]:
+                saw_invalid = True
+        self.assertTrue(saw_valid_conform, "the valid vector must conform to the shipped schema")
+        self.assertTrue(saw_invalid, "at least one malformed vector must be rejected by the shipped schema")
+
     def test_authority_schema_pins_core_chain_split(self) -> None:
         schema = load_schema("authority_event_protocol")
         self.assertEqual(schema["properties"]["schema"]["const"], "consiliency.authority_event_protocol.v1")

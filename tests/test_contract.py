@@ -197,9 +197,16 @@ class ContractReaderTest(unittest.TestCase):
         for name in computed_human:
             self.assertNotIn(name, expected["deletable_by_self_heal"], name)
             self.assertIn(name, expected["protected"], name)
+        def matched_class(name: str) -> dict:
+            for rc in reg["ref_classes"]:
+                if self._ref_pattern_to_regex(rc["pattern"]).match(name):
+                    return rc
+            return reg["human_default"]
+
         for name in expected["deletable_by_self_heal"]:
             self.assertEqual(self._ref_owner(name, reg), "pipeline", name)
             self.assertTrue(leased[name], name)
+            self.assertTrue(matched_class(name)["deletable_by_self_heal"], name)
         all_refs = sorted(r["name"] for r in refs)
         union = sorted(expected["deletable_by_self_heal"] + expected["protected"])
         self.assertEqual(union, all_refs)

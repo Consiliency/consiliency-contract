@@ -297,10 +297,15 @@ test("never-delete-human-refs vector: no human ref is self-heal-deletable; delet
     assert.ok(!expected.deletable_by_self_heal.includes(name), `${name}: human ref must never be self-heal-deletable`);
     assert.ok(expected.protected.includes(name), `${name}: human ref must be protected`);
   }
-  // Every self-heal-deletable ref is a LEASED, pipeline-owned ref.
+  // Every self-heal-deletable ref is a LEASED, pipeline-owned ref whose matched
+  // class is itself deletable (a non-deletable pipeline class — e.g. the working
+  // branch — must never appear in the deletable set even when leased).
+  const matchedClass = (name) =>
+    reg.ref_classes.find((cls) => refPatternToRegex(cls.pattern).test(name)) ?? reg.human_default;
   for (const name of expected.deletable_by_self_heal) {
     assert.equal(refOwner(name, reg), "pipeline", `${name}: only pipeline refs are deletable`);
     assert.equal(leasedByName.get(name), true, `${name}: only leased refs are deletable`);
+    assert.equal(matchedClass(name).deletable_by_self_heal, true, `${name}: matched class must be deletable`);
   }
   // deletable and protected partition every ref, disjointly.
   const all = refs.map((r) => r.name).sort();

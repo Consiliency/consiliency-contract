@@ -598,6 +598,8 @@ test("the canon-core v2 provenance pins the spec canon source", () => {
   assert.equal(prov.schema, "consiliency.authority_canon_provenance.v1");
   assert.equal(prov.canon_version, "spec-canon:v2");
   assert.match(prov.normative_source.files["canon/py/canon.py"], /^[0-9a-f]{64}$/);
+  assert.equal(prov.authority_profile.profile_id, "authority");
+  assert.equal(prov.authority_profile.domain_prefix, "spec-canon:v2:authority\n");
   assert.match(prov.authority_profile.signed_preimage, /spec-canon:v2:authority/);
   assert.match(prov.authority_profile.domain_separation, /SETTLED/);
 });

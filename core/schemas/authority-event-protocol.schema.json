@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/authority-event-protocol.schema.json",
+  "title": "Consiliency authority event protocol",
+  "$comment": "One single-sourced, cryptographically-authenticated authority event. SEPARATION OF POWERS: `core` is the Portal-signed, ledger-slot-INDEPENDENT payload the human decision attests; the Ed25519 signature covers EXACTLY the canonical bytes of `core` (see docs/design/authority-event-canonical-bytes.md) and nothing else. `chain` is ledger-appended metadata OUTSIDE the signature, so spec can append it without re-signing and thus never becomes an authority minter. Verification uses the PINNED authority-key-registry, keyed by core.key_id — never the event's self-declared signature fields.",
+  "type": "object",
+  "required": ["schema", "core", "signature"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.authority_event_protocol.v1"},
+    "core": {
+      "$comment": "SIGNED. These are the only fields the Ed25519 signature covers. Chain-position-independent so Portal can sign before spec appends to the ledger.",
+      "type": "object",
+      "required": [
+        "authority_event_version",
+        "event_type",
+        "decision_id",
+        "audience",
+        "cert_digest",
+        "approver",
+        "key_id",
+        "validity",
+        "custody_binding",
+        "proposal_ref",
+        "ratify_ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "authority_event_version": {"const": "1"},
+        "event_type": {"enum": ["ratify", "revoke", "supersede"]},
+        "decision_id": {
+          "$ref": "#/$defs/metadataSafeString",
+          "$comment": "The Portal-minted DECISION UUID = the authority identity (amendment #1). NOT the phaseId; phase/subgraph are scoped audience fields below."
+        },
+        "audience": {
+          "$comment": "Scoped audience the decision applies to. phase/subgraph are SCOPED fields, not the identity (amendment #1).",
+          "type": "object",
+          "required": ["repo", "env", "lineage", "policy_epoch", "canon_version", "phase", "subgraph"],
+          "additionalProperties": false,
+          "properties": {
+            "repo": {"$ref": "#/$defs/metadataSafeString"},
+            "env": {"$ref": "#/$defs/metadataSafeString"},
+            "lineage": {"$ref": "#/$defs/metadataSafeString"},
+            "policy_epoch": {"$ref": "#/$defs/metadataSafeString"},
+            "canon_version": {"$ref": "#/$defs/metadataSafeString"},
+            "phase": {"$ref": "#/$defs/metadataSafeString"},
+            "subgraph": {"$ref": "#/$defs/metadataSafeString"}
+          }
+        },
+        "cert_digest": {
+          "$ref": "#/$defs/hexDigest",
+          "$comment": "MANDATORY (N4). Binds the event to the SPECIFIC cert the human saw — not merely its canon_version."
+        },
+        "approver": {
+          "$ref": "#/$defs/metadataSafeString",
+          "$comment": "The approver identity. Verification requires the signing key (core.key_id) to be registered to this approver (amendment #4)."
+        },
+        "key_id": {
+          "$ref": "#/$defs/metadataSafeString",
+          "$comment": "Identity of the signing key, IN the signed core so the signature commits to which key signed. Verification selects the pubkey+scheme from the pinned registry by this value."
+        },
+        "validity": {"$ref": "#/$defs/validityWindow"},
+        "custody_binding": {
+          "type": "object",
+          "required": ["phase_loop_driver_allowed"],
+          "additionalProperties": false,
+          "properties": {
+            "phase_loop_driver_allowed": {
+              "const": false,
+              "$comment": "MUST be false — authority is minted in the Portal, never by the phase-loop driver/leaf."
+            }
+          }
+        },
+        "proposal_ref": {"$ref": "#/$defs/metadataSafeString"},
+        "ratify_ref": {"$ref": "#/$defs/metadataSafeString"}
+      }
+    },
+    "chain": {
+      "$comment": "UNSIGNED, ledger-appended (spec). Appending or mutating this block does NOT invalidate the core signature — that independence is a conformance vector.",
+      "type": "object",
+      "required": ["entry_digest", "previous_entry_digest", "inclusion_proof", "root_digest"],
+      "additionalProperties": false,
+      "properties": {
+        "entry_digest": {"$ref": "#/$defs/hexDigest"},
+        "previous_entry_digest": {"$ref": "#/$defs/hexDigest"},
+        "root_digest": {"$ref": "#/$defs/hexDigest"},
+        "inclusion_proof": {
+          "type": "object",
+          "required": ["entry_digest", "previous_entry_digest", "root_digest"],
+          "additionalProperties": false,
+          "properties": {
+            "entry_digest": {"$ref": "#/$defs/hexDigest"},
+            "previous_entry_digest": {"$ref": "#/$defs/hexDigest"},
+            "root_digest": {"$ref": "#/$defs/hexDigest"}
+          }
+        }
+      }
+    },
+    "signature": {
+      "$comment": "The signature bytes plus self-declared scheme/key_id. Verification IGNORES scheme/key_id here in favor of core.key_id -> the pinned registry; these echoes exist only for transport legibility. A scheme that disagrees with the registry is an algorithm-confusion REJECT.",
+      "type": "object",
+      "required": ["scheme", "key_id", "signature"],
+      "additionalProperties": false,
+      "properties": {
+        "scheme": {"const": "ed25519"},
+        "key_id": {"$ref": "#/$defs/metadataSafeString"},
+        "signature": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{128}$",
+          "$comment": "64-byte Ed25519 signature, lowercase hex."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "metadataSafeString": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[\\u0021\\u0023-\\u005B\\u005D-\\u007E]+$",
+      "$comment": "Printable ASCII 0x21..0x7E excluding double-quote and backslash. The AUDIENCE_VALUE_RE metadata-safe set that makes the canonical bytes cross-language identical."
+    },
+    "hexDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "$comment": "Lowercase SHA-256 hex digest."
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$",
+      "$comment": "RFC3339 UTC, fixed width, 'Z' only — sorts lexicographically == chronologically."
+    },
+    "validityWindow": {
+      "type": "object",
+      "required": ["not_before", "not_after"],
+      "additionalProperties": false,
+      "properties": {
+        "not_before": {"$ref": "#/$defs/timestamp"},
+        "not_after": {"$ref": "#/$defs/timestamp"}
+      }
+    }
+  }
+}

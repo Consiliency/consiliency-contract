@@ -35,6 +35,16 @@ const TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
 const SUPPORTED_SCHEME = "ed25519";
 
+// Domain separation (XG-4 decision): the Ed25519 signature covers the
+// canon-core v2 AUTHORITY-PROFILE digest preimage — the `spec-canon:v2:authority`
+// domain prefix concatenated with `canonical_bytes(core)` — NOT the bare bytes.
+// This prevents cross-context signature reuse and matches canon-core v2's rule of
+// prefixing every profile (`spec-canon:v2:<profile>\n`). canon-core v2 does not
+// yet register an `authority` profile (XG-4 will add it); this prefix is byte-
+// identical to what `canon.digest(core, "authority")` will hash once it does, so
+// there is ZERO re-signing at XG-4. See docs/design/authority-event-canonical-bytes.md.
+const AUTHORITY_SIGNING_PREFIX = Buffer.from("spec-canon:v2:authority\n", "ascii");
+
 // SPKI DER prefix for a 32-byte Ed25519 public key. Node's `createPublicKey`
 // does not accept a raw Ed25519 key, so we wrap the registry's raw hex bytes.
 const ED25519_SPKI_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
@@ -73,9 +83,15 @@ export function canonicalizeCore(value) {
   throw new AuthorityCanonicalError(`unsupported value in signed core: ${String(value)}`);
 }
 
-// The exact bytes Portal signs and gp/spec verify.
+// The canon-core v2 canonical bytes of the signed core (the digest preimage body).
 export function canonicalCoreBytes(core) {
   return Buffer.from(canonicalizeCore(core), "utf8");
+}
+
+// The exact bytes the Ed25519 signature covers: the canon-core v2 authority-profile
+// digest preimage = `spec-canon:v2:authority\n` ‖ canonicalCoreBytes(core).
+export function authoritySigningPreimage(core) {
+  return Buffer.concat([AUTHORITY_SIGNING_PREFIX, canonicalCoreBytes(core)]);
 }
 
 function isTimestamp(value) {
@@ -138,11 +154,12 @@ export function verifyAuthorityEvent(event, registry, { now, expectedCertDigest 
     return { ok: false, reason: "missing_signature" };
   }
 
-  // The signed bytes must be canonicalizable; a core that fails the fail-closed
-  // canonicalizer is malformed, not merely unsigned.
+  // The signed bytes are the authority-profile digest preimage
+  // (`spec-canon:v2:authority\n` ‖ canonical bytes). A core that fails the
+  // fail-closed canonicalizer is malformed, not merely unsigned.
   let message;
   try {
-    message = canonicalCoreBytes(core);
+    message = authoritySigningPreimage(core);
   } catch {
     return { ok: false, reason: "malformed_event" };
   }

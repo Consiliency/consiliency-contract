@@ -38,7 +38,7 @@
       "signature": {
         "scheme": "hmac-sha256",
         "key_id": "portal-authority-ed25519-v1",
-        "signature": "3b78458cbf5b7e2ae7068eef263f9ddd2bed902ae1d70304179679b87f21534c8cf5050884f69f44ee35ff80cfb924f478e7663d38b7bcd47ea9d793766a930b"
+        "signature": "2e8a2de52db96b1d9f32406aee6b00ccea030fb495c2493720285ba176047d7ff2c73e29e85486d98f23cae4fedd6dd2ae71cdb627c803c2ad1ac3bee56de704"
       }
     }
   },

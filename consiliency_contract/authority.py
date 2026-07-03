@@ -38,6 +38,16 @@ TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 SUPPORTED_SCHEME = "ed25519"
 _SAFE_INT_MAX = 2 ** 53 - 1
 
+# Domain separation (XG-4 decision): the Ed25519 signature covers the canon-core
+# v2 AUTHORITY-PROFILE digest preimage -- the ``spec-canon:v2:authority`` domain
+# prefix concatenated with ``canonical_bytes(core)`` -- NOT the bare bytes. This
+# prevents cross-context signature reuse and matches canon-core v2's rule of
+# prefixing every profile (``spec-canon:v2:<profile>\n``). canon-core v2 does not
+# yet register an ``authority`` profile (XG-4 will add it); this prefix is byte-
+# identical to what ``canon.digest(core, "authority")`` will hash once it does, so
+# there is ZERO re-signing at XG-4.
+AUTHORITY_SIGNING_PREFIX = b"spec-canon:v2:authority\n"
+
 
 class AuthorityCanonicalError(ValueError):
     """Raised when a value cannot be canonicalized fail-closed."""
@@ -76,9 +86,17 @@ def canonicalize_core(value: Any) -> str:
 
 
 def canonical_core_bytes(core: Any) -> bytes:
-    """The exact bytes Portal signs and gp/spec verify."""
+    """canon-core v2 canonical bytes of the signed core (the digest preimage body)."""
     # ``ascii`` encoding is a second fail-closed guard against non-ASCII.
     return canonicalize_core(core).encode("ascii")
+
+
+def authority_signing_preimage(core: Any) -> bytes:
+    """The exact bytes the Ed25519 signature covers: the canon-core v2
+    authority-profile digest preimage =
+    ``spec-canon:v2:authority\\n`` + ``canonical_core_bytes(core)``.
+    """
+    return AUTHORITY_SIGNING_PREFIX + canonical_core_bytes(core)
 
 
 def _is_timestamp(value: Any) -> bool:
@@ -144,7 +162,7 @@ def verify_authority_event(
         return {"ok": False, "reason": "missing_signature"}
 
     try:
-        message = canonical_core_bytes(core)
+        message = authority_signing_preimage(core)
     except AuthorityCanonicalError:
         return {"ok": False, "reason": "malformed_event"}
 

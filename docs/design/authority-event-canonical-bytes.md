@@ -32,18 +32,29 @@ Parity is enforced two ways, both durable:
   skip-when-absent gate (`scripts/authority_canon_parity.py`) additionally checks
   the pins against the *current* spec canon when a checkout is present.
 
-## ⚠️ OPEN COORDINATION — signature domain separation (XG-4, pre-Slice-2)
+## Signature domain separation (SETTLED — XG-4 decision, 2026-07-03)
 
-The Ed25519 signature currently covers **bare** `canonical_bytes(core)`. canon-core
-v2's `digest(value, profile)` **always** domain-prefixes (`spec-canon:v2:<profile>\n`),
-but there is **no `authority` profile yet** (the four are `semantic-content`,
-`run`, `artifact-byte`, `certificate`). canon-core will add an authority profile
-(XG-4). **Decision needed before Portal/spec build the real signer/verifier
-(Slice 2):** does the authority signature cover bare `canonical_bytes(core)`, or
-the future authority-profile digest preimage
-`spec-canon:v2:authority\n ‖ canonical_bytes(core)`? Choosing the latter later
-regenerates every signature — cheap now (the generator owns the keys), expensive
-once Portal ships.
+The Ed25519 signature covers the **domain-prefixed authority-profile digest
+preimage**, NOT bare bytes:
+
+```
+signing_preimage(core) = "spec-canon:v2:authority\n"  ‖  canonical_bytes(core)
+ed25519_signature       = Sign(private_key, signing_preimage(core))
+```
+
+This prevents cross-context signature reuse and matches canon-core v2's rule of
+domain-prefixing **every** profile (`spec-canon:v2:<profile>\n`). canon-core v2
+does not yet register an `authority` profile (its four are `semantic-content`,
+`run`, `artifact-byte`, `certificate`); XG-4 will add it. The prefix above is
+**byte-identical** to what `canon.digest(core, "authority")` will hash once XG-4
+lands, so there is **zero re-signing** at XG-4 — the convergence obligation. A
+generator + live-gate check asserts the prefix equals canon-core v2's
+`_DOMAIN_PREFIX + "authority\n"` so it cannot silently drift.
+
+`canonicalCoreBytes(core)` / `canonical_core_bytes(core)` remain the canon-core v2
+canonical bytes (pinned per vector as `input.canon_core_v2_bytes`);
+`authoritySigningPreimage` / `authority_signing_preimage` prepend the domain
+prefix and are what the signature actually covers.
 
 The rest of this document specifies the port precisely.
 
@@ -136,7 +147,7 @@ authoritative for scheme and public key, never the event's self-declared fields:
 | 8 | `core.approver` == the key's registered approver | `signer_approver_mismatch` |
 | 9 | `core.cert_digest` == caller's `expected_cert_digest` | `cert_digest_mismatch` |
 | 10 | `now` within `core.validity` | `core_validity_expired` |
-| 11 | Ed25519 verify over `canonical_core_bytes(core)` | `bad_signature` |
+| 11 | Ed25519 verify over `authoritySigningPreimage(core)` (prefix ‖ canonical bytes) | `bad_signature` |
 | — | all pass | `ok: true`, `verified` |
 
 `expected_cert_digest` (the digest of the cert being ratified) and `now` are

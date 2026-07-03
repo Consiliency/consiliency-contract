@@ -38,7 +38,7 @@
       "signature": {
         "scheme": "ed25519",
         "key_id": "attacker-key-001",
-        "signature": "a0f4ee563fa531142d59fba5c89e2b2a87f07a3b31858258d02e6f0ced8f32516225827eb51694d5c732f3f5f415d2e08d2f005c6e5da6baaaaafd4f048cd404"
+        "signature": "728fdb09c4c361d11025affdf9931d24ebf06e71b2b58d0999a9d2b2a1055c3a50265917f6e4fd1b957ed8dbf0fb9d46b83b586a24b73623aaf3506b2fa0800d"
       }
     }
   },

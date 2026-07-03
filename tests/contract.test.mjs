@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { createHash, createPublicKey, verify as cryptoVerify } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -8,6 +8,7 @@ import test from "node:test";
 import {
   CONTRACT,
   CONTRACT_VERSION,
+  authoritySigningPreimage,
   canonicalCoreBytes,
   canonicalizeCore,
   listVectors,
@@ -51,8 +52,8 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.5.0");
-  assert.equal(loadContract().contract_version, "0.5.0");
+  assert.equal(CONTRACT_VERSION, "0.5.1");
+  assert.equal(loadContract().contract_version, "0.5.1");
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
   assert.equal(loadSchema("manifest").properties.schema.const, "consiliency.manifest.v1");
@@ -557,6 +558,26 @@ test("authority canonicalizer equals the constrained JCS form (JS)", () => {
   }
 });
 
+test("the authority signature covers the domain-prefixed preimage, not bare bytes", () => {
+  // Domain separation (XG-4 decision): the signature covers
+  // `spec-canon:v2:authority\n` ‖ canonical_bytes(core), NOT bare bytes. Proven
+  // key-free: the valid vector's signature verifies over the preimage and FAILS
+  // over the bare bytes.
+  const reg = loadRegistry("authority_key_registry");
+  const vector = loadVector("authority-valid");
+  const core = vector.input.event.core;
+  const key = reg.keys.find((k) => k.key_id === core.key_id);
+  const der = Buffer.concat([Buffer.from("302a300506032b6570032100", "hex"), Buffer.from(key.public_key, "hex")]);
+  const pub = createPublicKey({ key: der, format: "der", type: "spki" });
+  const sig = Buffer.from(vector.input.event.signature.signature, "hex");
+  const preimage = authoritySigningPreimage(core);
+  const bare = canonicalCoreBytes(core);
+  assert.equal(cryptoVerify(null, preimage, pub, sig), true, "signature must verify over the prefixed preimage");
+  assert.equal(cryptoVerify(null, bare, pub, sig), false, "signature must NOT verify over bare canonical bytes");
+  // The preimage is exactly the authority-profile prefix ‖ canon-core v2 bytes.
+  assert.equal(preimage.toString("latin1"), "spec-canon:v2:authority\n" + bare.toString("latin1"));
+});
+
 test("authority signed-core bytes are pinned byte-identical to canon-core v2", () => {
   // The signed bytes ARE canon-core v2 `canonical_bytes(core)`; our canonicalizer
   // is a metadata-safe/integer-only PORT of that one algorithm, not a 4th canon.
@@ -577,8 +598,8 @@ test("the canon-core v2 provenance pins the spec canon source", () => {
   assert.equal(prov.schema, "consiliency.authority_canon_provenance.v1");
   assert.equal(prov.canon_version, "spec-canon:v2");
   assert.match(prov.normative_source.files["canon/py/canon.py"], /^[0-9a-f]{64}$/);
-  assert.equal(prov.authority_profile.signed_bytes, "canon_core_v2.canonical_bytes(core)");
-  assert.match(prov.authority_profile.domain_separation_status, /XG-4/);
+  assert.match(prov.authority_profile.signed_preimage, /spec-canon:v2:authority/);
+  assert.match(prov.authority_profile.domain_separation, /SETTLED/);
 });
 
 test("committed canon pins still match the CURRENT spec canon-core v2 (skips without spec)", (t) => {

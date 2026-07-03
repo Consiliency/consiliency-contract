@@ -19,6 +19,7 @@ from consiliency_contract import (
     load_vector,
 )
 from consiliency_contract.authority import (
+    authority_signing_preimage,
     canonical_core_bytes,
     canonicalize_core,
     verify_authority_event,
@@ -31,8 +32,8 @@ def _stable_jcs(value: object) -> str:
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.5.0")
-        self.assertEqual(load_contract()["contract_version"], "0.5.0")
+        self.assertEqual(CONTRACT_VERSION, "0.5.1")
+        self.assertEqual(load_contract()["contract_version"], "0.5.1")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")
@@ -430,6 +431,27 @@ class ContractReaderTest(unittest.TestCase):
             core = load_vector(name)["input"]["event"]["core"]
             self.assertEqual(canonicalize_core(core), _stable_jcs(core), f"{name}: canonicalizer must equal sorted JSON")
 
+    def test_authority_signature_covers_prefixed_preimage(self) -> None:
+        # Domain separation (XG-4): the signature covers spec-canon:v2:authority\n
+        # || canonical_bytes(core), NOT bare bytes. Proven: the valid signature
+        # verifies over the preimage and FAILS over the bare bytes.
+        from cryptography.exceptions import InvalidSignature
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+        reg = load_registry("authority_key_registry")
+        vector = load_vector("authority-valid")
+        core = vector["input"]["event"]["core"]
+        key = next(k for k in reg["keys"] if k["key_id"] == core["key_id"])
+        pub = Ed25519PublicKey.from_public_bytes(bytes.fromhex(key["public_key"]))
+        sig = bytes.fromhex(vector["input"]["event"]["signature"]["signature"])
+        pub.verify(sig, authority_signing_preimage(core))  # verifies over the preimage
+        with self.assertRaises(InvalidSignature):
+            pub.verify(sig, canonical_core_bytes(core))  # must NOT verify over bare bytes
+        self.assertEqual(
+            authority_signing_preimage(core),
+            b"spec-canon:v2:authority\n" + canonical_core_bytes(core),
+        )
+
     def test_authority_bytes_pinned_to_canon_core_v2(self) -> None:
         # The signed bytes ARE canon-core v2 canonical_bytes(core); our canonicalizer
         # is a metadata-safe/integer-only PORT. The pin was produced from spec's
@@ -449,8 +471,8 @@ class ContractReaderTest(unittest.TestCase):
         self.assertEqual(prov["schema"], "consiliency.authority_canon_provenance.v1")
         self.assertEqual(prov["canon_version"], "spec-canon:v2")
         self.assertRegex(prov["normative_source"]["files"]["canon/py/canon.py"], r"^[0-9a-f]{64}$")
-        self.assertEqual(prov["authority_profile"]["signed_bytes"], "canon_core_v2.canonical_bytes(core)")
-        self.assertIn("XG-4", prov["authority_profile"]["domain_separation_status"])
+        self.assertIn("spec-canon:v2:authority", prov["authority_profile"]["signed_preimage"])
+        self.assertIn("SETTLED", prov["authority_profile"]["domain_separation"])
 
     def test_authority_canon_parity_gate(self) -> None:
         # Confirms the committed pins still match the CURRENT spec canon; skips

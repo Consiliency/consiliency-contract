@@ -12,9 +12,10 @@
     }
   },
   "authority_profile": {
-    "signed_bytes": "canon_core_v2.canonical_bytes(core)",
+    "signed_preimage": "\"spec-canon:v2:authority\\n\" || canon_core_v2.canonical_bytes(core)",
+    "canonical_bytes": "canon_core_v2.canonical_bytes(core) (pinned per vector as input.canon_core_v2_bytes)",
     "field_constraints": "every signed-core string is metadata-safe ASCII (0x21-0x7E minus '\"' and '\\\\'); no floats/NaN/Inf; no null; ASCII snake_case keys",
-    "signature": "ed25519 over the canonical bytes above",
-    "domain_separation_status": "OPEN COORDINATION (XG-4): canon-core v2 has no `authority` digest profile yet (profiles: semantic-content, run, artifact-byte, certificate). The signature currently covers BARE canonical_bytes(core). If the fleet decides the authority signature must cover the future authority-profile digest preimage (spec-canon:v2:authority\\n || canonical_bytes(core)), every signature regenerates — CONFIRM before Portal builds the real signer (Slice 2)."
+    "signature": "ed25519 over the signed_preimage above",
+    "domain_separation": "SETTLED (XG-4 decision, 2026-07-03): the signature covers the DOMAIN-PREFIXED authority-profile digest preimage `spec-canon:v2:authority\\n || canonical_bytes(core)`, NOT bare bytes — preventing cross-context signature reuse and matching canon-core v2's per-profile prefixing. canon-core v2 does not yet register an `authority` profile (the four are semantic-content, run, artifact-byte, certificate); this prefix is byte-identical to what `canon.digest(core, \"authority\")` will hash once XG-4 adds it, so there is ZERO re-signing at XG-4 (the convergence obligation)."
   }
 }

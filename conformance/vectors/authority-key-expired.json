@@ -38,7 +38,7 @@
       "signature": {
         "scheme": "ed25519",
         "key_id": "portal-authority-ed25519-expired",
-        "signature": "0d9b56cb1892f2cc2a655f9e95394ec072e9d3c20da7777c67b3499614baa9d732b6100fa48917eb425e47a42949f87facd419750948bb188b2240b41d7e7002"
+        "signature": "1d0899a30d443571121be4c2ec431b6da15750ef9f2a92250ec35239b489fcfd9710650ec80892fdee9b0d2a0d651174b404d4eeef09537b4d2edb6403f42003"
       }
     }
   },

@@ -26,7 +26,11 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from consiliency_contract.authority import canonical_core_bytes  # noqa: E402
+from consiliency_contract.authority import (  # noqa: E402
+    AUTHORITY_SIGNING_PREFIX,
+    authority_signing_preimage,
+    canonical_core_bytes,
+)
 
 REGISTRY_PATH = ROOT / "core" / "registries" / "authority-key-registry.json"
 VECTORS_DIR = ROOT / "conformance" / "vectors"
@@ -105,7 +109,9 @@ def _public_hex(key_id: str) -> str:
 
 
 def _sign(key_id: str, core: dict) -> str:
-    return _private_key(key_id).sign(canonical_core_bytes(core)).hex()
+    # Sign the canon-core v2 AUTHORITY-PROFILE digest preimage (domain-prefixed),
+    # not the bare bytes (XG-4 domain-separation decision).
+    return _private_key(key_id).sign(authority_signing_preimage(core)).hex()
 
 
 def build_registry() -> dict:
@@ -424,6 +430,16 @@ def build_provenance():
     except (subprocess.CalledProcessError, FileNotFoundError):
         commit = None
 
+    # Convergence check: our authority signing prefix MUST equal what canon-core v2
+    # will produce for a `digest(core, "authority")` — its domain prefix + profile
+    # + newline — so there is zero re-signing when XG-4 registers the profile.
+    expected_prefix = (module._DOMAIN_PREFIX + "authority\n").encode("ascii")
+    if AUTHORITY_SIGNING_PREFIX != expected_prefix:
+        raise SystemExit(
+            "AUTHORITY PREFIX DIVERGENCE from canon-core v2 domain format:\n"
+            f"  ours : {AUTHORITY_SIGNING_PREFIX!r}\n  canon: {expected_prefix!r}"
+        )
+
     canon_ts = spec_root / "canon" / "ts" / "canon.ts"
     spec_md = spec_root / "canon" / "SPEC.md"
     return {
@@ -446,15 +462,17 @@ def build_provenance():
             },
         },
         "authority_profile": {
-            "signed_bytes": "canon_core_v2.canonical_bytes(core)",
+            "signed_preimage": "\"spec-canon:v2:authority\\n\" || canon_core_v2.canonical_bytes(core)",
+            "canonical_bytes": "canon_core_v2.canonical_bytes(core) (pinned per vector as input.canon_core_v2_bytes)",
             "field_constraints": "every signed-core string is metadata-safe ASCII (0x21-0x7E minus '\"' and '\\\\'); no floats/NaN/Inf; no null; ASCII snake_case keys",
-            "signature": "ed25519 over the canonical bytes above",
-            "domain_separation_status": (
-                "OPEN COORDINATION (XG-4): canon-core v2 has no `authority` digest profile yet (profiles: "
-                "semantic-content, run, artifact-byte, certificate). The signature currently covers BARE "
-                "canonical_bytes(core). If the fleet decides the authority signature must cover the future "
-                "authority-profile digest preimage (spec-canon:v2:authority\\n || canonical_bytes(core)), "
-                "every signature regenerates — CONFIRM before Portal builds the real signer (Slice 2)."
+            "signature": "ed25519 over the signed_preimage above",
+            "domain_separation": (
+                "SETTLED (XG-4 decision, 2026-07-03): the signature covers the DOMAIN-PREFIXED authority-profile "
+                "digest preimage `spec-canon:v2:authority\\n || canonical_bytes(core)`, NOT bare bytes — preventing "
+                "cross-context signature reuse and matching canon-core v2's per-profile prefixing. canon-core v2 "
+                "does not yet register an `authority` profile (the four are semantic-content, run, artifact-byte, "
+                "certificate); this prefix is byte-identical to what `canon.digest(core, \"authority\")` will hash "
+                "once XG-4 adds it, so there is ZERO re-signing at XG-4 (the convergence obligation)."
             ),
         },
     }

@@ -47,6 +47,22 @@ def main() -> int:
         print(json.dumps({"status": "skip", "reason": "no spec canon-core v2 (set CONFORMANCE_SPEC_REPO)"}))
         return 0
 
+    from consiliency_contract.authority import AUTHORITY_SIGNING_PREFIX
+
+    # The authority signing prefix must equal canon-core v2's domain format for a
+    # `digest(core, "authority")` (domain prefix + profile + newline), so the
+    # signed preimage converges with the future XG-4 authority profile.
+    expected_prefix = (module._DOMAIN_PREFIX + "authority\n").encode("ascii")
+    if AUTHORITY_SIGNING_PREFIX != expected_prefix:
+        print(json.dumps({
+            "status": "fail",
+            "canon_source": path,
+            "reason": "authority signing prefix diverges from canon-core v2 domain format",
+            "ours": AUTHORITY_SIGNING_PREFIX.decode("ascii"),
+            "canon": expected_prefix.decode("ascii"),
+        }))
+        return 1
+
     mismatches = []
     checked = 0
     for name in list_vectors():
@@ -63,7 +79,7 @@ def main() -> int:
     if mismatches:
         print(json.dumps({"status": "fail", "canon_source": path, "mismatches": mismatches}))
         return 1
-    print(json.dumps({"status": "pass", "canon_source": path, "checked": checked}))
+    print(json.dumps({"status": "pass", "canon_source": path, "checked": checked, "prefix": AUTHORITY_SIGNING_PREFIX.decode("ascii")}))
     return 0
 
 

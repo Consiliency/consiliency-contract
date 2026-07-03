@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
+import sys
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -267,6 +269,24 @@ class ContractReaderTest(unittest.TestCase):
         # certified: [realized-edge-observed, certified]; certified permitted ONLY here.
         self.assertIn("source_S_digest", cert_block["then"]["required"])
         self.assertEqual(cert_block["then"]["properties"]["maturity_label"]["enum"], ["realized-edge-observed", "certified"])
+
+    # --- Slice X: the §12.3 interchangeability test ---
+
+    def test_real_producer_reproduces_the_vector_byte_for_byte(self) -> None:
+        # Runs conformance/interchangeability/run_driver_equivalence.py, which
+        # feeds this vector's manifests through the REAL
+        # spec-render/build_projections_index.py (fetched by content from a
+        # sibling `spec` checkout — see that script's docstring), rather than
+        # this file's own reference merger above. Honest scoping: skips (does
+        # not pass vacuously, does not fail the suite) when no spec checkout is
+        # available, since contract-only CI has no reason to have one.
+        script = Path(__file__).resolve().parent.parent / "scripts" / "interchangeability" / "run_driver_equivalence.py"
+        proc = subprocess.run([sys.executable, str(script)], capture_output=True, text=True)
+        report = json.loads(proc.stdout.strip())
+        if report["status"] == "skip":
+            self.skipTest(report["reason"])
+        self.assertEqual(report["status"], "pass", report)
+        self.assertTrue(report["byte_identical_to_vector"], report)
 
 
 if __name__ == "__main__":

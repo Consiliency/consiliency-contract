@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
@@ -393,4 +393,23 @@ test("projections index entry has per-kind conditional requireds with two-sided 
   // (floor-revert semantics), and certified is permitted ONLY here.
   assert.ok(certBlock.then.required.includes("source_S_digest"));
   assert.deepEqual(certBlock.then.properties.maturity_label.enum, ["realized-edge-observed", "certified"]);
+});
+
+// --- Slice X: the §12.3 interchangeability test ---
+
+test("the real spec-render producer reproduces the vector byte-for-byte (skips without a sibling spec checkout)", (t) => {
+  // conformance/interchangeability/run_driver_equivalence.py feeds this same
+  // vector's manifests through the REAL build_projections_index.py (fetched
+  // by content — see that script's docstring), not either reader's own
+  // reference merger above. Honest scoping: skip, don't vacuously pass or
+  // fail the suite, when no spec checkout is available.
+  const script = join("scripts", "interchangeability", "run_driver_equivalence.py");
+  const proc = spawnSync("python3", [script], { encoding: "utf8" });
+  const report = JSON.parse(proc.stdout.trim());
+  if (report.status === "skip") {
+    t.skip(report.reason);
+    return;
+  }
+  assert.equal(report.status, "pass", JSON.stringify(report));
+  assert.ok(report.byte_identical_to_vector, JSON.stringify(report));
 });

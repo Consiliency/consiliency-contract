@@ -462,6 +462,8 @@ def build_provenance():
             },
         },
         "authority_profile": {
+            "profile_id": "authority",
+            "domain_prefix": AUTHORITY_SIGNING_PREFIX.decode("ascii"),
             "signed_preimage": "\"spec-canon:v2:authority\\n\" || canon_core_v2.canonical_bytes(core)",
             "canonical_bytes": "canon_core_v2.canonical_bytes(core) (pinned per vector as input.canon_core_v2_bytes)",
             "field_constraints": "every signed-core string is metadata-safe ASCII (0x21-0x7E minus '\"' and '\\\\'); no floats/NaN/Inf; no null; ASCII snake_case keys",

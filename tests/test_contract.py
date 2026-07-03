@@ -471,6 +471,8 @@ class ContractReaderTest(unittest.TestCase):
         self.assertEqual(prov["schema"], "consiliency.authority_canon_provenance.v1")
         self.assertEqual(prov["canon_version"], "spec-canon:v2")
         self.assertRegex(prov["normative_source"]["files"]["canon/py/canon.py"], r"^[0-9a-f]{64}$")
+        self.assertEqual(prov["authority_profile"]["profile_id"], "authority")
+        self.assertEqual(prov["authority_profile"]["domain_prefix"], "spec-canon:v2:authority\n")
         self.assertIn("spec-canon:v2:authority", prov["authority_profile"]["signed_preimage"])
         self.assertIn("SETTLED", prov["authority_profile"]["domain_separation"])
 

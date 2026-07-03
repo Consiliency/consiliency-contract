@@ -48,8 +48,8 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.3.0");
-  assert.equal(loadContract().contract_version, "0.3.0");
+  assert.equal(CONTRACT_VERSION, "0.4.0");
+  assert.equal(loadContract().contract_version, "0.4.0");
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
   assert.equal(loadSchema("manifest").properties.schema.const, "consiliency.manifest.v1");

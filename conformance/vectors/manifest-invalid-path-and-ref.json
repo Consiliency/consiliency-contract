@@ -3,7 +3,7 @@
   "description": "A document declaration must use exactly one of path or ref.",
   "input": {
     "schema": "consiliency.manifest.v1",
-    "contract_version": "0.3.0",
+    "contract_version": "0.4.0",
     "repo": {"id": "bad", "display_name": "Bad", "default_branch": "main"},
     "declaration": {"mode": "baseline-only"},
     "documents": [

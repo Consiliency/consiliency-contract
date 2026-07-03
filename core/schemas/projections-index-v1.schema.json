@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://consiliency.io/contracts/projections-index-v1.schema.json",
   "title": "Consiliency projections index (projections.index.v1)",
-  "description": "A deterministic pure-merge index of per-artifact projection manifests (+ portal_projection.v2 envelopes + refresh sidecars). Carries NO generated_at / generated_at_commit so a --check rebuild is byte-identical across source commits that touch no manifest (determinism). Per-entry pinned_commit carries the meaningful provenance. The wire schema id is 'projections.index.v1' (non-namespaced, per DESIGN §2.3 — the interchangeability wire value the producer emits) while the file and loader key follow the package's hyphen/snake conventions.",
+  "description": "A deterministic pure-merge index of per-artifact projection manifests (+ portal_projection.v2 envelopes + refresh sidecars). Carries NO generated_at / generated_at_commit so a --check rebuild is byte-identical across source commits that touch no manifest (determinism). Per-entry pinned_commit / source_S_digest carries the meaningful provenance. The wire schema id is 'projections.index.v1' (non-namespaced, per DESIGN §2.3 — the interchangeability wire value the producer emits) while the file and loader key follow the package's hyphen/snake conventions. Entry shape is per-kind: the proj-code kinds pin a code commit (pinned_commit + facts), proj-S-certified pins a desired-state graph (source_S_digest, no code commit or facts file) — expressed with conditional requireds keyed on kind.",
   "type": "object",
   "required": ["schema", "entries"],
   "additionalProperties": false,
@@ -29,12 +29,9 @@
         "predicate",
         "body_path",
         "body_content_type",
-        "facts_path",
         "manifest_path",
         "body_digest",
         "body_digest_domain",
-        "facts_digest",
-        "pinned_commit",
         "maturity_label",
         "gate_state"
       ],
@@ -51,6 +48,10 @@
         "body_digest_domain": {"enum": ["raw-sha256", "spec-render:html:v1"]},
         "facts_digest": {"$ref": "#/$defs/sha256Hex"},
         "pinned_commit": {"$ref": "#/$defs/commitSha"},
+        "source_S_digest": {
+          "$ref": "#/$defs/sha256Hex",
+          "description": "The desired-state graph S digest a proj-S-certified projection pins — the neutral index field the aggregator maps from spec's graph_digest / desired_graph_digest, exactly as code_head_sha maps to pinned_commit. Required for proj-S-certified; absent for the proj-code kinds, which pin a code commit instead."
+        },
         "maturity_label": {"enum": ["presence-only", "hash-checked", "realized-edge-observed", "certified"]},
         "gate_state": {"enum": ["pass", "fail", "not_evaluated"]},
         "branch": {
@@ -69,7 +70,35 @@
           "description": "Present for certified entries (from portal_projection.v2); null / absent otherwise."
         },
         "not_certified_reason": {"type": "string", "minLength": 1}
-      }
+      },
+      "allOf": [
+        {
+          "$comment": "proj-code kinds pin a code commit and carry a facts file; their maturity is capped at hash-checked (never certified).",
+          "if": {
+            "properties": {"kind": {"enum": ["proj-code-sbom", "proj-code-api"]}},
+            "required": ["kind"]
+          },
+          "then": {
+            "required": ["pinned_commit", "facts_path", "facts_digest"],
+            "properties": {
+              "maturity_label": {"enum": ["presence-only", "hash-checked"]}
+            }
+          }
+        },
+        {
+          "$comment": "proj-S-certified pins a desired-state graph S (source_S_digest), not a code commit; it has no facts file. maturity_label may be certified ONLY for this kind (floor realized-edge-observed when the certificate bind does not pass).",
+          "if": {
+            "properties": {"kind": {"const": "proj-S-certified"}},
+            "required": ["kind"]
+          },
+          "then": {
+            "required": ["source_S_digest"],
+            "properties": {
+              "maturity_label": {"enum": ["realized-edge-observed", "certified"]}
+            }
+          }
+        }
+      ]
     }
   }
 }

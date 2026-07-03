@@ -1,0 +1,97 @@
+{
+  "id": "projections-index-pure-merge-deterministic",
+  "description": "The projections index is a deterministic pure merge of the per-artifact manifests (+ refresh sidecars): field-copy, no generated_at, entries sorted by (repo, kind, predicate). Manifests are supplied out of sort order to prove the merge sorts; a stale refresh sidecar merges into its entry without touching the manifest. Any driver (Portal+pipeline, harness standalone, headless gp) must reproduce expected.index byte-for-byte (DESIGN §2.2/§2.3/§12.3).",
+  "input": {
+    "schema": "consiliency.projections_index_scenario.v1",
+    "manifests": [
+      {
+        "schema": "proj_code_sbom_manifest.v1",
+        "target": "portal",
+        "kind": "proj-code-sbom",
+        "predicate": "proj-code-sbom",
+        "code_head_sha": "2fc4333400000000000000000000000000000000",
+        "body_digest": "78f74f4caaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "body_digest_domain": "raw-sha256",
+        "facts_digest": "39ce6785bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "facts_path": "spec-render/projcode/portal/portal-code-ec.json",
+        "output_path": "spec-render/projcode/portal/portal-sbom.md",
+        "manifest_path": "spec-render/projcode/portal/portal-sbom.manifest.json",
+        "body_content_type": "text/markdown",
+        "maturity_label": "hash-checked",
+        "gate_verdict": {"state": "pass"}
+      },
+      {
+        "schema": "proj_code_api_manifest.v1",
+        "target": "gp",
+        "kind": "proj-code-api",
+        "predicate": "proj-code-api",
+        "code_head_sha": "aa11bb2200000000000000000000000000000000",
+        "body_digest": "5cad1290cccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "body_digest_domain": "raw-sha256",
+        "facts_digest": "1e2d3c4bdddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "facts_path": "spec-render/projcode/gp/gp-api-surface-facts.json",
+        "output_path": "spec-render/projcode/gp/gp-api-surface.md",
+        "manifest_path": "spec-render/projcode/gp/gp-api-surface.manifest.json",
+        "body_content_type": "text/markdown",
+        "maturity_label": "hash-checked",
+        "gate_verdict": {"state": "pass"}
+      }
+    ],
+    "refresh_sidecars": [
+      {
+        "manifest_path": "spec-render/projcode/portal/portal-sbom.manifest.json",
+        "refresh_status": "stale",
+        "refresh_failure_class": "gate_g4_not_evaluated",
+        "attempted_code_head_sha": "99ee88ff00000000000000000000000000000000"
+      }
+    ]
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "hash-checked",
+    "findings": [
+      {"code": "projections_index.pure_merge", "severity": "info", "message": "Index entries are a pure field-copy of the manifests plus sidecar refresh state, deterministically sorted, with no generated_at."}
+    ]
+  },
+  "expected": {
+    "index": {
+      "schema": "projections.index.v1",
+      "entries": [
+        {
+          "repo": "gp",
+          "kind": "proj-code-api",
+          "predicate": "proj-code-api",
+          "body_path": "spec-render/projcode/gp/gp-api-surface.md",
+          "body_content_type": "text/markdown",
+          "facts_path": "spec-render/projcode/gp/gp-api-surface-facts.json",
+          "manifest_path": "spec-render/projcode/gp/gp-api-surface.manifest.json",
+          "body_digest": "5cad1290cccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "body_digest_domain": "raw-sha256",
+          "facts_digest": "1e2d3c4bdddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "pinned_commit": "aa11bb2200000000000000000000000000000000",
+          "maturity_label": "hash-checked",
+          "gate_state": "pass"
+        },
+        {
+          "repo": "portal",
+          "kind": "proj-code-sbom",
+          "predicate": "proj-code-sbom",
+          "body_path": "spec-render/projcode/portal/portal-sbom.md",
+          "body_content_type": "text/markdown",
+          "facts_path": "spec-render/projcode/portal/portal-code-ec.json",
+          "manifest_path": "spec-render/projcode/portal/portal-sbom.manifest.json",
+          "body_digest": "78f74f4caaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "body_digest_domain": "raw-sha256",
+          "facts_digest": "39ce6785bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "pinned_commit": "2fc4333400000000000000000000000000000000",
+          "maturity_label": "hash-checked",
+          "gate_state": "pass",
+          "refresh_status": "stale",
+          "refresh_failure_class": "gate_g4_not_evaluated",
+          "attempted_code_head_sha": "99ee88ff00000000000000000000000000000000"
+        }
+      ]
+    }
+  }
+}

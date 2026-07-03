@@ -1,10 +1,10 @@
 {
   "id": "version-skew-compatible",
-  "description": "Contract and package versions in the 0.3 range are compatible.",
+  "description": "Contract and package versions in the 0.4 range are compatible.",
   "input": {
     "schema": "consiliency.version_skew_scenario.v1",
-    "contract_version": "0.3.0",
-    "package_version": "0.3.0"
+    "contract_version": "0.4.0",
+    "package_version": "0.4.0"
   },
   "decision": {
     "schema": "consiliency.conformance_decision.v1",

@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Any
 
 CONTRACT_PACKAGE = "consiliency-contract"
-CONTRACT_VERSION = "0.3.0"
-__version__ = "0.3.0"
+CONTRACT_VERSION = "0.4.0"
+__version__ = "0.4.0"
 
 
 def _source_root() -> Path:

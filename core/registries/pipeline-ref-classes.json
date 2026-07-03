@@ -1,0 +1,57 @@
+{
+  "schema": "consiliency.pipeline_ref_classes.v1",
+  "description": "Falsifiable enumeration of git ref classes the git-discipline protocol (DESIGN §11.1) references. A ref name is classified by first-match against ref_classes in order; anything not matching a pipeline-owned pattern falls through to the human default (default_owner). Both runtimes (agent-harness phase-loop-runtime and gp pipeline-runtime) read this registry so they agree on which prefixes are pipeline-owned and which refs self-heal may reconcile.",
+  "default_owner": "human",
+  "ref_classes": [
+    {
+      "id": "pipeline-working-branch",
+      "pattern": "consiliency/pipeline/{roadmap_version}",
+      "owner": "pipeline",
+      "lease_required": true,
+      "deletable_by_self_heal": false,
+      "merge_policy": "required",
+      "description": "The pipeline-owned integration/working branch (one path segment version). Reconcile re-checks-out / rebases it; it is NEVER auto-deleted. Its tip is the projection pinned_commit for currency (§11.4)."
+    },
+    {
+      "id": "pipeline-working-branch-family",
+      "pattern": "consiliency/pipeline/*",
+      "owner": "pipeline",
+      "lease_required": true,
+      "deletable_by_self_heal": false,
+      "merge_policy": "required",
+      "description": "The consiliency/pipeline/* family glob. Pipeline-owned; not auto-deleted (retained for provenance / rollback)."
+    },
+    {
+      "id": "harness-phase-worktree",
+      "pattern": "phase-loop/sched/{target_branch}/{phase}",
+      "owner": "pipeline",
+      "lease_required": true,
+      "deletable_by_self_heal": true,
+      "merge_policy": "auto",
+      "description": "agent-harness per-phase isolated worktree branch, merged back --no-ff on disjoint ownership. An ALREADY-MERGED, leased instance may be pruned by self-heal (idempotent-safe)."
+    },
+    {
+      "id": "gp-phase-node",
+      "pattern": "pipeline/{phase}-{node}",
+      "owner": "pipeline",
+      "lease_required": true,
+      "deletable_by_self_heal": true,
+      "merge_policy": "auto",
+      "description": "gp pipeline-runtime per-phase worktree branch (buildWorktreeBranchRef). Record-only cleanup; an already-merged leased instance may be pruned by self-heal."
+    }
+  ],
+  "human_default": {
+    "id": "human",
+    "pattern": "*",
+    "owner": "human",
+    "lease_required": false,
+    "deletable_by_self_heal": false,
+    "merge_policy": null,
+    "description": "Everything not matching a pipeline-owned pattern (including the default branch and all human feature branches). NEVER auto-deleted or auto-moved by the pipeline; the NEVER-DELETE-HUMAN-REFS invariant governs."
+  },
+  "self_heal_deletion_rule": "A ref is eligible for self-heal deletion only if owner == 'pipeline' AND deletable_by_self_heal == true AND it is currently leased (and, for phase worktrees, already merged). All other refs — every human ref, every unleased pipeline ref, and every pipeline ref in a non-deletable class — are protected.",
+  "invariants": {
+    "never_delete_human_refs": true,
+    "self_heal_scope": "leased-pipeline-owned-refs-only"
+  }
+}

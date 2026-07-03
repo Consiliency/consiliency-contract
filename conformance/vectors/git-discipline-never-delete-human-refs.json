@@ -1,0 +1,38 @@
+{
+  "id": "git-discipline-never-delete-human-refs",
+  "description": "Top-of-loop self-heal reconciles ONLY leased, pipeline-owned refs in a deletable class. Human refs (default branch + feature branches) and unleased or non-deletable pipeline refs are never auto-deleted — the NEVER-DELETE-HUMAN-REFS invariant (DESIGN §11.1/§11.3).",
+  "input": {
+    "schema": "consiliency.git_discipline_scenario.v1",
+    "self_heal": true,
+    "refs": [
+      {"name": "consiliency/pipeline/v0.4", "leased": true, "merged": false},
+      {"name": "consiliency/pipeline/v0.3", "leased": false, "merged": true},
+      {"name": "phase-loop/sched/main/PHASE_A", "leased": true, "merged": true},
+      {"name": "pipeline/impl-node3", "leased": true, "merged": true},
+      {"name": "pipeline/impl-node9", "leased": false, "merged": true},
+      {"name": "main", "leased": false, "merged": false},
+      {"name": "feature/my-wip", "leased": true, "merged": false}
+    ]
+  },
+  "decision": {
+    "schema": "consiliency.conformance_decision.v1",
+    "status": "accepted",
+    "maturity": "presence-only",
+    "findings": [
+      {"code": "git_discipline.self_heal_bounded", "severity": "info", "message": "Self-heal deletion is bounded to leased pipeline-owned refs in a deletable class; all human and unleased refs are protected."}
+    ]
+  },
+  "expected": {
+    "deletable_by_self_heal": ["phase-loop/sched/main/PHASE_A", "pipeline/impl-node3"],
+    "protected": ["consiliency/pipeline/v0.4", "consiliency/pipeline/v0.3", "pipeline/impl-node9", "main", "feature/my-wip"],
+    "human_refs": ["main", "feature/my-wip"],
+    "never_deleted_human_refs": ["main", "feature/my-wip"],
+    "protected_reasons": {
+      "consiliency/pipeline/v0.4": "pipeline working branch — non-deletable class (reconcile rebases, never deletes)",
+      "consiliency/pipeline/v0.3": "pipeline working branch — non-deletable class; also unleased",
+      "pipeline/impl-node9": "pipeline phase-node in a deletable class but UNLEASED — self-heal needs a lease",
+      "main": "human ref (default branch) — never auto-deleted",
+      "feature/my-wip": "human ref — never auto-deleted even though leased by a human"
+    }
+  }
+}

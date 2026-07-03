@@ -48,8 +48,8 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.3.0");
-  assert.equal(loadContract().contract_version, "0.3.0");
+  assert.equal(CONTRACT_VERSION, "0.4.0");
+  assert.equal(loadContract().contract_version, "0.4.0");
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
   assert.equal(loadSchema("manifest").properties.schema.const, "consiliency.manifest.v1");
@@ -244,4 +244,115 @@ test("every additionalProperties:false object keeps required a subset of propert
   for (const name of Object.keys(CONTRACT.schemas)) {
     check(loadSchema(name), name);
   }
+});
+
+// --- Slice C0: projection-discovery + git-discipline contracts ---
+
+// Convert a pipeline-ref-classes pattern ({seg} -> one path segment, * -> rest)
+// into an anchored regex, so ref classification is computed, not asserted.
+function refPatternToRegex(pattern) {
+  const SEG = "SEGPLACEHOLDERXX";
+  const STAR = "STARPLACEHOLDERXX";
+  const tokenized = pattern.replace(/\{[^}]+\}/g, SEG).replace(/\*/g, STAR);
+  const escaped = tokenized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const body = escaped.split(SEG).join("[^/]+").split(STAR).join(".*");
+  return new RegExp(`^${body}$`);
+}
+
+function refOwner(name, registry) {
+  for (const cls of registry.ref_classes) {
+    if (cls.owner === "pipeline" && refPatternToRegex(cls.pattern).test(name)) return "pipeline";
+  }
+  return registry.default_owner;
+}
+
+test("git-discipline protocol pins the never-delete-human-refs invariant as a schema-level rule", () => {
+  const p = loadSchema("git_discipline_protocol").properties;
+  assert.equal(p.schema.const, "consiliency.git_discipline_protocol.v1");
+  assert.equal(p.contract_version.const, CONTRACT_VERSION);
+  assert.equal(p.invariants.properties.never_delete_human_refs.const, true);
+  assert.equal(p.invariants.properties.self_heal_scope.const, "leased-pipeline-owned-refs-only");
+  assert.equal(p.self_heal.properties.scope.const, "leased-pipeline-owned-refs-only");
+  assert.equal(p.self_heal.properties.auto_fix.const, "idempotent-safe-only");
+  assert.equal(p.self_heal.properties.default_severity.const, "warn");
+  assert.equal(p.self_heal.properties.finding_human_required.const, false);
+  assert.equal(p.ref_class_registry.const, "pipeline-ref-classes");
+  const reg = loadRegistry("pipeline_ref_classes");
+  assert.equal(reg.default_owner, "human");
+  assert.equal(reg.invariants.never_delete_human_refs, true);
+  assert.equal(reg.human_default.deletable_by_self_heal, false);
+});
+
+test("never-delete-human-refs vector: no human ref is self-heal-deletable; deletables are leased pipeline refs", () => {
+  const reg = loadRegistry("pipeline_ref_classes");
+  const { input, expected } = loadVector("git-discipline-never-delete-human-refs");
+  const refs = input.refs;
+  const leasedByName = new Map(refs.map((r) => [r.name, r.leased]));
+  const computedHuman = refs.filter((r) => refOwner(r.name, reg) === "human").map((r) => r.name);
+
+  // The invariant, computed from the registry — not read from the fixture's labels.
+  assert.deepEqual(computedHuman.slice().sort(), expected.human_refs.slice().sort());
+  assert.deepEqual(computedHuman.slice().sort(), expected.never_deleted_human_refs.slice().sort());
+  for (const name of computedHuman) {
+    assert.ok(!expected.deletable_by_self_heal.includes(name), `${name}: human ref must never be self-heal-deletable`);
+    assert.ok(expected.protected.includes(name), `${name}: human ref must be protected`);
+  }
+  // Every self-heal-deletable ref is a LEASED, pipeline-owned ref whose matched
+  // class is itself deletable (a non-deletable pipeline class — e.g. the working
+  // branch — must never appear in the deletable set even when leased).
+  const matchedClass = (name) =>
+    reg.ref_classes.find((cls) => refPatternToRegex(cls.pattern).test(name)) ?? reg.human_default;
+  for (const name of expected.deletable_by_self_heal) {
+    assert.equal(refOwner(name, reg), "pipeline", `${name}: only pipeline refs are deletable`);
+    assert.equal(leasedByName.get(name), true, `${name}: only leased refs are deletable`);
+    assert.equal(matchedClass(name).deletable_by_self_heal, true, `${name}: matched class must be deletable`);
+  }
+  // deletable and protected partition every ref, disjointly.
+  const all = refs.map((r) => r.name).sort();
+  const union = [...expected.deletable_by_self_heal, ...expected.protected].sort();
+  assert.deepEqual(union, all, "deletable + protected must cover every ref");
+  assert.equal(new Set(union).size, union.length, "deletable and protected must be disjoint");
+});
+
+// Reference pure-merge: field-copy manifests (+ sidecar refresh fields),
+// deterministically sorted by (repo, kind, predicate), with no generated_at.
+function buildProjectionsIndex(input) {
+  const sidecar = new Map((input.refresh_sidecars ?? []).map((s) => [s.manifest_path, s]));
+  const entries = input.manifests.map((m) => {
+    const e = {
+      repo: m.target,
+      kind: m.kind,
+      predicate: m.predicate,
+      body_path: m.output_path,
+      body_content_type: m.body_content_type,
+      facts_path: m.facts_path,
+      manifest_path: m.manifest_path,
+      body_digest: m.body_digest,
+      body_digest_domain: m.body_digest_domain,
+      facts_digest: m.facts_digest,
+      pinned_commit: m.code_head_sha,
+      maturity_label: m.maturity_label,
+      gate_state: m.gate_verdict.state,
+    };
+    const s = sidecar.get(m.manifest_path);
+    if (s) {
+      for (const k of ["refresh_status", "refresh_failure_class", "attempted_code_head_sha"]) {
+        if (k in s) e[k] = s[k];
+      }
+    }
+    return e;
+  });
+  const key = (e) => `${e.repo} ${e.kind} ${e.predicate}`;
+  entries.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
+  return { schema: "projections.index.v1", entries };
+}
+
+test("projections index is a deterministic pure merge of the manifests (§12.3 fixture)", () => {
+  const { input, expected } = loadVector("projections-index-pure-merge-deterministic");
+  const built = buildProjectionsIndex(input);
+  assert.equal(canonical(built), canonical(expected.index), "merge must reproduce expected.index byte-for-byte");
+  // Determinism: re-running the merge yields identical bytes.
+  assert.equal(canonical(buildProjectionsIndex(input)), canonical(built));
+  // No timestamp field anywhere — the property that makes --check stable.
+  assert.doesNotMatch(canonical(expected.index), /generated_at/);
 });

@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "properties": {
     "schema": {"const": "consiliency.manifest.v1"},
-    "contract_version": {"type": "string", "pattern": "^0\\.3\\.\\d+$"},
+    "contract_version": {"type": "string", "pattern": "^0\\.4\\.\\d+$"},
     "repo": {
       "type": "object",
       "required": ["id", "display_name", "default_branch"],
@@ -75,7 +75,7 @@
           "type": "boolean",
           "description": "true = the repo consents to be governed for the facets in adopted_scope (which must be non-empty). false = an explicit, recorded declaration of non-adoption: the repo is UNGOVERNED for every facet even though a profile is present. A repo with no adoption profile at all is likewise ungoverned; adopted:false is the explicit, auditable form of that state."
         },
-        "contract_version": {"type": "string", "pattern": "^0\\.3\\.\\d+$"},
+        "contract_version": {"type": "string", "pattern": "^0\\.4\\.\\d+$"},
         "archetype": {"enum": ["product", "service", "library", "infra", "tooling-meta", "experiment", "document", "baseline-only"]},
         "adopted_scope": {
           "type": "array",

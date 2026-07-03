@@ -1,8 +1,16 @@
 """Authority-event contract: canonical signed-core bytes + Ed25519 verify.
 
 This is the ROOT OF TRUST reference implementation for the Python side (Portal
-signer / spec ledger). The canonical-bytes algorithm here MUST produce
-byte-identical output to ``src/authority.js`` — see
+signer / spec ledger).
+
+CANON OWNERSHIP: the signed-core bytes ARE spec canon-core v2
+``canonical_bytes(core)`` (NOT a new/4th canon). ``canonicalize_core`` here is a
+metadata-safe-ASCII / integer-only PORT of that one normative algorithm — the
+AUTHORITY PROFILE, where non-ASCII / floats / null are fail-closed rejected by
+design (amendment #3), which is exactly the subset on which canon v2's full
+rules and this port emit identical bytes. Parity is pinned per vector
+(``input.canon_core_v2_bytes``, from spec's canon.py) and the source is
+digest-pinned in ``core/authority-canon/provenance.json``. See
 ``docs/design/authority-event-canonical-bytes.md`` for the normative spec.
 
 ``cryptography`` is imported lazily inside :func:`verify_authority_event` so the

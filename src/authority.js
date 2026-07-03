@@ -3,8 +3,16 @@
 // This is the ROOT OF TRUST reference implementation for the JS side. It is
 // dependency-free (Node >=18 `node:crypto` only) so the governed-pipeline (gp)
 // gate can verify an authority event without ICU/Unicode-16 canon or any npm
-// dependency. The canonical-bytes algorithm here MUST produce byte-identical
-// output to `consiliency_contract/authority.py` — see
+// dependency.
+//
+// CANON OWNERSHIP: the signed-core bytes ARE spec canon-core v2
+// `canonical_bytes(core)` (NOT a new/4th canon). `canonicalizeCore` here is a
+// metadata-safe-ASCII / integer-only PORT of that one normative algorithm — the
+// AUTHORITY PROFILE, where non-ASCII / floats / null are fail-closed rejected by
+// design (design amendment #3), which is exactly the subset on which canon v2's
+// full rules and this port emit identical bytes. Parity is pinned per vector
+// (`input.canon_core_v2_bytes`, produced from spec's canon.py) and the source is
+// digest-pinned in `core/authority-canon/provenance.json`. See
 // `docs/design/authority-event-canonical-bytes.md` for the normative spec.
 
 import { Buffer } from "node:buffer";

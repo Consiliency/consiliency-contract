@@ -55,6 +55,9 @@
     "contract": "core/canonical-html/contract-v1.json",
     "provenance": "core/canonical-html/provenance.json"
   },
+  "authority_canon": {
+    "provenance": "core/authority-canon/provenance.json"
+  },
   "conformance": {
     "vector_root": "conformance/vectors",
     "decision_schema": "core/schemas/decision.schema.json"

@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/git-discipline-protocol.schema.json",
+  "title": "Consiliency git-discipline protocol",
+  "description": "Normative machine-readable form of the pipeline-owned git-discipline contract (DESIGN §11.1). Post-ingestion the pipeline/harness OWNS ref classes, write-footprint, and merge policy for governed repos; humans do not drive branching. This is the neutral definition Portal, agent-harness (phase-loop-runtime), and the headless pipeline (gp) all read so they agree on which refs are pipeline-owned and how self-heal may reconcile them. The falsifiable ref-class enumeration lives in the pipeline-ref-classes registry, which this protocol references by name.",
+  "type": "object",
+  "required": [
+    "schema",
+    "contract_version",
+    "ref_class_registry",
+    "ownership",
+    "lease",
+    "write_footprint",
+    "merge_policies",
+    "self_heal",
+    "invariants"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": "consiliency.git_discipline_protocol.v1"},
+    "contract_version": {"const": "0.4.0"},
+    "ref_class_registry": {
+      "const": "pipeline-ref-classes",
+      "description": "loadRegistry('pipeline_ref_classes') enumerates the pipeline-owned ref families and the human default. Both runtimes (harness + gp) read it to agree on ownership."
+    },
+    "ownership": {
+      "type": "object",
+      "required": ["pipeline_owned_ref_patterns", "human_ref_default", "default_branch_commit"],
+      "additionalProperties": false,
+      "properties": {
+        "pipeline_owned_ref_patterns": {
+          "type": "array",
+          "const": [
+            "consiliency/pipeline/{roadmap_version}",
+            "consiliency/pipeline/*",
+            "phase-loop/sched/{target_branch}/{phase}",
+            "pipeline/{phase}-{node}"
+          ]
+        },
+        "human_ref_default": {"const": "everything-not-matching-a-pipeline-owned-pattern"},
+        "default_branch_commit": {
+          "const": "refused",
+          "description": "Under branch governance the loop hard-refuses any commit on the default branch (phase-loop-runtime refuse_default_branch_commit; gp branchgov)."
+        }
+      }
+    },
+    "lease": {
+      "type": "object",
+      "required": ["lease_required_on_pipeline_refs", "lease_schema", "leased_metadata"],
+      "additionalProperties": false,
+      "properties": {
+        "lease_required_on_pipeline_refs": {"const": true},
+        "lease_schema": {"const": "consiliency.lease.v1"},
+        "leased_metadata": {
+          "type": "array",
+          "const": ["holder", "lease_id", "acquired_at", "ttl_seconds", "heartbeat_at"]
+        }
+      }
+    },
+    "write_footprint": {
+      "type": "object",
+      "required": ["allowlist", "policy"],
+      "additionalProperties": false,
+      "properties": {
+        "allowlist": {
+          "type": "array",
+          "const": [
+            ".pipeline/artifacts/**",
+            ".pipeline/specs/**",
+            ".pipeline/state/**",
+            ".pipeline/events/**",
+            ".consiliency/**",
+            "pipeline.definition.json",
+            "portal_contracts/**"
+          ]
+        },
+        "policy": {
+          "const": "unauthorized-pipeline-write-refused",
+          "description": "The runtime's pipeline-write boundary fails (unauthorized_pipeline_write) on dirty writes outside the allowlist."
+        }
+      }
+    },
+    "merge_policies": {
+      "type": "object",
+      "required": ["values", "default"],
+      "additionalProperties": false,
+      "properties": {
+        "values": {"type": "array", "const": ["auto", "required", "never"]},
+        "default": {
+          "const": "required",
+          "description": "BRANCHGOV ratification carries merge_policy in {auto,required,never}; the pipeline working branch mergeback defaults to required review."
+        }
+      }
+    },
+    "self_heal": {
+      "type": "object",
+      "required": ["hook", "scope", "auto_fix", "default_severity", "finding_human_required"],
+      "additionalProperties": false,
+      "properties": {
+        "hook": {
+          "const": "top-of-loop-reconcile",
+          "description": "Rides the existing start-of-iteration reconcile + advisory scan; detection is always safe (pure reporting)."
+        },
+        "scope": {
+          "const": "leased-pipeline-owned-refs-only",
+          "description": "Self-heal may reconcile ONLY leased, pipeline-owned refs. It never touches human refs or unleased pipeline refs."
+        },
+        "auto_fix": {
+          "const": "idempotent-safe-only",
+          "description": "Auto-fix is limited to provably-safe idempotent cases (re-checkout/rebase the pipeline working branch; prune already-merged phase worktrees). Everything else surfaces as a blocker; no auto-delete, no auto-move of possibly-in-progress work."
+        },
+        "default_severity": {
+          "const": "warn",
+          "description": "Autonomy-first: soft/warn by default, opt-in to block. Never escalates to human-required."
+        },
+        "finding_human_required": {
+          "const": false,
+          "description": "Self-heal findings are surfaced as human_required=false blockers; the contract never sets human_required."
+        }
+      }
+    },
+    "invariants": {
+      "type": "object",
+      "required": [
+        "never_delete_human_refs",
+        "never_auto_move_in_progress_work",
+        "self_heal_scope",
+        "manifests_single_writer",
+        "index_pure_merge"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "never_delete_human_refs": {
+          "const": true,
+          "description": "The NEVER-DELETE-HUMAN-REFS invariant: self-heal / reconcile MUST NOT delete any human-owned ref under any circumstance. Data loss dressed as tidiness is forbidden."
+        },
+        "never_auto_move_in_progress_work": {"const": true},
+        "self_heal_scope": {"const": "leased-pipeline-owned-refs-only"},
+        "manifests_single_writer": {
+          "const": true,
+          "description": "Per-artifact manifests are immutable single-writer gate records; refresh state lives in a separate sidecar, never in the manifest."
+        },
+        "index_pure_merge": {
+          "const": true,
+          "description": "The projections index is a pure function of the manifests (+ envelopes + sidecars) with no generated_at, so --check is deterministic and byte-identical across drivers."
+        }
+      }
+    }
+  }
+}

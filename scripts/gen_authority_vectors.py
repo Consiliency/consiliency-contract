@@ -30,6 +30,49 @@ from consiliency_contract.authority import canonical_core_bytes  # noqa: E402
 
 REGISTRY_PATH = ROOT / "core" / "registries" / "authority-key-registry.json"
 VECTORS_DIR = ROOT / "conformance" / "vectors"
+CANON_PROVENANCE_PATH = ROOT / "core" / "authority-canon" / "provenance.json"
+
+
+import functools  # noqa: E402
+
+
+@functools.lru_cache(maxsize=1)
+def _load_spec_canon():
+    """Import spec's canon-core v2 Python reference, or return None.
+
+    The authority signed-core bytes ARE canon-core v2's `canonical_bytes`; this
+    contract carries a metadata-safe/integer-only PORT of that one algorithm, not
+    a new canon. At generation time we pin the canon-core-v2 bytes per vector by
+    calling spec's real `canon.py` (an INDEPENDENT witness), so the committed
+    parity test proves the port matches without a spec checkout at CI time.
+
+    Locate spec via `CONFORMANCE_SPEC_REPO` (a spec checkout root) or the sibling
+    `../spec` default; canon.py lives at `<root>/canon/py/canon.py`.
+    """
+    import importlib.util
+    import os
+
+    roots = []
+    env = os.environ.get("CONFORMANCE_SPEC_REPO")
+    if env:
+        roots.append(Path(env).expanduser())
+    roots.append(ROOT.parent / "spec")
+    for root in roots:
+        candidate = root / "canon" / "py" / "canon.py"
+        if candidate.exists():
+            spec = importlib.util.spec_from_file_location("spec_canon_v2", candidate)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module, candidate, root
+    return None, None, None
+
+
+def _canon_core_v2_hex(core: dict):
+    """canon-core v2 `canonical_bytes(core)` hex from spec's canon.py, or None."""
+    module, _, _ = _load_spec_canon()
+    if module is None:
+        return None
+    return module.canonical_bytes(core).hex()
 
 NOW = "2026-07-03T12:00:00Z"
 CERT_DIGEST = hashlib.sha256(b"consiliency/xg1/graphbase.bundle.deterministic-export/cert").hexdigest()
@@ -163,12 +206,32 @@ def chain_block(core: dict) -> dict:
     }
 
 
+def _pin_canon_bytes(core: dict) -> str:
+    """The committed canon-core-v2 byte pin for a core.
+
+    Prefer spec's canon.py (independent witness); cross-assert it equals our port.
+    Fall back to our port only when spec is absent (offline regen), so `--check`
+    still runs; the durable committed test asserts port == pin regardless.
+    """
+    mine = canonical_core_bytes(core).hex()
+    theirs = _canon_core_v2_hex(core)
+    if theirs is not None and theirs != mine:
+        raise SystemExit(
+            f"CANON DIVERGENCE: contract port != canon-core v2\n  port : {mine}\n  canon: {theirs}"
+        )
+    return theirs if theirs is not None else mine
+
+
 def scenario(event_obj: dict, *, expected_cert_digest: str = CERT_DIGEST) -> dict:
     return {
         "schema": "consiliency.authority_verification_scenario.v1",
         "registry": "authority_key_registry",
         "now": NOW,
         "expected_cert_digest": expected_cert_digest,
+        # The exact bytes the Ed25519 signature covers = canon-core v2
+        # `canonical_bytes(core)`. Pinned here (from spec's canon.py) so the
+        # contract's byte parity with canon-core v2 is a committed, offline-checkable fact.
+        "canon_core_v2_bytes": _pin_canon_bytes(event_obj["core"]),
         "event": event_obj
     }
 
@@ -337,6 +400,66 @@ def build_vectors() -> list[dict]:
     return vectors
 
 
+def build_provenance():
+    """Digest-pin the spec canon-core v2 source this port was verified against.
+
+    Returns None when spec is unavailable (offline regen); the committed file is
+    then left untouched. A change to spec's canon source flips these digests and
+    trips re-verification of the byte parity.
+    """
+    import subprocess
+
+    module, canon_py, spec_root = _load_spec_canon()
+    if module is None:
+        return None
+
+    def _sha256(path: Path) -> str:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    try:
+        commit = subprocess.run(
+            ["git", "-C", str(spec_root), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        commit = None
+
+    canon_ts = spec_root / "canon" / "ts" / "canon.ts"
+    spec_md = spec_root / "canon" / "SPEC.md"
+    return {
+        "schema": "consiliency.authority_canon_provenance.v1",
+        "$comment": (
+            "The authority signed-core bytes ARE canon-core v2 `canonical_bytes(core)`. This contract "
+            "carries a metadata-safe-ASCII / integer-only PORT of that one normative algorithm (the "
+            "AUTHORITY PROFILE — non-ASCII/float/null are fail-closed rejected by design, amendment #3), "
+            "NOT a fourth canon. These digests pin the exact spec canon-core v2 source the port was proven "
+            "byte-identical against; a change here must re-verify parity."
+        ),
+        "canon_version": "spec-canon:v2",
+        "normative_source": {
+            "repo": "spec",
+            "spec_commit": commit,
+            "files": {
+                "canon/py/canon.py": _sha256(canon_py) if canon_py.exists() else None,
+                "canon/ts/canon.ts": _sha256(canon_ts) if canon_ts.exists() else None,
+                "canon/SPEC.md": _sha256(spec_md) if spec_md.exists() else None,
+            },
+        },
+        "authority_profile": {
+            "signed_bytes": "canon_core_v2.canonical_bytes(core)",
+            "field_constraints": "every signed-core string is metadata-safe ASCII (0x21-0x7E minus '\"' and '\\\\'); no floats/NaN/Inf; no null; ASCII snake_case keys",
+            "signature": "ed25519 over the canonical bytes above",
+            "domain_separation_status": (
+                "OPEN COORDINATION (XG-4): canon-core v2 has no `authority` digest profile yet (profiles: "
+                "semantic-content, run, artifact-byte, certificate). The signature currently covers BARE "
+                "canonical_bytes(core). If the fleet decides the authority signature must cover the future "
+                "authority-profile digest preimage (spec-canon:v2:authority\\n || canonical_bytes(core)), "
+                "every signature regenerates — CONFIRM before Portal builds the real signer (Slice 2)."
+            ),
+        },
+    }
+
+
 def _dump(path: Path, data: dict) -> str:
     return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
 
@@ -349,6 +472,9 @@ def main(argv=None) -> int:
     outputs = {REGISTRY_PATH: build_registry()}
     for vec in build_vectors():
         outputs[VECTORS_DIR / f"{vec['id']}.json"] = vec
+    provenance = build_provenance()
+    if provenance is not None:
+        outputs[CANON_PROVENANCE_PATH] = provenance
 
     if args.check:
         mismatched = []
@@ -360,12 +486,17 @@ def main(argv=None) -> int:
         if mismatched:
             print("STALE (regenerate with scripts/gen_authority_vectors.py):", *mismatched, sep="\n  ")
             return 1
-        print(f"OK: registry + {len(outputs) - 1} vectors match committed output")
+        note = "" if provenance is not None else " (spec canon absent: provenance not re-checked)"
+        print(f"OK: registry + {len(outputs) - 1 if provenance is None else len(outputs) - 2} vectors match committed output{note}")
         return 0
 
+    CANON_PROVENANCE_PATH.parent.mkdir(parents=True, exist_ok=True)
     for path, data in outputs.items():
         path.write_text(_dump(path, data), encoding="utf-8")
-    print(f"wrote registry + {len(outputs) - 1} vectors")
+    extra = "" if provenance is None else " + canon provenance"
+    print(f"wrote registry + {len([k for k in outputs if k != CANON_PROVENANCE_PATH and k != REGISTRY_PATH])} vectors{extra}")
+    if provenance is None:
+        print("WARN: spec canon-core v2 not found (set CONFORMANCE_SPEC_REPO); provenance + pins used the local port only")
     return 0
 
 

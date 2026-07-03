@@ -557,6 +557,40 @@ test("authority canonicalizer equals the constrained JCS form (JS)", () => {
   }
 });
 
+test("authority signed-core bytes are pinned byte-identical to canon-core v2", () => {
+  // The signed bytes ARE canon-core v2 `canonical_bytes(core)`; our canonicalizer
+  // is a metadata-safe/integer-only PORT of that one algorithm, not a 4th canon.
+  // The pin is produced from spec's canon.py at generation time, so this is an
+  // offline, committed proof of parity (see core/authority-canon/provenance.json).
+  for (const name of authorityVectorNames()) {
+    const vector = loadVector(name);
+    assert.equal(
+      canonicalCoreBytes(vector.input.event.core).toString("hex"),
+      vector.input.canon_core_v2_bytes,
+      `${vector.id}: signed-core bytes must equal the pinned canon-core v2 canonical_bytes`,
+    );
+  }
+});
+
+test("the canon-core v2 provenance pins the spec canon source", () => {
+  const prov = JSON.parse(readFileSync("core/authority-canon/provenance.json", "utf8"));
+  assert.equal(prov.schema, "consiliency.authority_canon_provenance.v1");
+  assert.equal(prov.canon_version, "spec-canon:v2");
+  assert.match(prov.normative_source.files["canon/py/canon.py"], /^[0-9a-f]{64}$/);
+  assert.equal(prov.authority_profile.signed_bytes, "canon_core_v2.canonical_bytes(core)");
+  assert.match(prov.authority_profile.domain_separation_status, /XG-4/);
+});
+
+test("committed canon pins still match the CURRENT spec canon-core v2 (skips without spec)", (t) => {
+  const proc = spawnSync("python3", ["scripts/authority_canon_parity.py"], { encoding: "utf8" });
+  const report = JSON.parse(proc.stdout.trim());
+  if (report.status === "skip") {
+    t.skip(report.reason);
+    return;
+  }
+  assert.equal(report.status, "pass", JSON.stringify(report));
+});
+
 test("authority canonical core bytes match the Python reference byte-for-byte", () => {
   const py = JSON.parse(execFileSync("python3", ["scripts/authority_canonical_dump.py"], { encoding: "utf8" }));
   for (const name of authorityVectorNames()) {

@@ -1,13 +1,51 @@
 # Authority-event canonical bytes — the interop contract
 
-This is the **normative** definition of the bytes an authority event's signature
-covers. It is the interop contract between the Portal signer (Python), the spec
-ledger (Python), and the governed-pipeline (gp) verifier (dependency-free JS on
-Node 20). The two reference implementations —
-[`consiliency_contract/authority.py`](../../consiliency_contract/authority.py)
-and [`src/authority.js`](../../src/authority.js) — MUST produce byte-identical
-output for every input, and the conformance suite proves it empirically
-(`authority canonical core bytes match the Python reference byte-for-byte`).
+This is the definition of the bytes an authority event's signature covers, the
+interop contract between the Portal signer (Python), the spec ledger (Python),
+and the governed-pipeline (gp) verifier (dependency-free JS on Node 20).
+
+## Canon ownership — this is NOT a new canon
+
+The signed-core bytes **are** spec **canon-core v2** `canonical_bytes(core)`
+(normative source: `spec/canon/SPEC.md`, `spec/canon/py/canon.py`,
+`spec/canon/ts/canon.ts`). This contract does **not** author its own
+canonicalization — that is exactly the mistake (three incompatible "authority"
+shapes) that XG-1 exists to fix. Instead it carries a **metadata-safe-ASCII /
+integer-only PORT** of that one algorithm — the **authority profile** — where
+non-ASCII, floats, and null are **fail-closed rejected by design** (amendment
+#3). That restriction is the whole point: it is precisely the subset on which
+canon-core v2's full rules (raw non-ASCII emission, control-char escaping, astral
+code-point sort, bigint) and this port emit **identical bytes**, with none of the
+divergence-prone machinery reachable.
+
+Parity is enforced two ways, both durable:
+
+- **Per-vector byte pin** — every vector carries `input.canon_core_v2_bytes`,
+  produced by running spec's real `canon.py` at generation time (an independent
+  witness, not this port). The committed tests
+  (`authority signed-core bytes are pinned byte-identical to canon-core v2`)
+  assert `canonicalCoreBytes(core).hex() == canon_core_v2_bytes` — an offline,
+  spec-free proof in contract CI.
+- **Digest-pinned source** — [`core/authority-canon/provenance.json`](../../core/authority-canon/provenance.json)
+  records the spec commit + SHA-256 of `canon.py`/`canon.ts`/`SPEC.md` the port
+  was proven against; a change to spec's canon trips re-verification. A live
+  skip-when-absent gate (`scripts/authority_canon_parity.py`) additionally checks
+  the pins against the *current* spec canon when a checkout is present.
+
+## ⚠️ OPEN COORDINATION — signature domain separation (XG-4, pre-Slice-2)
+
+The Ed25519 signature currently covers **bare** `canonical_bytes(core)`. canon-core
+v2's `digest(value, profile)` **always** domain-prefixes (`spec-canon:v2:<profile>\n`),
+but there is **no `authority` profile yet** (the four are `semantic-content`,
+`run`, `artifact-byte`, `certificate`). canon-core will add an authority profile
+(XG-4). **Decision needed before Portal/spec build the real signer/verifier
+(Slice 2):** does the authority signature cover bare `canonical_bytes(core)`, or
+the future authority-profile digest preimage
+`spec-canon:v2:authority\n ‖ canonical_bytes(core)`? Choosing the latter later
+regenerates every signature — cheap now (the generator owns the keys), expensive
+once Portal ships.
+
+The rest of this document specifies the port precisely.
 
 Related contract artifacts:
 

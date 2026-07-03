@@ -430,6 +430,45 @@ class ContractReaderTest(unittest.TestCase):
             core = load_vector(name)["input"]["event"]["core"]
             self.assertEqual(canonicalize_core(core), _stable_jcs(core), f"{name}: canonicalizer must equal sorted JSON")
 
+    def test_authority_bytes_pinned_to_canon_core_v2(self) -> None:
+        # The signed bytes ARE canon-core v2 canonical_bytes(core); our canonicalizer
+        # is a metadata-safe/integer-only PORT. The pin was produced from spec's
+        # canon.py, so this proves parity offline (see core/authority-canon/provenance.json).
+        for name in self._authority_vector_names():
+            vector = load_vector(name)
+            self.assertEqual(
+                canonical_core_bytes(vector["input"]["event"]["core"]).hex(),
+                vector["input"]["canon_core_v2_bytes"],
+                f"{vector['id']}: signed-core bytes must equal the pinned canon-core v2 canonical_bytes",
+            )
+
+    def test_authority_canon_provenance_pins_spec_source(self) -> None:
+        from pathlib import Path
+
+        prov = json.loads(Path("core/authority-canon/provenance.json").read_text(encoding="utf-8"))
+        self.assertEqual(prov["schema"], "consiliency.authority_canon_provenance.v1")
+        self.assertEqual(prov["canon_version"], "spec-canon:v2")
+        self.assertRegex(prov["normative_source"]["files"]["canon/py/canon.py"], r"^[0-9a-f]{64}$")
+        self.assertEqual(prov["authority_profile"]["signed_bytes"], "canon_core_v2.canonical_bytes(core)")
+        self.assertIn("XG-4", prov["authority_profile"]["domain_separation_status"])
+
+    def test_authority_canon_parity_gate(self) -> None:
+        # Confirms the committed pins still match the CURRENT spec canon; skips
+        # (does not vacuously pass) when no spec checkout is present.
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        proc = subprocess.run(
+            [sys.executable, "scripts/authority_canon_parity.py"],
+            cwd=root, capture_output=True, text=True,
+        )
+        report = json.loads(proc.stdout.strip())
+        if report["status"] == "skip":
+            self.skipTest(report["reason"])
+        self.assertEqual(report["status"], "pass", report)
+
     def test_authority_canonicalizer_is_fail_closed(self) -> None:
         from consiliency_contract.authority import AuthorityCanonicalError
 

@@ -505,8 +505,9 @@ class ContractReaderTest(unittest.TestCase):
         self.assertIn("SETTLED", prov["authority_profile"]["domain_separation"])
 
     def test_authority_canon_parity_gate(self) -> None:
-        # Confirms the committed pins still match the CURRENT spec canon; skips
-        # (does not vacuously pass) when no spec checkout is present.
+        # REQUIRED, never-skip: the contract's OWN authority port must reproduce every committed
+        # canon_core_v2_bytes pin (self-contained, no spec checkout). The live spec cross-check is
+        # additional when a spec checkout is present, but its absence must NOT skip the gate.
         import subprocess
         import sys
         from pathlib import Path
@@ -517,9 +518,10 @@ class ContractReaderTest(unittest.TestCase):
             cwd=root, capture_output=True, text=True,
         )
         report = json.loads(proc.stdout.strip())
-        if report["status"] == "skip":
-            self.skipTest(report["reason"])
+        self.assertNotEqual(report["status"], "skip", "authority-canon parity gate must never skip")
         self.assertEqual(report["status"], "pass", report)
+        self.assertEqual(report["offline_pin"], "pass", report)
+        self.assertGreaterEqual(report["checked"], 13, report)
 
     def test_authority_canonicalizer_is_fail_closed(self) -> None:
         from consiliency_contract.authority import AuthorityCanonicalError

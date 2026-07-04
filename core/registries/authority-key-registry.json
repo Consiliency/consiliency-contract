@@ -42,6 +42,17 @@
         "not_after": "2025-06-01T00:00:00Z"
       },
       "revoked": false
+    },
+    {
+      "key_id": "portal-authority-ed25519-prod-v1",
+      "scheme": "ed25519",
+      "public_key": "27499adc83381305359e7950b6ea9f1f7fa93480c9fe647b9fc8d4a64d6a467a",
+      "approver": "consiliency:portal:governance",
+      "validity": {
+        "not_before": "2026-07-04T00:00:00Z",
+        "not_after": "2027-07-04T00:00:00Z"
+      },
+      "revoked": false
     }
   ]
 }

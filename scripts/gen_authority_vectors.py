@@ -92,6 +92,16 @@ SEED_LABELS = {
     "attacker-key-001": "consiliency.authority_event.v1/ATTACKER-not-in-registry",
 }
 
+# EXTERNAL production key(s): a REAL public key provided out-of-band. Unlike the
+# fixture keys above (whose private seed is sha256(label) and therefore publicly
+# derivable — they exist ONLY to sign the conformance vectors), a production key's
+# PRIVATE half is generated off-box and held in the Portal's GCP Secret Manager;
+# it is NOT derivable from any label. The registry commits ONLY the public key, and
+# this generator never has access to the private half.
+EXTERNAL_PUBLIC_KEYS = {
+    "portal-authority-ed25519-prod-v1": "27499adc83381305359e7950b6ea9f1f7fa93480c9fe647b9fc8d4a64d6a467a",
+}
+
 
 def _private_key(key_id: str) -> Ed25519PrivateKey:
     seed = hashlib.sha256(SEED_LABELS[key_id].encode("ascii")).digest()
@@ -156,6 +166,17 @@ def build_registry() -> dict:
                 "public_key": _public_hex("portal-authority-ed25519-expired"),
                 "approver": PORTAL_APPROVER,
                 "validity": {"not_before": "2025-01-01T00:00:00Z", "not_after": "2025-06-01T00:00:00Z"},
+                "revoked": False
+            },
+            {
+                # PRODUCTION key — real, externally generated; private half in the
+                # Portal's GCP Secret Manager (secret AUTHORITY_SIGNER_ED25519_PROD_V1).
+                # Public key committed here; not seed-derivable (see EXTERNAL_PUBLIC_KEYS).
+                "key_id": "portal-authority-ed25519-prod-v1",
+                "scheme": "ed25519",
+                "public_key": EXTERNAL_PUBLIC_KEYS["portal-authority-ed25519-prod-v1"],
+                "approver": PORTAL_APPROVER,
+                "validity": {"not_before": "2026-07-04T00:00:00Z", "not_after": "2027-07-04T00:00:00Z"},
                 "revoked": False
             }
         ]

@@ -13,10 +13,10 @@
       "additionalProperties": false,
       "properties": {
         "name": {"type": "string"},
-        "version": {"type": "string", "pattern": "^0\\.4\\.\\d+$"}
+        "version": {"type": "string", "pattern": "^0\\.\\d+\\.\\d+$"}
       }
     },
-    "repo_contract_version": {"type": "string", "pattern": "^0\\.4\\.\\d+$"},
+    "repo_contract_version": {"type": "string", "pattern": "^0\\.\\d+\\.\\d+$"},
     "consumer": {"type": "object"},
     "compatibility": {"enum": ["compatible", "negotiated", "incompatible", "unknown"]},
     "maturity": {"enum": ["presence-only", "hash-checked", "realized-edge-observed"]},

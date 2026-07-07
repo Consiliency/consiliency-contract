@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "properties": {
     "schema": {"const": "consiliency.version_skew_protocol.v1"},
-    "contract_version": {"const": "0.6.1"},
+    "contract_version": {"const": "0.6.2"},
     "compatible_ranges": {
       "type": "object",
       "required": ["contract", "package"],

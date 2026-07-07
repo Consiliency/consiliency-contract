@@ -1,6 +1,6 @@
 {
   "contract_id": "consiliency.contract.v1",
-  "contract_version": "0.6.1",
+  "contract_version": "0.6.2",
   "package_names": {
     "npm": "@consiliency/contract",
     "pypi": "consiliency-contract"
@@ -8,7 +8,11 @@
   "summary": "Normative Consiliency Phase-0 L0 contract data for .consiliency layout, document requirements, interface declarations, loop gates, canonical_html.v1, version skew, adoption + governance-scoping (CS-0.12), and lease + inbox coordination (CS-0.10b).",
   "phase_posture": {
     "phase": "CS-0.12",
-    "content_phases": ["CS-0.2", "CS-0.10b", "CS-0.12"],
+    "content_phases": [
+      "CS-0.2",
+      "CS-0.10b",
+      "CS-0.12"
+    ],
     "level": "L0",
     "default_gate_severity": "warn",
     "certified_claims_allowed": false,
@@ -41,7 +45,8 @@
     "maturity_labels": "core/registries/maturity-labels.json",
     "default_ignore_set": "core/registries/default-ignore-set.json",
     "pipeline_ref_classes": "core/registries/pipeline-ref-classes.json",
-    "authority_key_registry": "core/registries/authority-key-registry.json"
+    "authority_key_registry": "core/registries/authority-key-registry.json",
+    "gate_posture_registry": "core/registries/gate-posture-registry.json"
   },
   "protocols": {
     "loop_gate": "core/schemas/loop-gate-protocol.schema.json",

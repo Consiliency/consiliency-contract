@@ -1,0 +1,133 @@
+{
+  "schema": "consiliency.gate_posture_registry.v1",
+  "$comment": "RETRACTABLE TEETH -- per-finding-class enforcement posture with non-retractable floors. Advisory panel (Fable + Codex 5.5 + Gemini 3.1 Pro) unanimously required the floors to live here, in the merge-gated contract (mirroring authority-key-registry.json), never in per-host operator env. The operator's off|warn|hard is the MASTER block switch, NOT a per-class posture layer. FORWARD-DECLARED: never_delete_human_refs has no scan emitter yet (git_discipline evaluates only write_footprint_violation + pipeline_branch_naming_drift today) -- its enforce floor is reserved for when an emitter lands; so no migrated gate hard-blocks by DEFAULT today. Posture rungs: observe < warn < enforce. A finding at `observe` is RECORDED as a note (never warns, never blocks); `warn` surfaces as a warning (never blocks); `enforce` MAY block, but ONLY under the operator's `PHASE_LOOP_CONSILIENCY_GATES=hard` master switch (`human_required` is NEVER set regardless of posture). Resolution: effective = clamp(min_posture, max_posture, layered(default_posture, per_repo_override)); a per-repo manifest override may RAISE any class freely and LOWER only to (never below) its `min_posture`. `invariant` classes protect humans or the audit/authority chain and carry a real floor; `advisory` classes are freely retractable to observe. Any per-repo downward move additionally emits the non-retractable `posture_retracted` note so de-fanging is always fleet-visible.",
+  "postures": [
+    "observe",
+    "warn",
+    "enforce"
+  ],
+  "categories": [
+    "invariant",
+    "advisory"
+  ],
+  "default_unlisted": {
+    "category": "advisory",
+    "default_posture": "warn",
+    "min_posture": "observe"
+  },
+  "finding_classes": [
+    {
+      "code": "never_delete_human_refs",
+      "gate": "git_discipline",
+      "category": "invariant",
+      "default_posture": "enforce",
+      "min_posture": "enforce",
+      "description": "RESERVED/forward-declared: protects human authority over their own refs. No scan emitter exists yet (git_discipline emits only write_footprint_violation + pipeline_branch_naming_drift); the enforce floor takes effect once an emitter lands. Non-retractable (min == enforce); blocks only under operator hard mode."
+    },
+    {
+      "code": "write_footprint_violation",
+      "gate": "git_discipline",
+      "category": "invariant",
+      "default_posture": "warn",
+      "min_posture": "warn",
+      "description": "A write outside the contract's git-discipline write-footprint allowlist. Floored at warn -- a repo may sharpen to enforce but never silence to observe."
+    },
+    {
+      "code": "pipeline_branch_naming_drift",
+      "gate": "git_discipline",
+      "category": "advisory",
+      "default_posture": "observe",
+      "min_posture": "observe",
+      "description": "A pipeline-family branch drifts from its required naming. Cosmetic -- freely retractable; migrates git_discipline's hardcoded note-not-warning posture."
+    },
+    {
+      "code": "hash_drift",
+      "gate": "local_integrity",
+      "category": "invariant",
+      "default_posture": "warn",
+      "min_posture": "warn",
+      "description": "A hash-checked document's committed digest no longer matches its recorded snapshot -- an audit-chain integrity signal. Floored at warn."
+    },
+    {
+      "code": "version_skew",
+      "gate": "version_skew",
+      "category": "advisory",
+      "default_posture": "warn",
+      "min_posture": "observe",
+      "max_posture": "warn",
+      "description": "Repo-declared contract_version vs the installed package. The version-skew protocol's phase0 severity is a normative const `warn`, so this class is CAPPED at warn (max_posture) as well as freely retractable -- migrates the hardcoded capped_warn special case."
+    },
+    {
+      "code": "spec_nonconforming",
+      "gate": "spec_conformance",
+      "category": "advisory",
+      "default_posture": "warn",
+      "min_posture": "observe",
+      "description": "A spec-projection declares present-nonconforming. Loud by default but retractable -- conformance is a nudge, not a human/audit invariant."
+    },
+    {
+      "code": "spec_below_conformance_bar",
+      "gate": "spec_conformance",
+      "category": "advisory",
+      "default_posture": "observe",
+      "min_posture": "observe",
+      "description": "A non-sanctioned presence-only spec-projection below the hash-checked bar. Info nudge -- migrates HGATE's hardcoded info tier."
+    },
+    {
+      "code": "spec_below_declared_floor",
+      "gate": "spec_conformance",
+      "category": "advisory",
+      "default_posture": "warn",
+      "min_posture": "observe",
+      "description": "A spec-projection sits BELOW its own contract-declared maturity_floor -- a real regression; advisory warn, raisable to enforce."
+    },
+    {
+      "code": "spec_maturity_missing",
+      "gate": "spec_conformance",
+      "category": "advisory",
+      "default_posture": "warn",
+      "min_posture": "observe",
+      "description": "A spec-projection declares no maturity. Advisory warn."
+    },
+    {
+      "code": "spec_maturity_unknown",
+      "gate": "spec_conformance",
+      "category": "advisory",
+      "default_posture": "warn",
+      "min_posture": "observe",
+      "description": "A spec-projection declares an unrecognized maturity label. Advisory warn."
+    },
+    {
+      "code": "spec_ungoverned",
+      "gate": "spec_conformance",
+      "category": "advisory",
+      "default_posture": "warn",
+      "min_posture": "observe",
+      "description": "A spec-projection declares a governance-status label (foreign/unmanaged) -- not this repo's / ungoverned. Advisory warn."
+    },
+    {
+      "code": "no_local_snapshot",
+      "gate": "local_integrity",
+      "category": "advisory",
+      "default_posture": "warn",
+      "min_posture": "observe",
+      "description": "A hash-checked doc has no recorded integrity snapshot yet. Advisory warn."
+    },
+    {
+      "code": "unreadable_git_blob",
+      "gate": "local_integrity",
+      "category": "advisory",
+      "default_posture": "warn",
+      "min_posture": "observe",
+      "description": "A hash-checked doc's committed blob could not be read. Advisory warn."
+    },
+    {
+      "code": "posture_retracted",
+      "gate": "*",
+      "category": "invariant",
+      "default_posture": "warn",
+      "min_posture": "warn",
+      "description": "META: a per-repo override lowered some finding-class below its contract default. NON-RETRACTABLE (min == default == warn) so de-fanging is always fleet-visible -- a repo cannot retract the retraction notice itself. Carries the retracted class + actor/reason/timestamp metadata when present."
+    }
+  ]
+}

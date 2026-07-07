@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const CONTRACT_PACKAGE = "@consiliency/contract";
-export const CONTRACT_VERSION = "0.6.2";
+export const CONTRACT_VERSION = "0.6.3";
 
 export {
   AuthorityCanonicalError,

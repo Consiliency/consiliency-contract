@@ -3,46 +3,101 @@
   "$id": "https://consiliency.io/contracts/manifest.schema.json",
   "title": ".consiliency manifest",
   "type": "object",
-  "required": ["schema", "contract_version", "repo", "declaration", "documents", "interfaces"],
+  "required": [
+    "schema",
+    "contract_version",
+    "repo",
+    "declaration",
+    "documents",
+    "interfaces"
+  ],
   "additionalProperties": false,
   "properties": {
-    "schema": {"const": "consiliency.manifest.v1"},
-    "contract_version": {"type": "string", "pattern": "^0\\.\\d+\\.\\d+$"},
+    "schema": {
+      "const": "consiliency.manifest.v1"
+    },
+    "contract_version": {
+      "type": "string",
+      "pattern": "^0\\.\\d+\\.\\d+$"
+    },
     "repo": {
       "type": "object",
-      "required": ["id", "display_name", "default_branch"],
+      "required": [
+        "id",
+        "display_name",
+        "default_branch"
+      ],
       "additionalProperties": false,
       "properties": {
-        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
-        "display_name": {"type": "string", "minLength": 1},
-        "default_branch": {"type": "string", "minLength": 1},
-        "homepage": {"type": "string"}
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_.-]*$"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default_branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "homepage": {
+          "type": "string"
+        }
       }
     },
     "declaration": {
       "oneOf": [
         {
           "type": "object",
-          "required": ["mode"],
+          "required": [
+            "mode"
+          ],
           "additionalProperties": false,
-          "properties": {"mode": {"const": "baseline-only"}}
+          "properties": {
+            "mode": {
+              "const": "baseline-only"
+            }
+          }
         },
         {
           "type": "object",
-          "required": ["mode", "archetypes"],
+          "required": [
+            "mode",
+            "archetypes"
+          ],
           "additionalProperties": false,
           "properties": {
-            "mode": {"const": "archetyped"},
+            "mode": {
+              "const": "archetyped"
+            },
             "archetypes": {
               "type": "array",
               "minItems": 1,
               "uniqueItems": true,
-              "items": {"enum": ["product", "service", "library", "infra", "tooling-meta", "experiment", "document"]}
+              "items": {
+                "enum": [
+                  "product",
+                  "service",
+                  "library",
+                  "infra",
+                  "tooling-meta",
+                  "experiment",
+                  "document"
+                ]
+              }
             },
             "modifiers": {
               "type": "array",
               "uniqueItems": true,
-              "items": {"enum": ["data-bearing", "public", "regulated", "user-facing"]}
+              "items": {
+                "enum": [
+                  "data-bearing",
+                  "public",
+                  "regulated",
+                  "user-facing"
+                ]
+              }
             }
           }
         }
@@ -50,90 +105,253 @@
     },
     "documents": {
       "type": "array",
-      "items": {"$ref": "#/$defs/document"},
+      "items": {
+        "$ref": "#/$defs/document"
+      },
       "uniqueItems": true
     },
-    "interfaces": {"$ref": "#/$defs/repoRelativePath"},
+    "interfaces": {
+      "$ref": "#/$defs/repoRelativePath"
+    },
     "legacy_layouts": {
       "type": "array",
-      "items": {"$ref": "#/$defs/repoRelativePath"}
+      "items": {
+        "$ref": "#/$defs/repoRelativePath"
+      }
     },
-    "adoption": {"$ref": "#/$defs/adoptionProfile"},
+    "adoption": {
+      "$ref": "#/$defs/adoptionProfile"
+    },
     "governed_set": {
       "type": "array",
       "uniqueItems": true,
-      "items": {"$ref": "#/$defs/governedSelector"}
+      "items": {
+        "$ref": "#/$defs/governedSelector"
+      }
+    },
+    "gate_posture_overrides": {
+      "type": "object",
+      "description": "Retractable teeth: per-repo enforcement-posture overrides, {finding_code: posture}. May RAISE any finding class freely and LOWER only to (never below) its non-retractable min_posture floor in the gate_posture_registry; a downward move is surfaced by the non-retractable posture_retracted note. observe < warn < enforce.",
+      "additionalProperties": {
+        "enum": [
+          "observe",
+          "warn",
+          "enforce"
+        ]
+      }
     }
   },
   "$defs": {
     "adoptionProfile": {
       "type": "object",
-      "required": ["adopted", "contract_version", "archetype", "adopted_scope"],
+      "required": [
+        "adopted",
+        "contract_version",
+        "archetype",
+        "adopted_scope"
+      ],
       "additionalProperties": false,
       "properties": {
         "adopted": {
           "type": "boolean",
           "description": "true = the repo consents to be governed for the facets in adopted_scope (which must be non-empty). false = an explicit, recorded declaration of non-adoption: the repo is UNGOVERNED for every facet even though a profile is present. A repo with no adoption profile at all is likewise ungoverned; adopted:false is the explicit, auditable form of that state."
         },
-        "contract_version": {"type": "string", "pattern": "^0\\.\\d+\\.\\d+$"},
-        "archetype": {"enum": ["product", "service", "library", "infra", "tooling-meta", "experiment", "document", "baseline-only"]},
+        "contract_version": {
+          "type": "string",
+          "pattern": "^0\\.\\d+\\.\\d+$"
+        },
+        "archetype": {
+          "enum": [
+            "product",
+            "service",
+            "library",
+            "infra",
+            "tooling-meta",
+            "experiment",
+            "document",
+            "baseline-only"
+          ]
+        },
         "adopted_scope": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"enum": ["layout", "gates", "projections", "cert"]}
+          "items": {
+            "enum": [
+              "layout",
+              "gates",
+              "projections",
+              "cert"
+            ]
+          }
         }
       },
       "allOf": [
         {
-          "if": {"properties": {"adopted": {"const": true}}, "required": ["adopted"]},
-          "then": {"properties": {"adopted_scope": {"minItems": 1}}}
+          "if": {
+            "properties": {
+              "adopted": {
+                "const": true
+              }
+            },
+            "required": [
+              "adopted"
+            ]
+          },
+          "then": {
+            "properties": {
+              "adopted_scope": {
+                "minItems": 1
+              }
+            }
+          }
         }
       ]
     },
     "governedSelector": {
       "type": "object",
-      "required": ["by", "value"],
+      "required": [
+        "by",
+        "value"
+      ],
       "additionalProperties": false,
       "properties": {
-        "by": {"enum": ["path", "glob", "class"]},
+        "by": {
+          "enum": [
+            "path",
+            "glob",
+            "class"
+          ]
+        },
         "value": {
           "type": "string",
           "minLength": 1,
-          "not": {"anyOf": [{"pattern": "^/"}, {"pattern": "(^|/)\\.\\.(/|$)"}, {"pattern": "^[A-Za-z]:[\\\\/]"}]}
+          "not": {
+            "anyOf": [
+              {
+                "pattern": "^/"
+              },
+              {
+                "pattern": "(^|/)\\.\\.(/|$)"
+              },
+              {
+                "pattern": "^[A-Za-z]:[\\\\/]"
+              }
+            ]
+          }
         }
       }
     },
     "repoRelativePath": {
       "type": "string",
       "minLength": 1,
-      "not": {"anyOf": [{"pattern": "^/"}, {"pattern": "(^|/)\\.\\.(/|$)"}, {"pattern": "^[A-Za-z]:[\\\\/]"}]}
+      "not": {
+        "anyOf": [
+          {
+            "pattern": "^/"
+          },
+          {
+            "pattern": "(^|/)\\.\\.(/|$)"
+          },
+          {
+            "pattern": "^[A-Za-z]:[\\\\/]"
+          }
+        ]
+      }
     },
     "externalRef": {
       "type": "object",
-      "required": ["kind", "value"],
+      "required": [
+        "kind",
+        "value"
+      ],
       "additionalProperties": false,
       "properties": {
-        "kind": {"enum": ["org-ref", "url", "opaque-external-ref"]},
-        "value": {"type": "string", "minLength": 1}
+        "kind": {
+          "enum": [
+            "org-ref",
+            "url",
+            "opaque-external-ref"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "document": {
       "type": "object",
-      "required": ["id", "class", "maturity", "target_level", "required"],
+      "required": [
+        "id",
+        "class",
+        "maturity",
+        "target_level",
+        "required"
+      ],
       "oneOf": [
-        {"required": ["path"], "not": {"required": ["ref"]}},
-        {"required": ["ref"], "not": {"required": ["path"]}}
+        {
+          "required": [
+            "path"
+          ],
+          "not": {
+            "required": [
+              "ref"
+            ]
+          }
+        },
+        {
+          "required": [
+            "ref"
+          ],
+          "not": {
+            "required": [
+              "path"
+            ]
+          }
+        }
       ],
       "additionalProperties": false,
       "properties": {
-        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_.-]*$"},
-        "class": {"enum": ["intent-ground", "intent-plan", "proj-S", "proj-code", "ops-fact", "static", "index"]},
-        "path": {"$ref": "#/$defs/repoRelativePath"},
-        "ref": {"$ref": "#/$defs/externalRef"},
-        "maturity": {"enum": ["presence-only", "hash-checked", "realized-edge-observed"]},
-        "target_level": {"enum": ["L0", "L1"]},
-        "required": {"type": "boolean"},
-        "last_attested_at": {"type": "string"}
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_.-]*$"
+        },
+        "class": {
+          "enum": [
+            "intent-ground",
+            "intent-plan",
+            "proj-S",
+            "proj-code",
+            "ops-fact",
+            "static",
+            "index"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/repoRelativePath"
+        },
+        "ref": {
+          "$ref": "#/$defs/externalRef"
+        },
+        "maturity": {
+          "enum": [
+            "presence-only",
+            "hash-checked",
+            "realized-edge-observed"
+          ]
+        },
+        "target_level": {
+          "enum": [
+            "L0",
+            "L1"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "last_attested_at": {
+          "type": "string"
+        }
       }
     }
   }

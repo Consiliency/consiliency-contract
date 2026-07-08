@@ -52,7 +52,7 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.6.3");
+  assert.equal(CONTRACT_VERSION, "0.6.4");
   assert.equal(loadContract().contract_version, CONTRACT_VERSION);
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
@@ -660,4 +660,127 @@ test("the canonicalizer is fail-closed on ambiguous input", () => {
   assert.throws(() => canonicalizeCore({ s: "a b" }), /metadata-safe/); // space not metadata-safe
   assert.throws(() => canonicalizeCore({ s: "é" }), /metadata-safe/); // non-ASCII
   assert.throws(() => canonicalizeCore({ x: null }), /unsupported/); // null forbidden
+});
+
+// --- parity certificate schema distribution (0.6.4) ---
+
+// A cross-file-aware validator: the parity certificate schema is distributed
+// verbatim from spec, so it keeps its relative cross-file $ref into the
+// result-state schema (`result-state.schema.json#/$defs/...`). Extend the
+// authority-suite's #/-only resolver with one branch that resolves that
+// external fragment against the loaded result_state schema — no ajv (which the
+// repo deliberately omits), faithful to the shipped bytes.
+// `currentRoot` is the schema DOCUMENT that bare `#/` refs resolve against; it
+// starts as the certificate and switches to result_state when a cross-file ref
+// is followed (so result-state's own internal `#/$defs` refs resolve correctly).
+function validateWithRefs(schema, value, roots, currentRoot = roots.self) {
+  if (schema.$ref) {
+    let ref = schema.$ref;
+    let root = currentRoot;
+    if (ref.startsWith("result-state.schema.json#/")) {
+      root = roots.result_state;
+      ref = ref.slice("result-state.schema.json".length);
+    }
+    const node = ref.replace(/^#\//, "").split("/").reduce((acc, key) => acc[key], root);
+    return validateWithRefs(node, value, roots, root);
+  }
+  if ("const" in schema) return value === schema.const;
+  if (schema.enum) return schema.enum.includes(value);
+  if (schema.type === "string") {
+    if (typeof value !== "string") return false;
+    if (schema.minLength != null && value.length < schema.minLength) return false;
+    if (schema.pattern && !new RegExp(schema.pattern, "u").test(value)) return false;
+    return true;
+  }
+  if (schema.type === "integer") {
+    if (typeof value !== "number" || !Number.isInteger(value)) return false;
+    if (schema.minimum != null && value < schema.minimum) return false;
+    return true;
+  }
+  if (schema.type === "boolean") return typeof value === "boolean";
+  if (schema.type === "array") {
+    if (!Array.isArray(value)) return false;
+    if (schema.minItems != null && value.length < schema.minItems) return false;
+    if (schema.maxItems != null && value.length > schema.maxItems) return false;
+    return value.every((item) => !schema.items || validateWithRefs(schema.items, item, roots, currentRoot));
+  }
+  if (schema.type === "object" || schema.properties) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    const props = schema.properties || {};
+    for (const req of schema.required || []) if (!(req in value)) return false;
+    if (schema.additionalProperties === false) {
+      for (const key of Object.keys(value)) if (!(key in props)) return false;
+    }
+    return Object.entries(value).every(([key, entry]) => !props[key] || validateWithRefs(props[key], entry, roots, currentRoot));
+  }
+  return true;
+}
+
+test("the parity certificate schema + its result-state closure are registered and self-contained", () => {
+  // Both closure members are registered; loadSchema returns them verbatim.
+  const cert = loadSchema("certificate");
+  const resultState = loadSchema("result_state");
+  assert.equal(cert.$id, "https://spec.consiliency/spec-parity/certificate.schema.json");
+  assert.equal(resultState.$id, "https://spec.consiliency/spec-parity/result-state.schema.json");
+  assert.equal(cert.properties.schema_version.const, "1");
+  // The certificate's ONLY outward $refs point into result-state (the whole
+  // transitive closure); nothing outside these two files is referenced.
+  const externalRefs = new Set();
+  const collect = (node) => {
+    if (Array.isArray(node)) node.forEach(collect);
+    else if (node && typeof node === "object") {
+      if (typeof node.$ref === "string" && !node.$ref.startsWith("#")) externalRefs.add(node.$ref.split("#")[0]);
+      Object.values(node).forEach(collect);
+    }
+  };
+  collect(cert);
+  assert.deepEqual([...externalRefs].sort(), ["result-state.schema.json"]);
+});
+
+test("the distributed parity certificate schema validates a real certificate (and rejects a malformed one)", () => {
+  const roots = { self: loadSchema("certificate"), result_state: loadSchema("result_state") };
+  const dim = (dimension) => ({ dimension, result_state: "pass" });
+  const cert = {
+    schema_version: "1",
+    projection_algo_version: "1.0.0",
+    canon_version: "v2",
+    idmodel_version: "v1",
+    kind_alignment_version: "v1",
+    permitted_freedom_vocab_version: "v1",
+    ec_revision_id: "rev-1",
+    spec_revision_digest: "a".repeat(64),
+    desired_graph_digest: "b".repeat(64),
+    ec_digest: "c".repeat(64),
+    code_head_sha: "d".repeat(40),
+    overall_result_state: "pass",
+    dimension_results: [
+      dim("completeness"),
+      dim("soundness"),
+      dim("closure"),
+      dim("prohibition"),
+      dim("revision_alignment"),
+    ],
+    findings_ref: "e".repeat(64),
+    digest: "f".repeat(64),
+  };
+  assert.ok(validateWithRefs(roots.self, cert, roots), "a real certificate must validate against the distributed schema");
+  // The cross-file $ref is actually exercised (a bad dimension enum must reject).
+  const bad = { ...cert, dimension_results: [{ dimension: "not_a_dimension", result_state: "pass" }, ...cert.dimension_results.slice(1)] };
+  assert.ok(!validateWithRefs(roots.self, bad, roots), "an out-of-vocab dimension must reject via the result-state $ref");
+  // additionalProperties:false is enforced.
+  assert.ok(!validateWithRefs(roots.self, { ...cert, bogus: 1 }, roots), "unknown top-level fields must reject");
+});
+
+test("the parity-cert provenance pins the spec source and matches the shipped bytes", () => {
+  const prov = JSON.parse(readFileSync("core/spec-parity/provenance.json", "utf8"));
+  assert.equal(prov.schema, "consiliency.spec_parity_provenance.v1");
+  assert.match(prov.normative_source.spec_commit, /^[0-9a-f]{40}$/);
+  assert.deepEqual(prov.ref_closure.members.slice().sort(), ["certificate", "result_state"]);
+  for (const [key, path] of [["certificate", "core/schemas/certificate.schema.json"], ["result_state", "core/schemas/result-state.schema.json"]]) {
+    const digest = createHash("sha256").update(readFileSync(path)).digest("hex");
+    assert.equal(digest, prov.distributed[key].sha256, `${key}: shipped bytes must match provenance sha256`);
+    // Verbatim copy: source sha == shipped sha.
+    const base = path.split("/").pop();
+    assert.equal(digest, prov.normative_source.files[base], `${key}: shipped sha must equal pinned spec source sha`);
+  }
 });

@@ -32,8 +32,8 @@ def _stable_jcs(value: object) -> str:
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.6.3")
-        self.assertEqual(load_contract()["contract_version"], "0.6.3")
+        self.assertEqual(CONTRACT_VERSION, "0.6.4")
+        self.assertEqual(load_contract()["contract_version"], "0.6.4")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")
@@ -545,6 +545,143 @@ class ContractReaderTest(unittest.TestCase):
             cwd=root, capture_output=True, text=True,
         )
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+    # --- parity certificate schema distribution (0.6.4) ---
+
+    @classmethod
+    def _validate_with_refs(cls, schema: dict, value: object, roots: dict, current_root: dict | None = None) -> bool:
+        # Cross-file-aware validator: the distributed parity certificate keeps
+        # its relative cross-file $ref into result-state; resolve that external
+        # fragment against the loaded result_state schema (no jsonschema dep).
+        # current_root is the document bare `#/` refs resolve against; it
+        # switches to result_state when a cross-file ref is followed.
+        if current_root is None:
+            current_root = roots["self"]
+        if "$ref" in schema:
+            ref = schema["$ref"]
+            root = current_root
+            if ref.startswith("result-state.schema.json#/"):
+                root = roots["result_state"]
+                ref = ref[len("result-state.schema.json"):]
+            node: object = root
+            for key in ref.lstrip("#/").split("/"):
+                node = node[key]  # type: ignore[index]
+            return cls._validate_with_refs(node, value, roots, root)  # type: ignore[arg-type]
+        if "const" in schema:
+            return value == schema["const"]
+        if "enum" in schema:
+            return value in schema["enum"]
+        if schema.get("type") == "string":
+            if not isinstance(value, str):
+                return False
+            if "minLength" in schema and len(value) < schema["minLength"]:
+                return False
+            if "pattern" in schema and not re.match(schema["pattern"], value):
+                return False
+            return True
+        if schema.get("type") == "integer":
+            if not isinstance(value, int) or isinstance(value, bool):
+                return False
+            if "minimum" in schema and value < schema["minimum"]:
+                return False
+            return True
+        if schema.get("type") == "boolean":
+            return isinstance(value, bool)
+        if schema.get("type") == "array":
+            if not isinstance(value, list):
+                return False
+            if "minItems" in schema and len(value) < schema["minItems"]:
+                return False
+            if "maxItems" in schema and len(value) > schema["maxItems"]:
+                return False
+            items = schema.get("items")
+            return all(items is None or cls._validate_with_refs(items, item, roots, current_root) for item in value)
+        if schema.get("type") == "object" or "properties" in schema:
+            if not isinstance(value, dict):
+                return False
+            props = schema.get("properties", {})
+            for req in schema.get("required", []):
+                if req not in value:
+                    return False
+            if schema.get("additionalProperties") is False:
+                for key in value:
+                    if key not in props:
+                        return False
+            return all(key not in props or cls._validate_with_refs(props[key], entry, roots, current_root) for key, entry in value.items())
+        return True
+
+    def test_parity_certificate_closure_is_registered(self) -> None:
+        cert = load_schema("certificate")
+        result_state = load_schema("result_state")
+        self.assertEqual(cert["$id"], "https://spec.consiliency/spec-parity/certificate.schema.json")
+        self.assertEqual(result_state["$id"], "https://spec.consiliency/spec-parity/result-state.schema.json")
+        self.assertEqual(cert["properties"]["schema_version"]["const"], "1")
+        # The certificate's only outward $refs form the whole transitive closure
+        # (result-state) — nothing outside these two files is referenced.
+        external: set[str] = set()
+
+        def collect(node: object) -> None:
+            if isinstance(node, list):
+                for item in node:
+                    collect(item)
+            elif isinstance(node, dict):
+                ref = node.get("$ref")
+                if isinstance(ref, str) and not ref.startswith("#"):
+                    external.add(ref.split("#")[0])
+                for item in node.values():
+                    collect(item)
+
+        collect(cert)
+        self.assertEqual(sorted(external), ["result-state.schema.json"])
+
+    def test_distributed_parity_certificate_validates_a_real_cert(self) -> None:
+        roots = {"self": load_schema("certificate"), "result_state": load_schema("result_state")}
+
+        def dim(dimension: str) -> dict:
+            return {"dimension": dimension, "result_state": "pass"}
+
+        cert = {
+            "schema_version": "1",
+            "projection_algo_version": "1.0.0",
+            "canon_version": "v2",
+            "idmodel_version": "v1",
+            "kind_alignment_version": "v1",
+            "permitted_freedom_vocab_version": "v1",
+            "ec_revision_id": "rev-1",
+            "spec_revision_digest": "a" * 64,
+            "desired_graph_digest": "b" * 64,
+            "ec_digest": "c" * 64,
+            "code_head_sha": "d" * 40,
+            "overall_result_state": "pass",
+            "dimension_results": [
+                dim("completeness"),
+                dim("soundness"),
+                dim("closure"),
+                dim("prohibition"),
+                dim("revision_alignment"),
+            ],
+            "findings_ref": "e" * 64,
+            "digest": "f" * 64,
+        }
+        self.assertTrue(self._validate_with_refs(roots["self"], cert, roots))
+        bad = dict(cert)
+        bad["dimension_results"] = [{"dimension": "not_a_dimension", "result_state": "pass"}, *cert["dimension_results"][1:]]
+        self.assertFalse(self._validate_with_refs(roots["self"], bad, roots))
+        self.assertFalse(self._validate_with_refs(roots["self"], {**cert, "bogus": 1}, roots))
+
+    def test_parity_cert_provenance_matches_shipped_bytes(self) -> None:
+        prov = json.loads(Path("core/spec-parity/provenance.json").read_text(encoding="utf-8"))
+        self.assertEqual(prov["schema"], "consiliency.spec_parity_provenance.v1")
+        self.assertRegex(prov["normative_source"]["spec_commit"], r"^[0-9a-f]{40}$")
+        self.assertEqual(sorted(prov["ref_closure"]["members"]), ["certificate", "result_state"])
+        for key, path in (
+            ("certificate", "core/schemas/certificate.schema.json"),
+            ("result_state", "core/schemas/result-state.schema.json"),
+        ):
+            digest = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+            self.assertEqual(digest, prov["distributed"][key]["sha256"], key)
+            base = path.split("/")[-1]
+            self.assertEqual(digest, prov["normative_source"]["files"][base], key)
 
 
 if __name__ == "__main__":

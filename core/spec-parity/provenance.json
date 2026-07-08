@@ -1,0 +1,30 @@
+{
+  "schema": "consiliency.spec_parity_provenance.v1",
+  "$comment": "The parity CERTIFICATE schema and its result-state $ref closure are DISTRIBUTED verbatim from the spec repo (spec is the source of truth for the parity semantics). These schemas are shipped byte-for-byte so external consumers (e.g. greenfield XG-6) validate against the real frozen parity-cert schema instead of a hand-rolled, repo-owned proof cert. The per-file sha256 below pins the exact spec source bytes; because the copy is verbatim, source sha == shipped sha, and the shipped-file digest is re-checked by the contract test suite.",
+  "normative_source": {
+    "repo": "spec",
+    "spec_commit": "7b6e356de3607b5f91fab00ecc803dee3c2cbfa0",
+    "path_prefix": "spec-parity/schemas",
+    "files": {
+      "certificate.schema.json": "39f5c3eaffb2a2de84a8f1fab0bf63e6a65298f303d651b8d85eb8d748be2cf4",
+      "result-state.schema.json": "6eed968da557bb4dd583209c4211db000580f4a2a4662bb2e758a8a3248e5151"
+    }
+  },
+  "distributed": {
+    "certificate": {
+      "path": "core/schemas/certificate.schema.json",
+      "sha256": "39f5c3eaffb2a2de84a8f1fab0bf63e6a65298f303d651b8d85eb8d748be2cf4",
+      "schema_id": "https://spec.consiliency/spec-parity/certificate.schema.json"
+    },
+    "result_state": {
+      "path": "core/schemas/result-state.schema.json",
+      "sha256": "6eed968da557bb4dd583209c4211db000580f4a2a4662bb2e758a8a3248e5151",
+      "schema_id": "https://spec.consiliency/spec-parity/result-state.schema.json"
+    }
+  },
+  "ref_closure": {
+    "$comment": "certificate.schema.json's only outward $refs target result-state.schema.json#/$defs/{result_state,dimension_result}; result-state.schema.json uses internal #/$defs refs only. The transitive $ref closure is therefore exactly these two files. portal-payload / kind-alignment / waiver / permitted-freedom-vocab are NOT in the closure and are deliberately not distributed here.",
+    "root": "certificate",
+    "members": ["certificate", "result_state"]
+  }
+}

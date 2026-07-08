@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spec.consiliency/spec-parity/certificate.schema.json",
+  "title": "Parity certificate (Phase 3a)",
+  "description": "What a parity certificate MUST pin. This is the UNION of SPEC-ROADMAP.md Storage `certificates` record shape (line ~326) and Phase-3a task item 8 (richer: canon/idmodel versions, projection-algo version, per-dim results). The certificate is a DIGEST-BEARING record: its top-level `digest` field is computed with the canon `certificate` profile (`spec-canon:v2:certificate\\n`) and is EXCLUDED from its own preimage (canon sec 8). PRODUCE ONCE, STORE VERBATIM, never recompute (canon sec 9). NO JSON FLOATS. This schema is co-designed with Phase 0C; fields here that 0C also needs (digest byte-match domain, parity-gate vs policy-gate) are flagged OPEN, see SEMANTICS.md sec 9.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "projection_algo_version",
+    "canon_version",
+    "idmodel_version",
+    "kind_alignment_version",
+    "permitted_freedom_vocab_version",
+    "ec_revision_id",
+    "spec_revision_digest",
+    "desired_graph_digest",
+    "ec_digest",
+    "code_head_sha",
+    "overall_result_state",
+    "dimension_results",
+    "findings_ref",
+    "digest"
+  ],
+  "properties": {
+    "schema_version": { "const": "1", "description": "This certificate schema version." },
+    "projection_algo_version": {
+      "type": "string",
+      "description": "Version of the P/N projection+parity ALGORITHM that produced this result. Pinning this makes a certificate reproducible: two certificates over the same inputs but different algo versions are legitimately allowed to differ. (Task item 8.)"
+    },
+    "canon_version": { "type": "string", "description": "canon contract version used (`v2` since NFCBOUNDARY: NFC at the ingest boundary, digest prefix `spec-canon:v2:`). v1 certificates stay valid as v1 records; a v1 digest is never compared to a v2 digest and a mixed-canon_version graph is rejected." },
+    "idmodel_version": { "type": "string", "description": "idmodel contract version used (e.g. `v1`)." },
+    "kind_alignment_version": { "type": "string", "description": "Version of kind-alignment.json used. (The matrix is part of the parity semantics; a matrix change can change results, so it is pinned.)" },
+    "permitted_freedom_vocab_version": { "type": "string", "description": "Version of spec-parity/permitted-freedom-vocab.json used. The vocabulary defines which permitted_freedom tokens (and thus which below-frontier deviations) the soundness matcher excuses; a vocab change can change the result, so it is pinned (SEMANTICS.md sec 3 / sec 9)." },
+    "ec_revision_id": {
+      "type": "string",
+      "description": "The REALIZED-side revision_id this certificate is about (the storage `revisions.revision_id` for E(C)). Distinct from the spec/desired revision, which is pinned by spec_revision_digest. revision_alignment (sec 7.5) relates this E(C) revision to the spec revision."
+    },
+    "spec_revision_digest": {
+      "type": "string",
+      "description": "Digest pinning the exact spec/desired-graph REVISION (the canon digest of the desired graph's revision record). Distinct from desired_graph_digest: this pins the revision identity, that pins the graph content."
+    },
+    "desired_graph_digest": {
+      "type": "string",
+      "description": "canon semantic-content digest of the desired-state graph S that was checked."
+    },
+    "ec_digest": {
+      "type": "string",
+      "description": "canon semantic-content digest of E(C) -- the realized Interface Boundary IR extract that was checked. For fixture runs this is the fixture's digest. PARITY OVER A NON-REPRODUCIBLE E(C) IS MEANINGLESS (SPEC-ROADMAP Phase 1 / Benchmark C): a certificate over an E(C) that is not byte-reproducible is advisory only and MUST set ec_reproducible=false."
+    },
+    "ec_reproducible": {
+      "type": "boolean",
+      "description": "true iff E(C) is byte-reproducible (Benchmark C green / fixture). When false the certificate is ADVISORY and downstream gates MUST NOT treat it as authoritative."
+    },
+    "code_head_sha": {
+      "type": "string",
+      "description": "The code repo HEAD sha the E(C) was extracted from (provenance pin)."
+    },
+    "overall_result_state": {
+      "$ref": "result-state.schema.json#/$defs/result_state",
+      "description": "Aggregated state per SEMANTICS.md sec 6.4. Anything other than `pass` (and `not_applicable` which is neutral) makes the certificate NON-GREEN. INVARIANT: byte-equal to the referenced finding_set.overall_result_state (the certificate copy is derived from, never recomputed against, the finding_set at findings_ref)."
+    },
+    "dimension_results": {
+      "type": "array",
+      "items": { "$ref": "result-state.schema.json#/$defs/dimension_result" },
+      "minItems": 5,
+      "maxItems": 5,
+      "description": "Per-dimension results embedded for at-a-glance gating; the full findings live behind findings_ref. INVARIANT: byte-equal (after canon canonicalization) to the referenced finding_set.dimension_results."
+    },
+    "findings_ref": {
+      "type": "string",
+      "description": "Digest ref to the finding_set artifact (result-state.schema.json finding_set). Pointer, not payload (portal metadata_only)."
+    },
+    "waivers_ref": {
+      "type": "string",
+      "description": "Optional digest ref to the set of waivers in effect for this run. Waived findings remain non-pass in dimension_results; this ref records WHY they are not gating. Absent if no waivers."
+    },
+    "digest": {
+      "type": "string",
+      "description": "The AUTHORITATIVE identity of the certificate: the certificate-profile content digest = lowercase hex SHA-256 over `spec-canon:v2:certificate\\n` || canonical_bytes(certificate-without-this-top-level-`digest`-field). EXCLUDED from its own preimage (canon sec 8). There is deliberately NO separate hashed `certificate_id` field (that would be circular: it would sit inside the preimage). A `certificate_id` mirror, if a storage index needs one, lives in the non-hashed `locator` (below) and equals this `digest`."
+    },
+    "vacuity": {
+      "type": "object",
+      "description": "OPTIONAL, HASHED (inside the certificate digest preimage). Present (is_vacuous=true) ONLY when the certify VACUITY TRIPWIRE fired: E(C) had NO kind-aligned realized boundary (no real code to certify), so overall_result_state is not_applicable across every dimension. This is what lets a consumer tell a vacuous refusal from an ordinary single-revision not_applicable WITHOUT trusting the unhashed finding_set — it is NOT a fake-green. Absent on every non-vacuous certificate (so existing certificates are byte-identical and their digests unchanged). Mirrors finding_set.vacuity.",
+      "additionalProperties": false,
+      "required": ["is_vacuous", "reason", "realized_boundary_count", "kind_aligned_realized_count"],
+      "properties": {
+        "is_vacuous": { "const": true },
+        "reason": { "type": "string" },
+        "realized_boundary_count": { "type": "integer", "minimum": 0 },
+        "kind_aligned_realized_count": { "type": "integer", "minimum": 0, "const": 0 }
+      }
+    },
+    "locator": {
+      "type": "object",
+      "description": "NON-HASHED envelope (canon sec 10): wall-clock created time, producer host/version display, run_id, and an optional `certificate_id` mirror of `digest`. Changing these MUST NOT change `digest`. The hashed `run` digest (if a run is associated) lives in the runs record, not here.",
+      "additionalProperties": true,
+      "properties": {
+        "certificate_id": { "type": "string", "description": "Optional storage-index mirror of the top-level `digest`. Non-hashed; equals `digest`. Avoids the circularity of a hashed id field." },
+        "created_at": { "type": "string" },
+        "producer": { "type": "string" },
+        "run_id": { "type": "string" }
+      }
+    }
+  }
+}

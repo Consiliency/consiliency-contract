@@ -18,7 +18,7 @@
   "additionalProperties": false,
   "properties": {
     "schema": {"const": "consiliency.git_discipline_protocol.v1"},
-    "contract_version": {"const": "0.6.3"},
+    "contract_version": {"const": "0.6.4"},
     "ref_class_registry": {
       "const": "pipeline-ref-classes",
       "description": "loadRegistry('pipeline_ref_classes') enumerates the pipeline-owned ref families and the human default. Both runtimes (harness + gp) read it to agree on ownership."

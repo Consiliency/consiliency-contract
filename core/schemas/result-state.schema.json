@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spec.consiliency/spec-parity/result-state.schema.json",
+  "title": "Parity result state + per-dimension result + finding (Phase 3a)",
+  "description": "The result-state enum and the structures that carry it: per-dimension results and machine-readable findings. See SEMANTICS.md sec 6 (states) and sec 7 (dimensions). NO JSON FLOATS anywhere (canon v1 sec 6 forbids them): confidence/score fields are string-decimals.",
+  "$defs": {
+    "result_state": {
+      "title": "result_state",
+      "description": "The verbatim v1 contract enum. pass: in-scope check applicable, fact observed, no violation. fail: in-scope violation OBSERVED. unknown: in-scope and applicable, but the required fact was NOT OBSERVABLE in this E(C) (data absent) -- the anti-silent-pass guard. unsupported: the CHECKER cannot ask the question (capability gap: unmapped kind, dimension not implemented for this entity class). not_applicable: no subject exists (vacuous; labeled so it is not counted as an evaluated pass).",
+      "enum": ["pass", "fail", "unknown", "unsupported", "not_applicable"]
+    },
+    "parity_dimension": {
+      "title": "parity_dimension",
+      "enum": ["completeness", "soundness", "closure", "prohibition", "revision_alignment"]
+    },
+    "string_decimal": {
+      "title": "string_decimal",
+      "description": "A decimal in [0,1] as a STRING (canon forbids JSON floats). Pattern allows 0, 1, and 0.xxx forms.",
+      "type": "string",
+      "pattern": "^(0|1|0\\.[0-9]+|1\\.0+)$"
+    },
+    "finding": {
+      "title": "finding",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["finding_id", "dimension", "result_state", "code", "subject"],
+      "properties": {
+        "finding_id": { "type": "string", "description": "Stable id of this finding: canon semantic-content digest over the explicit content subset {dimension, result_state, code, subject} (NOT the whole record -- message/evidence_refs/confidence/waiver_ref are excluded so a re-worded message or an added waiver does not mint a new finding identity). Named-subset preimage, like waiver_id, to avoid relying on canon sec 8 for a nested id." },
+        "dimension": { "$ref": "#/$defs/parity_dimension" },
+        "result_state": { "$ref": "#/$defs/result_state" },
+        "code": {
+          "type": "string",
+          "description": "A stable machine code for the finding class, e.g. missing_desired_element, structural_mismatch, prohibition_violated, prohibition_unobservable, unmapped_realized_kind, unmapped_desired_kind, ambiguous_kind_alignment, refinement_below_frontier, permitted_freedom, correspondence_ambiguous, capability_missing."
+        },
+        "subject": {
+          "type": "object",
+          "description": "What the finding is about.",
+          "additionalProperties": false,
+          "properties": {
+            "desired_logical_id": { "type": "string", "description": "idmodel Tier-1 logical_id of the desired element, if any." },
+            "realized_occurrence_id": { "type": "string", "description": "idmodel Tier-2 occurrence_id of the realized fact, if any." },
+            "desired_kind": { "type": "string" },
+            "realized_kind": { "type": "string" },
+            "realized_source": { "type": "string" }
+          }
+        },
+        "message": { "type": "string", "description": "Human-readable explanation (NOT hashed-meaning-bearing on its own; the code+subject are the load-bearing identity)." },
+        "evidence_refs": {
+          "type": "array",
+          "description": "Span-anchored / digest-anchored evidence pointers (SSRF-safe refs, not payloads).",
+          "items": { "type": "object" }
+        },
+        "confidence": { "$ref": "#/$defs/string_decimal", "description": "Optional. STRING decimal only; never a JSON float." },
+        "waiver_ref": { "type": "string", "description": "If this finding is currently suppressed by a waiver, the waiver_id. A waiver does NOT change result_state to pass; it only records suppression (SEMANTICS.md sec 8)." }
+      }
+    },
+    "dimension_result": {
+      "title": "dimension_result",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dimension", "result_state"],
+      "properties": {
+        "dimension": { "$ref": "#/$defs/parity_dimension" },
+        "result_state": { "$ref": "#/$defs/result_state" },
+        "checks_evaluated": { "type": "integer", "minimum": 0, "description": "Count of in-scope checks evaluated for this dimension. A real JSON integer (canon sec 6 supports arbitrary-precision integers as JSON integers; the `$int`-tag is the test-vector encoding only, never the data model). Only FLOATS are forbidden, not integers." },
+        "finding_ids": { "type": "array", "items": { "type": "string" }, "description": "finding_ids contributing to this dimension's state." }
+      }
+    }
+  },
+  "type": "object",
+  "title": "finding_set",
+  "description": "The machine-readable finding set emitted by N(). Referenced by certificate.findings_ref.",
+  "additionalProperties": false,
+  "required": ["finding_set_id", "dimension_results", "findings", "overall_result_state"],
+  "properties": {
+    "finding_set_id": { "type": "string", "description": "canon semantic-content digest over {dimension_results, findings} (sorted/canonicalized)." },
+    "overall_result_state": {
+      "$ref": "#/$defs/result_state",
+      "description": "Aggregated per the severity rule in SEMANTICS.md sec 6.4: fail if any dimension fails; else unknown if any unknown; else unsupported if any unsupported; else pass. not_applicable is neutral (does not count)."
+    },
+    "dimension_results": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/dimension_result" },
+      "minItems": 5,
+      "maxItems": 5,
+      "description": "Exactly one entry per parity_dimension (all five always present; a dimension with no subject reports not_applicable)."
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "vacuity": {
+      "type": "object",
+      "description": "OPTIONAL. Present (and is_vacuous=true) ONLY when the certify VACUITY TRIPWIRE fired: E(C) had NO kind-aligned realized boundary, so there was no real code to certify and overall_result_state is not_applicable across every dimension. This block is the load-bearing DISTINCTION from an ordinary single-revision not_applicable; it makes a refusal-over-noise honest rather than a fake-green. Absent on every non-vacuous finding_set (so existing artifacts are byte-identical). NOT part of the finding_set_id preimage (which digests {dimension_results, findings} only); pinned instead by the certificate digest.",
+      "additionalProperties": false,
+      "required": ["is_vacuous", "reason", "realized_boundary_count", "kind_aligned_realized_count"],
+      "properties": {
+        "is_vacuous": { "const": true },
+        "reason": { "type": "string", "description": "Machine code for why the certify was vacuous, e.g. no_kind_aligned_realized_boundary." },
+        "realized_boundary_count": { "type": "integer", "minimum": 0, "description": "Total E(C) boundary count (may be >0 even when vacuous — e.g. config-file noise boundaries)." },
+        "kind_aligned_realized_count": { "type": "integer", "minimum": 0, "const": 0, "description": "Count of E(C) boundaries that map to a desired kind via kind-alignment; 0 is exactly the vacuity condition." }
+      }
+    }
+  }
+}

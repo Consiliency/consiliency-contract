@@ -19,7 +19,12 @@ The Consiliency cross-repo **contract package** — the single, neutral rulebook
 
 Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/@consiliency/contract) + **PyPI** [`consiliency-contract`](https://pypi.org/project/consiliency-contract/), from shared JSON data + conformance vectors so the two language readers stay byte-identical.
 
-> **Status — `0.6.0` splits the `certified` evidence label into
+> **Status — `0.6.4` distributes the frozen parity `certificate` schema and
+> its `result-state` `$ref` closure (verbatim from spec, digest-pinned in
+> `core/spec-parity/provenance.json`) so external consumers (e.g. greenfield
+> XG-6) validate against the real parity-cert schema instead of a hand-rolled,
+> repo-owned proof cert — additive only, no existing schema semantics change.
+> `0.6.0` splits the `certified` evidence label into
 > `parity-certified` (byte-parity cert, no authority event — what CS proj-S
 > certification ships today) and `authority-certified` (parity PLUS a
 > verified, human-ratified authority event — reserved until the XG-1

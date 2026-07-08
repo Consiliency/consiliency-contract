@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "24"   # npm@latest requires node ^22.22.2 || ^24.15.0 (22.14.0 EBADENGINEs)
+          node-version: "22.22.2"   # min node satisfying npm@latest (^22.22.2); node 24 breaks a test (object-not-iterable)
           registry-url: "https://registry.npmjs.org"
       - uses: actions/setup-python@v5
         with:

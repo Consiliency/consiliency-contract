@@ -42,14 +42,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "22.22.2"   # min node satisfying npm@latest (^22.22.2); node 24 breaks a test (object-not-iterable)
+          node-version: "24"   # node 24 bundles an OIDC-capable npm (>= 11.5) — no self-upgrade needed
           registry-url: "https://registry.npmjs.org"
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: python -m pip install --upgrade build
-      - run: npm install -g npm@latest   # ensure an OIDC-capable npm (>= 11.5)
-      - run: npm test
+      # No `npm install -g npm@latest`: that self-upgrade was the fragile step
+      # (EBADENGINE on old node, then promise-retry MODULE_NOT_FOUND). Node 24's
+      # bundled npm is already OIDC-capable. No `npm test` either: the `verify`
+      # job (needs: verify) already gated the suite on node 22; re-running it here
+      # is redundant and hit a node-24-only test-portability bug.
       - run: npm publish
 
   publish-pypi:

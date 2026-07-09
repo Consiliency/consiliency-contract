@@ -19,7 +19,18 @@ The Consiliency cross-repo **contract package** — the single, neutral rulebook
 
 Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/@consiliency/contract) + **PyPI** [`consiliency-contract`](https://pypi.org/project/consiliency-contract/), from shared JSON data + conformance vectors so the two language readers stay byte-identical.
 
-> **Status — `0.6.4` distributes the frozen parity `certificate` schema and
+> **Status — `0.6.5` defines the canonical `protected_source_category`
+> vocabulary (the protocol's first producer↔consumer conformance boundary) as a
+> two-level scheme: a required coarse `category` (seven execution-flow buckets —
+> the pre-existing six plus a new `governance_contracts` bucket for producer-side
+> governance sources) plus an optional free-form `subtype` carrying the
+> producer's fine granularity. The `protected_source_categories` registry pins
+> the coarse enum, the registered fine set, and the canonical fine→coarse map
+> for all ~14 governed-pipeline fine categories; the
+> `protected_source_category` schema validates a `{category, subtype}`
+> descriptor. SoT definition only — additive, no existing schema semantics
+> change; governed-pipeline and phase-loop conform in later phases.
+> `0.6.4` distributes the frozen parity `certificate` schema and
 > its `result-state` `$ref` closure (verbatim from spec, digest-pinned in
 > `core/spec-parity/provenance.json`) so external consumers (e.g. greenfield
 > XG-6) validate against the real parity-cert schema instead of a hand-rolled,

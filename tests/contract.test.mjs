@@ -52,7 +52,7 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.6.4");
+  assert.equal(CONTRACT_VERSION, "0.6.5");
   assert.equal(loadContract().contract_version, CONTRACT_VERSION);
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
@@ -783,4 +783,78 @@ test("the parity-cert provenance pins the spec source and matches the shipped by
     const base = path.split("/").pop();
     assert.equal(digest, prov.normative_source.files[base], `${key}: shipped sha must equal pinned spec source sha`);
   }
+});
+
+// --- protected_source_category vocabulary (0.6.5) ---
+
+test("protected_source_category registry + schema are registered with the seven-bucket coarse enum", () => {
+  const reg = loadRegistry("protected_source_categories");
+  const schema = loadSchema("protected_source_category");
+  assert.equal(reg.schema, "consiliency.protected_source_categories.v1");
+  assert.equal(schema.$id, "https://consiliency.io/contracts/protected-source-category.schema.json");
+  const coarseIds = reg.coarse_categories.map((c) => c.id);
+  assert.deepEqual(coarseIds, [
+    "specs",
+    "diagrams",
+    "adapter_config",
+    "definition_files",
+    "portal_contracts",
+    "phase_artifacts",
+    "governance_contracts",
+  ]);
+  // The pre-existing six vs the one new coarse bucket.
+  const preExisting = reg.coarse_categories.filter((c) => c.pre_existing).map((c) => c.id).sort();
+  assert.deepEqual(preExisting, ["adapter_config", "definition_files", "diagrams", "phase_artifacts", "portal_contracts", "specs"]);
+  assert.deepEqual(reg.coarse_categories.filter((c) => !c.pre_existing).map((c) => c.id), ["governance_contracts"]);
+  // The schema's coarse enum MUST equal the registry ids (no drift between them).
+  assert.deepEqual(schema.properties.category.enum, coarseIds);
+  assert.deepEqual(schema.required, ["category"]);
+  // subtype is optional + free-form (a plain string, never enum-gated).
+  assert.equal(schema.properties.subtype.type, "string");
+  assert.ok(!("enum" in schema.properties.subtype));
+});
+
+test("protected_source_category fine→coarse map covers exactly the 14 gp fine names and closes over the coarse enum", () => {
+  const reg = loadRegistry("protected_source_categories");
+  const coarseIds = new Set(reg.coarse_categories.map((c) => c.id));
+  const expectedFine = [
+    "active_canonical_specs",
+    "adoption_contracts",
+    "canonical_spec_archive_manifests",
+    "canonical_spec_mirror_manifests",
+    "canonical_specs",
+    "current_phase_artifacts",
+    "definition_validation_code",
+    "execution_profiles",
+    "instruction_surfaces",
+    "phase_loop_bridge_contract_files",
+    "pipeline_definition_json",
+    "portal_contracts",
+    "runtime_adapter_config",
+    "skill_manifests",
+  ];
+  assert.deepEqual(reg.fine_subtypes.slice().sort(), expectedFine);
+  assert.deepEqual(Object.keys(reg.fine_to_coarse).sort(), expectedFine);
+  // Every mapping target is a registered coarse id; the subtype echoes the fine key.
+  for (const [fine, target] of Object.entries(reg.fine_to_coarse)) {
+    assert.ok(coarseIds.has(target.coarse), `${fine}: coarse target must be registered`);
+    assert.equal(target.subtype, fine, `${fine}: subtype must echo the fine key`);
+  }
+  // The four unmappable fine names land in the new governance_contracts bucket.
+  const governance = Object.entries(reg.fine_to_coarse)
+    .filter(([, t]) => t.coarse === "governance_contracts")
+    .map(([f]) => f)
+    .sort();
+  assert.deepEqual(governance, ["adoption_contracts", "instruction_surfaces", "phase_loop_bridge_contract_files", "skill_manifests"]);
+});
+
+test("the protected_source_category schema accepts a valid descriptor and rejects malformed ones", () => {
+  const schema = loadSchema("protected_source_category");
+  const valid = (value) => validateAgainst(schema, value, schema);
+  assert.ok(valid({ category: "governance_contracts" }), "coarse-only descriptor must validate");
+  assert.ok(valid({ category: "specs", subtype: "active_canonical_specs" }), "coarse + registered subtype must validate");
+  assert.ok(valid({ category: "specs", subtype: "any-free-form-string" }), "subtype is free-form");
+  assert.ok(!valid({ category: "not_a_category" }), "an out-of-enum category must reject");
+  assert.ok(!valid({ subtype: "active_canonical_specs" }), "category is required");
+  assert.ok(!valid({ category: "specs", bogus: 1 }), "additionalProperties:false must reject unknown fields");
 });

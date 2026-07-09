@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://consiliency.io/contracts/protected-source-category.schema.json",
+  "title": "Consiliency protected_source_category descriptor",
+  "description": "Validates a two-level protected_source_category descriptor emitted by the producer (governed-pipeline) and validated by the consumer (phase-loop): a REQUIRED coarse `category` (one of the canonical execution-flow buckets) plus an OPTIONAL free-form `subtype` carrying the producer's fine governance granularity. The coarse enum below is the hard cross-repo contract; it MUST equal the ids in the `protected_source_categories` registry's `coarse_categories` (a contract test pins this so the two never drift). `subtype` is intentionally a free-form string here -- enum-gating the fine level in the distributed schema would re-couple the fine vocabulary across repos, the anti-pattern this boundary avoids; the registry's `fine_subtypes` list is the canonical fine set for tooling and a later soft/warn validator, not a schema hard-fail.",
+  "type": "object",
+  "required": ["category"],
+  "additionalProperties": false,
+  "properties": {
+    "category": {
+      "description": "The REQUIRED coarse execution-flow bucket. MUST equal one of the ids in loadRegistry('protected_source_categories').coarse_categories.",
+      "type": "string",
+      "enum": [
+        "specs",
+        "diagrams",
+        "adapter_config",
+        "definition_files",
+        "portal_contracts",
+        "phase_artifacts",
+        "governance_contracts"
+      ]
+    },
+    "subtype": {
+      "description": "OPTIONAL fine governance granularity from the producer. Free-form string (the registry's fine_subtypes list is the canonical set, checkable by a later validator as a soft signal only, not enforced here).",
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

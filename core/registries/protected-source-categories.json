@@ -1,0 +1,86 @@
+{
+  "schema": "consiliency.protected_source_categories.v1",
+  "$comment": "The canonical protected_source_category vocabulary -- the protocol's FIRST producer<->consumer conformance boundary. A TWO-LEVEL scheme: a COARSE required category (the consumer's execution-flow bucket, what phase-loop keys its protected-source handling on) plus an OPTIONAL fine `subtype` (the producer's governance granularity, what governed-pipeline emits). Both governed-pipeline (producer) and phase-loop (consumer) validate against THIS distributed registry -- they conform to the contract, not to each other, so the vocabulary is never defined implicitly in a codebase (the 'conform to each other, not the contract' anti-pattern the open protocol exists to eliminate). SoT ONLY at this version: gp emits coarse+subtype and phase-loop validates against `coarse_categories` in LATER phases (PSCAT-GP / PSCAT-PL); this version neither changes gp's emit nor phase-loop's accept. WHY coarse is the hard contract and subtype is free-form: the coarse enum is the cross-repo agreement both runtimes gate on; enum-gating the FINE level in the distributed schema would re-couple the fine granularity across repos -- the exact anti-pattern this boundary avoids. The registered fine set below is therefore a DATA map (fine -> coarse), not a schema-enforced enum; a later boundary validator MAY check an emitted subtype against `fine_subtypes` as a soft/warn signal, never a schema hard-fail. Resolves #155; unblocks the R2 bake (#146).",
+  "level_scheme": {
+    "coarse": {
+      "role": "required",
+      "owner": "consumer",
+      "description": "The execution-flow bucket the consumer (phase-loop) keys its protected-source handling on. Every emitted protected_source_category MUST carry one of these coarse ids."
+    },
+    "subtype": {
+      "role": "optional",
+      "owner": "producer",
+      "value_space": "free-form string",
+      "description": "The producer's (governed-pipeline's) fine governance granularity, carried alongside the coarse category. Free-form at the schema level (any string) so the fine vocabulary is NOT re-coupled across repos; the `fine_subtypes` registered set + `fine_to_coarse` map below are the canonical fine names for tooling/diagnostics, checkable by a later validator as a soft signal only."
+    }
+  },
+  "coarse_categories": [
+    {
+      "id": "specs",
+      "pre_existing": true,
+      "description": "Canonical specification sources and their archive/mirror manifests -- the spec surface the loop treats as protected input."
+    },
+    {
+      "id": "diagrams",
+      "pre_existing": true,
+      "description": "Diagram sources treated as protected input to the loop."
+    },
+    {
+      "id": "adapter_config",
+      "pre_existing": true,
+      "description": "Runtime adapter configuration and execution profiles that parameterize how the loop runs."
+    },
+    {
+      "id": "definition_files",
+      "pre_existing": true,
+      "description": "Pipeline/definition source files (e.g. the pipeline definition JSON and the code that validates it)."
+    },
+    {
+      "id": "portal_contracts",
+      "pre_existing": true,
+      "description": "Portal-facing contract surfaces the loop treats as protected input."
+    },
+    {
+      "id": "phase_artifacts",
+      "pre_existing": true,
+      "description": "Per-phase artifacts (current-phase source bundle) the loop protects across iterations."
+    },
+    {
+      "id": "governance_contracts",
+      "pre_existing": false,
+      "description": "NEW coarse bucket (0.6.5) for producer-side governance sources that do not map onto any of the six execution-flow buckets above: adoption contracts, the phase-loop bridge contract files, skill manifests, and instruction surfaces. These are governance-of-the-loop inputs rather than spec/definition/adapter/portal/phase-artifact inputs; the panel chose a SINGLE minimal coarse bucket (rather than splitting) and lets `subtype` carry the fine distinction, keeping coarse growth minimal."
+    }
+  ],
+  "fine_subtypes": [
+    "active_canonical_specs",
+    "canonical_specs",
+    "canonical_spec_archive_manifests",
+    "canonical_spec_mirror_manifests",
+    "adoption_contracts",
+    "current_phase_artifacts",
+    "definition_validation_code",
+    "execution_profiles",
+    "phase_loop_bridge_contract_files",
+    "pipeline_definition_json",
+    "portal_contracts",
+    "runtime_adapter_config",
+    "skill_manifests",
+    "instruction_surfaces"
+  ],
+  "fine_to_coarse": {
+    "active_canonical_specs": { "coarse": "specs", "subtype": "active_canonical_specs" },
+    "canonical_specs": { "coarse": "specs", "subtype": "canonical_specs" },
+    "canonical_spec_archive_manifests": { "coarse": "specs", "subtype": "canonical_spec_archive_manifests" },
+    "canonical_spec_mirror_manifests": { "coarse": "specs", "subtype": "canonical_spec_mirror_manifests" },
+    "runtime_adapter_config": { "coarse": "adapter_config", "subtype": "runtime_adapter_config" },
+    "execution_profiles": { "coarse": "adapter_config", "subtype": "execution_profiles" },
+    "pipeline_definition_json": { "coarse": "definition_files", "subtype": "pipeline_definition_json" },
+    "definition_validation_code": { "coarse": "definition_files", "subtype": "definition_validation_code" },
+    "current_phase_artifacts": { "coarse": "phase_artifacts", "subtype": "current_phase_artifacts" },
+    "portal_contracts": { "coarse": "portal_contracts", "subtype": "portal_contracts" },
+    "adoption_contracts": { "coarse": "governance_contracts", "subtype": "adoption_contracts" },
+    "phase_loop_bridge_contract_files": { "coarse": "governance_contracts", "subtype": "phase_loop_bridge_contract_files" },
+    "skill_manifests": { "coarse": "governance_contracts", "subtype": "skill_manifests" },
+    "instruction_surfaces": { "coarse": "governance_contracts", "subtype": "instruction_surfaces" }
+  }
+}

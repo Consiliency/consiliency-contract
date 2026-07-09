@@ -32,8 +32,8 @@ def _stable_jcs(value: object) -> str:
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.6.4")
-        self.assertEqual(load_contract()["contract_version"], "0.6.4")
+        self.assertEqual(CONTRACT_VERSION, "0.6.5")
+        self.assertEqual(load_contract()["contract_version"], "0.6.5")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")
@@ -682,6 +682,112 @@ class ContractReaderTest(unittest.TestCase):
             self.assertEqual(digest, prov["distributed"][key]["sha256"], key)
             base = path.split("/")[-1]
             self.assertEqual(digest, prov["normative_source"]["files"][base], key)
+
+    # --- protected_source_category vocabulary (0.6.5) ---
+
+    def test_protected_source_category_registry_and_schema_are_registered(self) -> None:
+        reg = load_registry("protected_source_categories")
+        schema = load_schema("protected_source_category")
+        self.assertEqual(reg["schema"], "consiliency.protected_source_categories.v1")
+        self.assertEqual(
+            schema["$id"],
+            "https://consiliency.io/contracts/protected-source-category.schema.json",
+        )
+        # The coarse enum is the seven execution-flow buckets: the pre-existing
+        # six plus the new governance_contracts bucket.
+        coarse_ids = [c["id"] for c in reg["coarse_categories"]]
+        self.assertEqual(
+            coarse_ids,
+            [
+                "specs",
+                "diagrams",
+                "adapter_config",
+                "definition_files",
+                "portal_contracts",
+                "phase_artifacts",
+                "governance_contracts",
+            ],
+        )
+        pre_existing = {c["id"] for c in reg["coarse_categories"] if c["pre_existing"]}
+        self.assertEqual(
+            pre_existing,
+            {"specs", "diagrams", "adapter_config", "definition_files", "portal_contracts", "phase_artifacts"},
+        )
+        new = [c["id"] for c in reg["coarse_categories"] if not c["pre_existing"]]
+        self.assertEqual(new, ["governance_contracts"])
+        # The schema's coarse enum MUST equal the registry's coarse ids (no drift).
+        self.assertEqual(schema["properties"]["category"]["enum"], coarse_ids)
+        # subtype is optional + free-form (a plain string, no enum gate).
+        self.assertEqual(schema["required"], ["category"])
+        self.assertEqual(schema["properties"]["subtype"]["type"], "string")
+        self.assertNotIn("enum", schema["properties"]["subtype"])
+
+    def test_protected_source_category_fine_to_coarse_map_is_total_and_closed(self) -> None:
+        reg = load_registry("protected_source_categories")
+        coarse_ids = {c["id"] for c in reg["coarse_categories"]}
+        fine_names = set(reg["fine_subtypes"])
+        mapping = reg["fine_to_coarse"]
+        # Exactly the ~14 governed-pipeline fine names, mapped.
+        expected_fine = {
+            "active_canonical_specs",
+            "canonical_specs",
+            "canonical_spec_archive_manifests",
+            "canonical_spec_mirror_manifests",
+            "adoption_contracts",
+            "current_phase_artifacts",
+            "definition_validation_code",
+            "execution_profiles",
+            "phase_loop_bridge_contract_files",
+            "pipeline_definition_json",
+            "portal_contracts",
+            "runtime_adapter_config",
+            "skill_manifests",
+            "instruction_surfaces",
+        }
+        self.assertEqual(fine_names, expected_fine)
+        self.assertEqual(set(mapping), expected_fine)
+        # Every mapping target is a registered coarse id; subtype echoes the key.
+        for fine, target in mapping.items():
+            self.assertIn(target["coarse"], coarse_ids, fine)
+            self.assertEqual(target["subtype"], fine, fine)
+        # The four unmappable fine names land in the new governance bucket.
+        self.assertEqual(
+            {f for f, t in mapping.items() if t["coarse"] == "governance_contracts"},
+            {"adoption_contracts", "phase_loop_bridge_contract_files", "skill_manifests", "instruction_surfaces"},
+        )
+
+    def test_protected_source_category_schema_accepts_and_rejects(self) -> None:
+        schema = load_schema("protected_source_category")
+
+        def valid(value: object) -> bool:
+            if not isinstance(value, dict):
+                return False
+            for req in schema.get("required", []):
+                if req not in value:
+                    return False
+            if schema.get("additionalProperties") is False:
+                for key in value:
+                    if key not in schema["properties"]:
+                        return False
+            for key, entry in value.items():
+                spec = schema["properties"].get(key)
+                if not spec:
+                    continue
+                if spec.get("type") == "string":
+                    if not isinstance(entry, str):
+                        return False
+                    if spec.get("minLength") is not None and len(entry) < spec["minLength"]:
+                        return False
+                if spec.get("enum") is not None and entry not in spec["enum"]:
+                    return False
+            return True
+
+        self.assertTrue(valid({"category": "governance_contracts"}))
+        self.assertTrue(valid({"category": "specs", "subtype": "active_canonical_specs"}))
+        self.assertTrue(valid({"category": "specs", "subtype": "any-free-form-string"}))
+        self.assertFalse(valid({"category": "not_a_category"}))
+        self.assertFalse(valid({"subtype": "active_canonical_specs"}))  # category required
+        self.assertFalse(valid({"category": "specs", "bogus": 1}))  # additionalProperties:false
 
 
 if __name__ == "__main__":

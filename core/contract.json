@@ -1,6 +1,6 @@
 {
   "contract_id": "consiliency.contract.v1",
-  "contract_version": "0.6.4",
+  "contract_version": "0.6.5",
   "package_names": {
     "npm": "@consiliency/contract",
     "pypi": "consiliency-contract"
@@ -38,7 +38,8 @@
     "git_discipline_protocol": "core/schemas/git-discipline-protocol.schema.json",
     "authority_event_protocol": "core/schemas/authority-event-protocol.schema.json",
     "certificate": "core/schemas/certificate.schema.json",
-    "result_state": "core/schemas/result-state.schema.json"
+    "result_state": "core/schemas/result-state.schema.json",
+    "protected_source_category": "core/schemas/protected-source-category.schema.json"
   },
   "registries": {
     "document_classes": "core/registries/document-classes.json",
@@ -48,7 +49,8 @@
     "default_ignore_set": "core/registries/default-ignore-set.json",
     "pipeline_ref_classes": "core/registries/pipeline-ref-classes.json",
     "authority_key_registry": "core/registries/authority-key-registry.json",
-    "gate_posture_registry": "core/registries/gate-posture-registry.json"
+    "gate_posture_registry": "core/registries/gate-posture-registry.json",
+    "protected_source_categories": "core/registries/protected-source-categories.json"
   },
   "protocols": {
     "loop_gate": "core/schemas/loop-gate-protocol.schema.json",

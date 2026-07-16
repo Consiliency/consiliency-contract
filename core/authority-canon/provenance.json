@@ -4,7 +4,7 @@
   "canon_version": "spec-canon:v2",
   "normative_source": {
     "repo": "spec",
-    "spec_commit": "8b7903ac3f688f66afe082a910e566964ae08e75",
+    "spec_commit": "a18a55495c80cb4d1f8693c1261130ed5a4d5bc1",
     "files": {
       "canon/py/canon.py": "c07bbe85508f36ce53d0d859dce42f607382b3ccacca138d07389dc8fe1765c1",
       "canon/ts/canon.ts": "0ccfb5b3fda31afd8bf887648bd0181916d138c1acec6bc5e912b3cfb155fa21",

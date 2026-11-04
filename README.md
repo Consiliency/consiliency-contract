@@ -16,10 +16,20 @@ The Consiliency cross-repo **contract package** — the single, neutral rulebook
 - **interchangeability conformance (Slice X)** — `scripts/interchangeability/run_driver_equivalence.py` proves the pure-merge claim above isn't just asserted by this package's own reference mergers: it feeds the `projections-index-pure-merge-deterministic` vector through the real `spec-render/build_projections_index.py` producer and asserts byte-identical output, honestly scoped (see `scripts/interchangeability/README.md`)
 - **authority-event contract core (XG-1 Slice 1)** — the single, cryptographically-authenticated `authority_event_protocol.v1` schema with the **core/chain signing split** (Portal signs the slot-independent `core`; spec appends `chain` OUTSIDE the signature and never re-signs), one **canonical-bytes algorithm** implementable in dependency-free JS on Node 20 (see [`docs/design/authority-event-canonical-bytes.md`](docs/design/authority-event-canonical-bytes.md)), the vendored digest-pinned `authority_key_registry.v1` **Ed25519 root of trust** (public keys only), an Ed25519 verify reference in both readers, and 13 conformance vectors — a valid event VERIFIES in both readers and every forgery class (bad/missing signature, unknown/attacker key_id, algorithm-confusion, signer↔approver mismatch, revoked/expired key, cert_digest mismatch) REJECTS
 - **the certified label rescope (CS-1.4, XG-1 Slice 5)** — splits the single `certified` evidence label into `parity-certified` (byte-reproducible parity cert, no authority event — what CS proj-S certification ships today) and `authority-certified` (parity PLUS a verified, human-ratified authority event — reserved until the XG-1 authority loop lands end-to-end); `certified` survives only as a deprecated alias of `parity-certified`, never `authority-certified`, so existing producers/consumers keep validating (see [`docs/design/CS-1.4-certified-label-rescope.md`](docs/design/CS-1.4-certified-label-rescope.md))
+- **supervised-run status + admitted-launch envelope (provisional)** — a neutral (harness- and language-neutral) contract that harnesses consume later: `admitted_launch_envelope.v1` (what a harness receives after admission, its fixed enforcement tiers and the refusals that happen before any process starts) and `supervised_run_status.v1` (the per-attempt append-only run journal, its derived projection, bounded pages and the reader view, which keeps runtime state apart from work outcome and evidence). Both schemas and their golden control/negative conformance vectors live in [`core/supervised-run/`](core/supervised-run/), shipped byte-for-byte and digest-pinned in `core/supervised-run/provenance.json`; `conformance/SHA256SUMS` there is the contract's own manifest. See [`core/supervised-run/conformance/README.md`](core/supervised-run/conformance/README.md) for how to read a vector
 
 Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/@consiliency/contract) + **PyPI** [`consiliency-contract`](https://pypi.org/project/consiliency-contract/), from shared JSON data + conformance vectors so the two language readers stay byte-identical.
 
-> **Status — `0.6.5` defines the canonical `protected_source_category`
+> **Status — `0.6.6` distributes the provisional supervised-run status and
+> admitted-launch-envelope contract (`admitted_launch_envelope.v1`,
+> `supervised_run_status.v1`) with its conformance vectors under
+> `core/supervised-run/`, verbatim and digest-pinned, for harnesses to consume
+> later. Additive only: no existing schema semantics change. Consumers were
+> reconciled for the one provisional rule added before relocation
+> (`attempt_evidence_copied`: a later attempt never repeats an earlier attempt's
+> evidence-envelope digest). Any further change to this provisional contract
+> needs reconciliation with every consumer.
+> `0.6.5` defines the canonical `protected_source_category`
 > vocabulary (the protocol's first producer↔consumer conformance boundary) as a
 > two-level scheme: a required coarse `category` (seven execution-flow buckets —
 > the pre-existing six plus a new `governance_contracts` bucket for producer-side

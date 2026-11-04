@@ -1,0 +1,69 @@
+{
+  "schema": "consiliency.supervised_run_provenance.v1",
+  "$comment": "The admitted_launch_envelope.v1 and supervised_run_status.v1 schemas and their conformance vectors are DISTRIBUTED verbatim from the spec repo, where the contract was authored and reviewed. They are harness-neutral and language-neutral, and are shipped byte-for-byte so harnesses vendor one neutral copy. The per-file sha256 below pins the exact source bytes; because the copy is verbatim, source sha == shipped sha. conformance/SHA256SUMS is the contract's own manifest (paths relative to conformance/) and is shipped unchanged as verification metadata; its digest is pinned here. The contract test suites re-check every digest, so any payload byte change fails them.",
+  "contract_ids": ["admitted_launch_envelope.v1", "supervised_run_status.v1"],
+  "status": "provisional",
+  "normative_source": {
+    "repo": "spec",
+    "spec_commit": "c0215fd6686d6fbaf6ff557c54e56c509e7e268c",
+    "files": {
+      "admitted-launch-envelope.schema.json": "0273f7a5d80eab95ee84660cd657445e881431bca3b8f91cec61015a5d39d41d",
+      "run-status.schema.json": "5118c1ab8604e85990150d66bf6b8c1af979dcc404fc84ee5a3c4ba4fead9a30",
+      "conformance/README.md": "2d5045245105af88f1f45f720aa8bc3f366efc95c25e25a9c50e402a175533ca",
+      "conformance/envelope.vectors.json": "876d322c313b444e49d7a95ee8f7ca39eef13c45864c67a0b3877235e1db6d7f",
+      "conformance/run-status.vectors.json": "5bf9dfbf65805f7340290586d546038fc88659785e60e2f55532df4ac6696730"
+    },
+    "manifest": {
+      "path": "conformance/SHA256SUMS",
+      "sha256": "b9c2dad7ca32d32b9860e56c2e14141827955a50b52a54c8088760d9756e1285"
+    }
+  },
+  "distributed": {
+    "root": "core/supervised-run",
+    "files": {
+      "admitted-launch-envelope.schema.json": "0273f7a5d80eab95ee84660cd657445e881431bca3b8f91cec61015a5d39d41d",
+      "run-status.schema.json": "5118c1ab8604e85990150d66bf6b8c1af979dcc404fc84ee5a3c4ba4fead9a30",
+      "conformance/README.md": "2d5045245105af88f1f45f720aa8bc3f366efc95c25e25a9c50e402a175533ca",
+      "conformance/envelope.vectors.json": "876d322c313b444e49d7a95ee8f7ca39eef13c45864c67a0b3877235e1db6d7f",
+      "conformance/run-status.vectors.json": "5bf9dfbf65805f7340290586d546038fc88659785e60e2f55532df4ac6696730"
+    },
+    "manifest": {
+      "path": "conformance/SHA256SUMS",
+      "sha256": "b9c2dad7ca32d32b9860e56c2e14141827955a50b52a54c8088760d9756e1285"
+    },
+    "schemas": {
+      "admitted_launch_envelope": {
+        "path": "core/supervised-run/admitted-launch-envelope.schema.json",
+        "schema_id": "urn:contract:admitted_launch_envelope.v1"
+      },
+      "supervised_run_status": {
+        "path": "core/supervised-run/run-status.schema.json",
+        "schema_id": "urn:contract:supervised_run_status.v1"
+      }
+    },
+    "vectors": {
+      "admitted_launch_envelope": "core/supervised-run/conformance/envelope.vectors.json",
+      "supervised_run_status": "core/supervised-run/conformance/run-status.vectors.json"
+    }
+  },
+  "consumer_reconciliation": {
+    "$comment": "Attestation recorded at relocation. The contract is provisional: any change needs reconciliation with every consumer before it ships.",
+    "provisional_rule_additions": ["attempt_evidence_copied"],
+    "rule_location": "run-status.schema.json#/x-semantic-rules/attempt_evidence_copied",
+    "consumers_reconciled": true
+  },
+  "verification_scope": {
+    "$comment": "What this package checks without a reader implementation. Full semantic evaluation of every x-semantic-rules diagnostic needs a conforming reader, which consuming harnesses provide.",
+    "checked": [
+      "every shipped byte matches the pinned sha256, and conformance/SHA256SUMS matches the shipped files",
+      "schema well-formedness: draft 2020-12, local $refs resolve, known keywords only, closed required sets",
+      "every expected diagnostic is defined in the matching schema's x-semantic-rules",
+      "every control and every patched negative is schema-valid",
+      "envelope_digest self-verifies exactly where envelope_digest_mismatch is not expected",
+      "journal segment chains of the controls verify"
+    ],
+    "not_checked": [
+      "the remaining semantic diagnostics and expected_effect, which need a conforming reader"
+    ]
+  }
+}

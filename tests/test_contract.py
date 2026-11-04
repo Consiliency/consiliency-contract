@@ -32,8 +32,8 @@ def _stable_jcs(value: object) -> str:
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.6.5")
-        self.assertEqual(load_contract()["contract_version"], "0.6.5")
+        self.assertEqual(CONTRACT_VERSION, "0.6.6")
+        self.assertEqual(load_contract()["contract_version"], "0.6.6")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")
@@ -788,6 +788,377 @@ class ContractReaderTest(unittest.TestCase):
         self.assertFalse(valid({"category": "not_a_category"}))
         self.assertFalse(valid({"subtype": "active_canonical_specs"}))  # category required
         self.assertFalse(valid({"category": "specs", "bogus": 1}))  # additionalProperties:false
+
+
+# --- supervised-run status + admitted-launch envelope (0.6.6) ---
+#
+# core/supervised-run/ is distributed verbatim and digest-pinned
+# (core/supervised-run/provenance.json). This package has no reader for the
+# contract, so it checks what it can without one: byte identity, schema
+# well-formedness, that every expected diagnostic is a defined semantic rule,
+# that every control and every patched negative is schema-valid (as the
+# conformance README promises), the envelope_digest rule and the journal
+# segment chain. The remaining semantic diagnostics need a conforming reader.
+
+SUPERVISED_RUN_ROOT = Path("core/supervised-run")
+
+# Every JSON Schema keyword the two schemas may use (draft 2020-12 core,
+# applicator and validation vocabularies this package's validator implements,
+# plus annotations). Anything else fails, so a new keyword is never silently
+# ignored by the subset validator below.
+_SR_KEYWORDS = {
+    "$schema", "$id", "$ref", "$defs", "title", "description",
+    "type", "const", "enum", "anyOf", "oneOf",
+    "properties", "required", "additionalProperties",
+    "items", "minItems", "uniqueItems",
+    "minLength", "maxLength", "pattern", "minimum",
+}
+
+
+def _sr_jcs(value: object) -> str:
+    # RFC 8785 for the vectors' value space (ASCII keys, integers only).
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+
+
+def _sr_resolve(root: dict, ref: str) -> dict:
+    if not ref.startswith("#/"):
+        raise ValueError(f"non-local $ref: {ref}")
+    node: object = root
+    for part in ref[2:].split("/"):
+        node = node[part.replace("~1", "/").replace("~0", "~")]  # type: ignore[index]
+    return node  # type: ignore[return-value]
+
+
+def _sr_type_ok(name: str, value: object) -> bool:
+    if name == "integer":
+        return isinstance(value, int) and not isinstance(value, bool)
+    return {
+        "object": isinstance(value, dict),
+        "array": isinstance(value, list),
+        "string": isinstance(value, str),
+        "boolean": isinstance(value, bool),
+        "null": value is None,
+    }[name]
+
+
+def _sr_same(a: object, b: object) -> bool:
+    return type(a) is type(b) and a == b
+
+
+def _sr_valid(schema: dict, value: object, root: dict) -> bool:
+    if "$ref" in schema and not _sr_valid(_sr_resolve(root, schema["$ref"]), value, root):
+        return False
+    if "type" in schema:
+        names = schema["type"] if isinstance(schema["type"], list) else [schema["type"]]
+        if not any(_sr_type_ok(name, value) for name in names):
+            return False
+    if "const" in schema and not _sr_same(value, schema["const"]):
+        return False
+    if "enum" in schema and not any(_sr_same(value, entry) for entry in schema["enum"]):
+        return False
+    if "anyOf" in schema and not any(_sr_valid(sub, value, root) for sub in schema["anyOf"]):
+        return False
+    if "oneOf" in schema and sum(_sr_valid(sub, value, root) for sub in schema["oneOf"]) != 1:
+        return False
+    if isinstance(value, str):
+        if len(value) < schema.get("minLength", 0):
+            return False
+        if "maxLength" in schema and len(value) > schema["maxLength"]:
+            return False
+        if "pattern" in schema and not re.search(schema["pattern"], value):
+            return False
+    if isinstance(value, int) and not isinstance(value, bool):
+        if "minimum" in schema and value < schema["minimum"]:
+            return False
+    if isinstance(value, list):
+        if len(value) < schema.get("minItems", 0):
+            return False
+        if schema.get("uniqueItems") and len({_sr_jcs(item) for item in value}) != len(value):
+            return False
+        if "items" in schema and not all(_sr_valid(schema["items"], item, root) for item in value):
+            return False
+    if isinstance(value, dict):
+        props = schema.get("properties", {})
+        if any(key not in value for key in schema.get("required", [])):
+            return False
+        if schema.get("additionalProperties") is False and any(key not in props for key in value):
+            return False
+        if not all(_sr_valid(props[key], entry, root) for key, entry in value.items() if key in props):
+            return False
+    return True
+
+
+def _sr_apply_patch(document: object, patch: list) -> object:
+    # RFC 6902 add / remove / replace with RFC 6901 pointers; strict.
+    doc = json.loads(json.dumps(document))
+    for op in patch:
+        parts = [p.replace("~1", "/").replace("~0", "~") for p in op["path"][1:].split("/")]
+        parent = doc
+        for part in parts[:-1]:
+            parent = parent[int(part)] if isinstance(parent, list) else parent[part]
+        key = parts[-1]
+        kind = op["op"]
+        if isinstance(parent, list):
+            if kind == "add":
+                if key == "-":
+                    parent.append(op["value"])
+                else:
+                    index = int(key)
+                    if index > len(parent):
+                        raise IndexError(op["path"])
+                    parent.insert(index, op["value"])
+            elif kind in ("remove", "replace"):
+                index = int(key)
+                if index >= len(parent):
+                    raise IndexError(op["path"])
+                if kind == "remove":
+                    del parent[index]
+                else:
+                    parent[index] = op["value"]
+            else:
+                raise ValueError(f"unsupported op {kind}")
+        else:
+            if kind in ("remove", "replace") and key not in parent:
+                raise KeyError(op["path"])
+            if kind == "remove":
+                del parent[key]
+            elif kind in ("add", "replace"):
+                parent[key] = op["value"]
+            else:
+                raise ValueError(f"unsupported op {kind}")
+    return doc
+
+
+def _sr_envelope_digest(envelope: dict) -> str:
+    body = {key: value for key, value in envelope.items() if key != "envelope_digest"}
+    return hashlib.sha256(_sr_jcs(body).encode("utf-8")).hexdigest()
+
+
+def _sr_segment_bytes(segment: dict) -> bytes:
+    lines = [line if isinstance(line, str) else _sr_jcs(line) for line in segment["lines"]]
+    return ("\n".join(lines) + ("\n" if segment["final_newline"] else "")).encode("utf-8")
+
+
+def _sr_chain_ok(journal: dict) -> bool:
+    for attempt in journal["attempts"]:
+        previous = None
+        for index, segment in enumerate(attempt["segments"]):
+            header = segment["lines"][0]["body"]
+            expected = None if previous is None else hashlib.sha256(_sr_segment_bytes(previous)).hexdigest()
+            if header["segment_index"] != index or header["previous_segment_sha256"] != expected:
+                return False
+            previous = segment
+    return True
+
+
+class SupervisedRunContractTest(unittest.TestCase):
+    PAYLOAD = (
+        "admitted-launch-envelope.schema.json",
+        "run-status.schema.json",
+        "conformance/README.md",
+        "conformance/envelope.vectors.json",
+        "conformance/run-status.vectors.json",
+    )
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.prov = json.loads((SUPERVISED_RUN_ROOT / "provenance.json").read_text(encoding="utf-8"))
+        cls.envelope_schema = load_schema("admitted_launch_envelope")
+        cls.run_schema = load_schema("supervised_run_status")
+        cls.vector_sets = {
+            name: (json.loads(Path(path).read_text(encoding="utf-8")), schema)
+            for name, path, schema in (
+                ("admitted_launch_envelope", CONTRACT["supervised_run"]["vectors"]["admitted_launch_envelope"], cls.envelope_schema),
+                ("supervised_run_status", CONTRACT["supervised_run"]["vectors"]["supervised_run_status"], cls.run_schema),
+            )
+        }
+
+    def _case_inputs(self, vectors: dict) -> list[tuple[dict, dict]]:
+        controls = {case["id"]: case for case in vectors["cases"] if case["role"] == "control"}
+        out = []
+        for case in vectors["cases"]:
+            if case["role"] == "control":
+                out.append((case, case["input"]))
+                continue
+            control = controls[case["control"]]
+            patched = _sr_apply_patch(control["input"], case["patch"])
+            if case.get("rehash"):
+                patched["envelope"]["envelope_digest"] = _sr_envelope_digest(patched["envelope"])
+            out.append((case, patched))
+        return out
+
+    def _schema_failures(self, kind: str, value: dict) -> list[str]:
+        defs = self.run_schema["$defs"]
+        bad = []
+        if kind in ("admission", "echo") and not _sr_valid(self.envelope_schema, value["envelope"], self.envelope_schema):
+            bad.append("envelope")
+        for attempt in value.get("journal", {}).get("attempts", []):
+            for segment in attempt["segments"]:
+                for line in segment["lines"]:
+                    if isinstance(line, dict) and not _sr_valid(defs["journal_line"], line, self.run_schema):
+                        bad.append("journal_line")
+        if kind == "projection" and not _sr_valid(defs["projection"], value["projection"], self.run_schema):
+            bad.append("projection")
+        if kind == "reader_view" and not _sr_valid(defs["reader_view"], value, self.run_schema):
+            bad.append("reader_view")
+        if kind == "page":
+            if not _sr_valid(defs["page_request"], value["request"], self.run_schema):
+                bad.append("page_request")
+            if not _sr_valid(defs["page"], value["page"], self.run_schema):
+                bad.append("page")
+        return bad
+
+    def test_registered_with_pinned_ids(self) -> None:
+        self.assertEqual(self.prov["schema"], "consiliency.supervised_run_provenance.v1")
+        self.assertEqual(self.prov["status"], "provisional")
+        self.assertEqual(CONTRACT["supervised_run"]["provenance"], "core/supervised-run/provenance.json")
+        for name, entry in self.prov["distributed"]["schemas"].items():
+            self.assertEqual(CONTRACT["schemas"][name], entry["path"], name)
+            self.assertEqual(load_schema(name)["$id"], entry["schema_id"], name)
+        self.assertEqual(CONTRACT["supervised_run"]["vectors"], self.prov["distributed"]["vectors"])
+
+    def test_payload_bytes_match_pinned_digests(self) -> None:
+        # Any changed payload byte fails here: verbatim copy, source sha == shipped sha.
+        self.assertRegex(self.prov["normative_source"]["spec_commit"], r"^[0-9a-f]{40}$")
+        self.assertEqual(sorted(self.prov["distributed"]["files"]), sorted(self.PAYLOAD))
+        self.assertEqual(self.prov["distributed"]["files"], self.prov["normative_source"]["files"])
+        for rel in self.PAYLOAD:
+            digest = hashlib.sha256((SUPERVISED_RUN_ROOT / rel).read_bytes()).hexdigest()
+            self.assertEqual(digest, self.prov["distributed"]["files"][rel], rel)
+        manifest = self.prov["distributed"]["manifest"]
+        self.assertEqual(manifest, self.prov["normative_source"]["manifest"])
+        self.assertEqual(f"{SUPERVISED_RUN_ROOT}/{manifest['path']}", CONTRACT["supervised_run"]["manifest"])
+        digest = hashlib.sha256((SUPERVISED_RUN_ROOT / manifest["path"]).read_bytes()).hexdigest()
+        self.assertEqual(digest, manifest["sha256"])
+
+    def test_manifest_lists_exactly_the_payload_and_verifies(self) -> None:
+        conformance = SUPERVISED_RUN_ROOT / "conformance"
+        listed = {}
+        for line in (conformance / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
+            digest, rel = re.fullmatch(r"([0-9a-f]{64})  (\S+)", line).groups()  # type: ignore[union-attr]
+            listed[rel] = digest
+        self.assertEqual(len(listed), len(self.PAYLOAD))
+        for rel, digest in listed.items():
+            path = (conformance / rel).resolve()
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest, rel)
+            shipped = path.relative_to(SUPERVISED_RUN_ROOT.resolve()).as_posix()
+            self.assertEqual(self.prov["distributed"]["files"][shipped], digest, rel)
+
+    def test_schemas_are_well_formed(self) -> None:
+        for name, schema in (("admitted_launch_envelope", self.envelope_schema), ("supervised_run_status", self.run_schema)):
+            self.assertEqual(schema["$schema"], "https://json-schema.org/draft/2020-12/schema", name)
+            self.assertTrue(schema["x-semantic-rules"], name)
+            for code, text in schema["x-semantic-rules"].items():
+                self.assertRegex(code, r"^[a-z][a-z0-9_]*$", name)
+                self.assertTrue(isinstance(text, str) and text, f"{name}:{code}")
+
+            def walk(node: object, path: str, in_map: bool = False) -> None:
+                if isinstance(node, list):
+                    for index, item in enumerate(node):
+                        walk(item, f"{path}[{index}]")
+                    return
+                if not isinstance(node, dict):
+                    return
+                if in_map:  # keys of properties / $defs are names, values are schemas
+                    for key, item in node.items():
+                        walk(item, f"{path}.{key}")
+                    return
+                for key, item in node.items():
+                    if key.startswith("x-"):
+                        continue  # extension annotations, not schema
+                    self.assertIn(key, _SR_KEYWORDS, f"{name}{path}: unknown keyword {key}")
+                    if key == "$ref":
+                        _sr_resolve(schema, item)  # every $ref is local and resolves
+                    if key == "enum":
+                        self.assertTrue(item, f"{name}{path}: empty enum")
+                        self.assertEqual(len({_sr_jcs(e) for e in item}), len(item), f"{name}{path}: duplicate enum")
+                    if key == "pattern":
+                        re.compile(item)
+                    if key == "required":
+                        self.assertEqual(len(set(item)), len(item), f"{name}{path}: duplicate required")
+                    walk(item, f"{path}.{key}", in_map=key in ("properties", "$defs"))
+
+            walk(schema, "")
+
+    def test_expected_diagnostics_are_defined_semantic_rules(self) -> None:
+        for name, (vectors, schema) in self.vector_sets.items():
+            self.assertEqual(vectors["contract"], schema["$id"].removeprefix("urn:contract:"), name)
+            self.assertEqual(vectors["status"], "provisional", name)
+            rules = set(schema["x-semantic-rules"])
+            ids = [case["id"] for case in vectors["cases"]]
+            self.assertEqual(len(set(ids)), len(ids), name)
+            controls = {case["id"]: case for case in vectors["cases"] if case["role"] == "control"}
+            for case in vectors["cases"]:
+                self.assertIn(case["role"], ("control", "negative"), case["id"])
+                self.assertTrue(set(case["expected"]) <= rules, f"{case['id']}: {case['expected']}")
+                self.assertEqual(len(set(case["expected"])), len(case["expected"]), case["id"])
+                if case["role"] == "control":
+                    self.assertEqual(case["expected"], [], case["id"])
+                else:
+                    self.assertTrue(case["expected"], case["id"])
+                    self.assertIn(case["control"], controls, case["id"])
+                    self.assertEqual(controls[case["control"]]["kind"], case["kind"], case["id"])
+        # The provisional rule addition this relocation attests consumer reconciliation for.
+        recon = self.prov["consumer_reconciliation"]
+        self.assertTrue(recon["consumers_reconciled"])
+        self.assertEqual(recon["provisional_rule_additions"], ["attempt_evidence_copied"])
+        self.assertIn("attempt_evidence_copied", self.run_schema["x-semantic-rules"])
+        exercised = {code for case in self.vector_sets["supervised_run_status"][0]["cases"] for code in case["expected"]}
+        self.assertIn("attempt_evidence_copied", exercised)
+
+    def test_every_control_and_patched_negative_is_schema_valid(self) -> None:
+        seen = 0
+        for name, (vectors, _schema) in self.vector_sets.items():
+            for case, value in self._case_inputs(vectors):
+                self.assertEqual(self._schema_failures(case["kind"], value), [], f"{name}:{case['id']}")
+                seen += 1
+        self.assertEqual(seen, 51)
+
+    def test_subset_validator_rejects_malformed_records(self) -> None:
+        # Non-vacuity: the validator above must be able to say no.
+        vectors = self.vector_sets["admitted_launch_envelope"][0]
+        envelope = next(case for case in vectors["cases"] if case["id"] == "E-admitted")["input"]["envelope"]
+        root = self.envelope_schema
+        self.assertTrue(_sr_valid(root, envelope, root))
+        self.assertFalse(_sr_valid(root, {**envelope, "bogus": 1}, root))
+        self.assertFalse(_sr_valid(root, {k: v for k, v in envelope.items() if k != "caller_context"}, root))
+        self.assertFalse(_sr_valid(root, {**envelope, "envelope_digest": "A" * 64}, root))
+        bad_tier = json.loads(json.dumps(envelope))
+        bad_tier["enforcement"]["tier"] = "sandboxed"
+        self.assertFalse(_sr_valid(root, bad_tier, root))
+        run_vectors = self.vector_sets["supervised_run_status"][0]
+        journal = next(case for case in run_vectors["cases"] if case["id"] == "V-running")["input"]["journal"]
+        line = journal["attempts"][0]["segments"][0]["lines"][0]
+        line_schema = self.run_schema["$defs"]["journal_line"]
+        self.assertTrue(_sr_valid(line_schema, line, self.run_schema))
+        self.assertTrue(_sr_valid(self.run_schema, line, self.run_schema))  # root $ref is journal_line
+        self.assertFalse(_sr_valid(line_schema, {**line, "line_kind": "note"}, self.run_schema))
+        self.assertFalse(_sr_valid(line_schema, {**line, "seq": -1}, self.run_schema))
+        self.assertFalse(_sr_valid(line_schema, {**line, "seq": True}, self.run_schema))
+        self.assertFalse(_sr_valid(line_schema, {**line, "body": {"body_kind": "state"}}, self.run_schema))
+
+    def test_envelope_digest_self_verifies_unless_mismatch_is_expected(self) -> None:
+        cases = self._case_inputs(self.vector_sets["admitted_launch_envelope"][0])
+        mismatches = []
+        for case, value in cases:
+            envelope = value["envelope"]
+            ok = _sr_envelope_digest(envelope) == envelope["envelope_digest"]
+            self.assertEqual(ok, "envelope_digest_mismatch" not in case["expected"], case["id"])
+            if not ok:
+                mismatches.append(case["id"])
+        self.assertEqual(mismatches, ["S-digest-not-rehashed"])
+
+    def test_control_journal_segment_chains_verify(self) -> None:
+        cases = self._case_inputs(self.vector_sets["supervised_run_status"][0])
+        chained = 0
+        for case, value in cases:
+            if case["role"] == "control" and "journal" in value:
+                self.assertTrue(_sr_chain_ok(value["journal"]), case["id"])
+                chained += 1
+        self.assertGreaterEqual(chained, 5)
+        # Non-vacuity: rewriting a sealed segment in place breaks the next header's link.
+        replaced = next(value for case, value in cases if case["id"] == "N04a-replaced-in-place")
+        self.assertFalse(_sr_chain_ok(replaced["journal"]))
 
 
 if __name__ == "__main__":

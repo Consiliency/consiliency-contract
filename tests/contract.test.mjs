@@ -52,7 +52,7 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.6.5");
+  assert.equal(CONTRACT_VERSION, "0.6.6");
   assert.equal(loadContract().contract_version, CONTRACT_VERSION);
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
@@ -857,4 +857,211 @@ test("the protected_source_category schema accepts a valid descriptor and reject
   assert.ok(!valid({ category: "not_a_category" }), "an out-of-enum category must reject");
   assert.ok(!valid({ subtype: "active_canonical_specs" }), "category is required");
   assert.ok(!valid({ category: "specs", bogus: 1 }), "additionalProperties:false must reject unknown fields");
+});
+
+// --- supervised-run status + admitted-launch envelope (0.6.6) ---
+//
+// core/supervised-run/ is distributed verbatim and digest-pinned
+// (core/supervised-run/provenance.json). Without a reader for the contract this
+// package checks byte identity, that every expected diagnostic is a defined
+// semantic rule, that every control and patched negative is schema-valid, and
+// the envelope_digest rule. Mirrors the Python suite.
+
+const SR_ROOT = "core/supervised-run";
+const SR_PAYLOAD = [
+  "admitted-launch-envelope.schema.json",
+  "run-status.schema.json",
+  "conformance/README.md",
+  "conformance/envelope.vectors.json",
+  "conformance/run-status.vectors.json",
+];
+
+function srResolve(root, ref) {
+  assert.ok(ref.startsWith("#/"), `non-local $ref ${ref}`);
+  return ref.slice(2).split("/").reduce((node, part) => node[part.replaceAll("~1", "/").replaceAll("~0", "~")], root);
+}
+
+function srTypeOk(name, value) {
+  switch (name) {
+    case "object": return value !== null && typeof value === "object" && !Array.isArray(value);
+    case "array": return Array.isArray(value);
+    case "string": return typeof value === "string";
+    case "boolean": return typeof value === "boolean";
+    case "null": return value === null;
+    case "integer": return Number.isInteger(value);
+    default: throw new Error(`unsupported type ${name}`);
+  }
+}
+
+function srValid(schema, value, root) {
+  if (schema.$ref !== undefined && !srValid(srResolve(root, schema.$ref), value, root)) return false;
+  if (schema.type !== undefined) {
+    const names = Array.isArray(schema.type) ? schema.type : [schema.type];
+    if (!names.some((name) => srTypeOk(name, value))) return false;
+  }
+  if ("const" in schema && canonical(value) !== canonical(schema.const)) return false;
+  if (schema.enum !== undefined && !schema.enum.some((entry) => canonical(entry) === canonical(value))) return false;
+  if (schema.anyOf !== undefined && !schema.anyOf.some((sub) => srValid(sub, value, root))) return false;
+  if (schema.oneOf !== undefined && schema.oneOf.filter((sub) => srValid(sub, value, root)).length !== 1) return false;
+  if (typeof value === "string") {
+    const length = [...value].length;
+    if (schema.minLength !== undefined && length < schema.minLength) return false;
+    if (schema.maxLength !== undefined && length > schema.maxLength) return false;
+    if (schema.pattern !== undefined && !new RegExp(schema.pattern, "u").test(value)) return false;
+  }
+  if (Number.isInteger(value) && schema.minimum !== undefined && value < schema.minimum) return false;
+  if (Array.isArray(value)) {
+    if (schema.minItems !== undefined && value.length < schema.minItems) return false;
+    if (schema.uniqueItems && new Set(value.map(canonical)).size !== value.length) return false;
+    if (schema.items !== undefined && !value.every((item) => srValid(schema.items, item, root))) return false;
+  }
+  if (srTypeOk("object", value)) {
+    const props = schema.properties ?? {};
+    if ((schema.required ?? []).some((key) => !(key in value))) return false;
+    if (schema.additionalProperties === false && Object.keys(value).some((key) => !(key in props))) return false;
+    if (!Object.entries(value).every(([key, entry]) => !(key in props) || srValid(props[key], entry, root))) return false;
+  }
+  return true;
+}
+
+function srApplyPatch(document, patch) {
+  const doc = JSON.parse(JSON.stringify(document));
+  for (const op of patch) {
+    const parts = op.path.slice(1).split("/").map((p) => p.replaceAll("~1", "/").replaceAll("~0", "~"));
+    const key = parts.pop();
+    const parent = parts.reduce((node, part) => (Array.isArray(node) ? node[Number(part)] : node[part]), doc);
+    if (Array.isArray(parent)) {
+      if (op.op === "add") {
+        if (key === "-") parent.push(op.value);
+        else {
+          assert.ok(Number(key) <= parent.length, op.path);
+          parent.splice(Number(key), 0, op.value);
+        }
+      } else if (op.op === "remove" || op.op === "replace") {
+        assert.ok(Number(key) < parent.length, op.path);
+        if (op.op === "remove") parent.splice(Number(key), 1);
+        else parent[Number(key)] = op.value;
+      } else throw new Error(`unsupported op ${op.op}`);
+    } else {
+      if (op.op === "remove" || op.op === "replace") assert.ok(key in parent, op.path);
+      if (op.op === "remove") delete parent[key];
+      else if (op.op === "add" || op.op === "replace") parent[key] = op.value;
+      else throw new Error(`unsupported op ${op.op}`);
+    }
+  }
+  return doc;
+}
+
+function srEnvelopeDigest(envelope) {
+  const { envelope_digest: _omit, ...body } = envelope;
+  return createHash("sha256").update(canonical(body), "utf8").digest("hex");
+}
+
+function srVectorSets() {
+  return [
+    ["admitted_launch_envelope", loadSchema("admitted_launch_envelope")],
+    ["supervised_run_status", loadSchema("supervised_run_status")],
+  ].map(([name, schema]) => [name, JSON.parse(readFileSync(CONTRACT.supervised_run.vectors[name], "utf8")), schema]);
+}
+
+function srCaseInputs(vectors) {
+  const controls = Object.fromEntries(vectors.cases.filter((c) => c.role === "control").map((c) => [c.id, c]));
+  return vectors.cases.map((c) => {
+    if (c.role === "control") return [c, c.input];
+    const patched = srApplyPatch(controls[c.control].input, c.patch);
+    if (c.rehash) patched.envelope.envelope_digest = srEnvelopeDigest(patched.envelope);
+    return [c, patched];
+  });
+}
+
+test("supervised-run payload is registered and byte-identical to its pinned digests", () => {
+  const prov = JSON.parse(readFileSync(`${SR_ROOT}/provenance.json`, "utf8"));
+  assert.equal(prov.schema, "consiliency.supervised_run_provenance.v1");
+  assert.match(prov.normative_source.spec_commit, /^[0-9a-f]{40}$/);
+  assert.deepEqual(Object.keys(prov.distributed.files).sort(), [...SR_PAYLOAD].sort());
+  assert.deepEqual(prov.distributed.files, prov.normative_source.files);
+  for (const rel of SR_PAYLOAD) {
+    const digest = createHash("sha256").update(readFileSync(`${SR_ROOT}/${rel}`)).digest("hex");
+    assert.equal(digest, prov.distributed.files[rel], `${rel}: shipped bytes must match the pinned sha256`);
+  }
+  assert.deepEqual(prov.distributed.manifest, prov.normative_source.manifest);
+  const manifestBytes = readFileSync(`${SR_ROOT}/${prov.distributed.manifest.path}`);
+  assert.equal(createHash("sha256").update(manifestBytes).digest("hex"), prov.distributed.manifest.sha256);
+  const lines = manifestBytes.toString("utf8").split("\n").filter(Boolean);
+  assert.equal(lines.length, SR_PAYLOAD.length);
+  for (const line of lines) {
+    const [, digest, rel] = line.match(/^([0-9a-f]{64}) {2}(\S+)$/);
+    const shipped = join("conformance", rel).replaceAll("\\", "/");
+    assert.equal(prov.distributed.files[shipped], digest, `SHA256SUMS ${rel}`);
+  }
+  for (const [name, entry] of Object.entries(prov.distributed.schemas)) {
+    assert.equal(CONTRACT.schemas[name], entry.path, name);
+    assert.equal(loadSchema(name).$id, entry.schema_id, name);
+  }
+  assert.deepEqual(CONTRACT.supervised_run.vectors, prov.distributed.vectors);
+  assert.deepEqual(prov.consumer_reconciliation.provisional_rule_additions, ["attempt_evidence_copied"]);
+  assert.equal(prov.consumer_reconciliation.consumers_reconciled, true);
+});
+
+test("supervised-run vectors expect only defined semantic rules and pair negatives with same-kind controls", () => {
+  for (const [name, vectors, schema] of srVectorSets()) {
+    assert.equal(schema.$schema, "https://json-schema.org/draft/2020-12/schema", name);
+    assert.equal(`urn:contract:${vectors.contract}`, schema.$id, name);
+    const rules = new Set(Object.keys(schema["x-semantic-rules"]));
+    const controls = new Map(vectors.cases.filter((c) => c.role === "control").map((c) => [c.id, c]));
+    assert.equal(new Set(vectors.cases.map((c) => c.id)).size, vectors.cases.length, name);
+    for (const c of vectors.cases) {
+      for (const code of c.expected) assert.ok(rules.has(code), `${c.id}: ${code} is not in x-semantic-rules`);
+      if (c.role === "control") assert.deepEqual(c.expected, [], c.id);
+      else {
+        assert.equal(c.role, "negative", c.id);
+        assert.ok(c.expected.length > 0, c.id);
+        assert.equal(controls.get(c.control)?.kind, c.kind, c.id);
+      }
+    }
+  }
+});
+
+test("every supervised-run control and patched negative is schema-valid; envelope_digest self-verifies unless a mismatch is expected", () => {
+  const sets = srVectorSets();
+  const envelopeSchema = sets[0][2];
+  const runSchema = sets[1][2];
+  const defs = runSchema.$defs;
+  let seen = 0;
+  const mismatches = [];
+  for (const [name, vectors] of sets) {
+    for (const [c, value] of srCaseInputs(vectors)) {
+      const label = `${name}:${c.id}`;
+      if (value.envelope) {
+        assert.ok(srValid(envelopeSchema, value.envelope, envelopeSchema), `${label} envelope`);
+        const ok = srEnvelopeDigest(value.envelope) === value.envelope.envelope_digest;
+        assert.equal(ok, !c.expected.includes("envelope_digest_mismatch"), label);
+        if (!ok) mismatches.push(c.id);
+      }
+      for (const attempt of value.journal?.attempts ?? []) {
+        for (const segment of attempt.segments) {
+          for (const line of segment.lines) {
+            if (typeof line !== "string") assert.ok(srValid(defs.journal_line, line, runSchema), `${label} journal line`);
+          }
+        }
+      }
+      if (c.kind === "projection") assert.ok(srValid(defs.projection, value.projection, runSchema), `${label} projection`);
+      if (c.kind === "reader_view") assert.ok(srValid(defs.reader_view, value, runSchema), `${label} reader_view`);
+      if (c.kind === "page") {
+        assert.ok(srValid(defs.page_request, value.request, runSchema), `${label} page_request`);
+        assert.ok(srValid(defs.page, value.page, runSchema), `${label} page`);
+      }
+      seen += 1;
+    }
+  }
+  assert.equal(seen, 51);
+  assert.deepEqual(mismatches, ["S-digest-not-rehashed"]);
+  // Non-vacuity: the validator must be able to say no.
+  const envelope = sets[0][1].cases.find((c) => c.id === "E-admitted").input.envelope;
+  assert.ok(!srValid(envelopeSchema, { ...envelope, bogus: 1 }, envelopeSchema));
+  assert.ok(!srValid(envelopeSchema, { ...envelope, envelope_digest: "A".repeat(64) }, envelopeSchema));
+  const line = sets[1][1].cases.find((c) => c.id === "V-running").input.journal.attempts[0].segments[0].lines[0];
+  assert.ok(srValid(runSchema, line, runSchema), "root $ref is journal_line");
+  assert.ok(!srValid(defs.journal_line, { ...line, line_kind: "note" }, runSchema));
+  assert.ok(!srValid(defs.journal_line, { ...line, seq: -1 }, runSchema));
 });

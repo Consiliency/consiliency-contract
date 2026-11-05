@@ -1,7 +1,11 @@
 {
   "schema": "consiliency.supervised_run_provenance.v1",
-  "$comment": "The admitted_launch_envelope.v1 and supervised_run_status.v1 schemas and their conformance vectors are DISTRIBUTED verbatim from the spec repo, where the contract was authored and reviewed. They are harness-neutral and language-neutral, and are shipped byte-for-byte so harnesses vendor one neutral copy. The per-file sha256 below pins the exact source bytes; because the copy is verbatim, source sha == shipped sha. conformance/SHA256SUMS is the contract's own manifest (paths relative to conformance/) and is shipped unchanged as verification metadata; its digest is pinned here. The contract test suites re-check every digest, so any payload byte change fails them.",
-  "contract_ids": ["admitted_launch_envelope.v1", "supervised_run_status.v1"],
+  "$comment": "The admitted_launch_envelope.v1 and supervised_run_status.v1 schemas and their conformance vectors are DISTRIBUTED verbatim from the spec repo, where the contract was authored and reviewed; they are frozen, and source sha == shipped sha (normative_source). admitted_launch_envelope.v2 is AUTHORED in this repository, alongside v1, and pinned in authored_here. conformance/SHA256SUMS is the contract's own manifest (paths relative to conformance/): its first five lines are the v1 source manifest byte for byte (distributed.manifest.v1_prefix), followed by one line per v2 file. The contract test suites re-check every digest, so any payload byte change fails them.",
+  "contract_ids": [
+    "admitted_launch_envelope.v1",
+    "supervised_run_status.v1",
+    "admitted_launch_envelope.v2"
+  ],
   "status": "provisional",
   "normative_source": {
     "repo": "spec",
@@ -18,6 +22,19 @@
       "sha256": "b9c2dad7ca32d32b9860e56c2e14141827955a50b52a54c8088760d9756e1285"
     }
   },
+  "authored_here": {
+    "$comment": "Authored and reviewed in this repository; not copied from another source. Harness-neutral and language-neutral, like v1.",
+    "contract_ids": [
+      "admitted_launch_envelope.v2"
+    ],
+    "files": {
+      "admitted-launch-envelope.v2.schema.json": "6d6b2f89c55d160c2c132c29b3aa330a0a91c40ab017707040478a60b469194f",
+      "conformance/README.v2.md": "c6ab5d9da4707adf5dad9602b483b201a2dfe89f638ecba84129e0c477d72637",
+      "conformance/envelope.v2.vectors.json": "e742d2774d410c2508405eaffed84575b992483da68c07f28591097d6ec5bc2f",
+      "conformance/envelope.v2.canonical.vectors.json": "f7f11c7667d12b0c876102781fdd5773074f5301f152a6d18be509894bc0e8f8",
+      "conformance/envelope.v2.apply.vectors.json": "57e0fd4d2e88c75bb8dfbab94448431ca3c752f6444febf1bd492323b044c078"
+    }
+  },
   "distributed": {
     "root": "core/supervised-run",
     "files": {
@@ -25,11 +42,20 @@
       "run-status.schema.json": "5118c1ab8604e85990150d66bf6b8c1af979dcc404fc84ee5a3c4ba4fead9a30",
       "conformance/README.md": "2d5045245105af88f1f45f720aa8bc3f366efc95c25e25a9c50e402a175533ca",
       "conformance/envelope.vectors.json": "876d322c313b444e49d7a95ee8f7ca39eef13c45864c67a0b3877235e1db6d7f",
-      "conformance/run-status.vectors.json": "5bf9dfbf65805f7340290586d546038fc88659785e60e2f55532df4ac6696730"
+      "conformance/run-status.vectors.json": "5bf9dfbf65805f7340290586d546038fc88659785e60e2f55532df4ac6696730",
+      "admitted-launch-envelope.v2.schema.json": "6d6b2f89c55d160c2c132c29b3aa330a0a91c40ab017707040478a60b469194f",
+      "conformance/README.v2.md": "c6ab5d9da4707adf5dad9602b483b201a2dfe89f638ecba84129e0c477d72637",
+      "conformance/envelope.v2.vectors.json": "e742d2774d410c2508405eaffed84575b992483da68c07f28591097d6ec5bc2f",
+      "conformance/envelope.v2.canonical.vectors.json": "f7f11c7667d12b0c876102781fdd5773074f5301f152a6d18be509894bc0e8f8",
+      "conformance/envelope.v2.apply.vectors.json": "57e0fd4d2e88c75bb8dfbab94448431ca3c752f6444febf1bd492323b044c078"
     },
     "manifest": {
       "path": "conformance/SHA256SUMS",
-      "sha256": "b9c2dad7ca32d32b9860e56c2e14141827955a50b52a54c8088760d9756e1285"
+      "sha256": "48904c259e4a1c24d3e841f56b6c2a84ce2cff32014cf573b3e41b34fac1f1fc",
+      "v1_prefix": {
+        "lines": 5,
+        "sha256": "b9c2dad7ca32d32b9860e56c2e14141827955a50b52a54c8088760d9756e1285"
+      }
     },
     "schemas": {
       "admitted_launch_envelope": {
@@ -39,18 +65,31 @@
       "supervised_run_status": {
         "path": "core/supervised-run/run-status.schema.json",
         "schema_id": "urn:contract:supervised_run_status.v1"
+      },
+      "admitted_launch_envelope_v2": {
+        "path": "core/supervised-run/admitted-launch-envelope.v2.schema.json",
+        "schema_id": "urn:contract:admitted_launch_envelope.v2"
       }
     },
     "vectors": {
       "admitted_launch_envelope": "core/supervised-run/conformance/envelope.vectors.json",
-      "supervised_run_status": "core/supervised-run/conformance/run-status.vectors.json"
+      "supervised_run_status": "core/supervised-run/conformance/run-status.vectors.json",
+      "admitted_launch_envelope_v2": "core/supervised-run/conformance/envelope.v2.vectors.json",
+      "admitted_launch_envelope_v2_canonical": "core/supervised-run/conformance/envelope.v2.canonical.vectors.json",
+      "admitted_launch_envelope_v2_apply": "core/supervised-run/conformance/envelope.v2.apply.vectors.json"
     }
   },
   "consumer_reconciliation": {
     "$comment": "Attestation recorded at relocation. The contract is provisional: any change needs reconciliation with every consumer before it ships.",
-    "provisional_rule_additions": ["attempt_evidence_copied"],
+    "provisional_rule_additions": [
+      "attempt_evidence_copied"
+    ],
     "rule_location": "run-status.schema.json#/x-semantic-rules/attempt_evidence_copied",
     "consumers_reconciled": true
+  },
+  "v2_consumer_reconciliation": {
+    "$comment": "v2 is additive and every v1 byte is unchanged, so existing v1 pins stay valid. Consumers reconcile v2 when they adopt it, against a published commit and per-file sha256.",
+    "status": "pending"
   },
   "verification_scope": {
     "$comment": "What this package checks without a reader implementation. Full semantic evaluation of every x-semantic-rules diagnostic needs a conforming reader, which consuming harnesses provide.",
@@ -60,10 +99,18 @@
       "every expected diagnostic is defined in the matching schema's x-semantic-rules",
       "every control and every patched negative is schema-valid",
       "envelope_digest self-verifies exactly where envelope_digest_mismatch is not expected",
-      "journal segment chains of the controls verify"
+      "journal segment chains of the controls verify",
+      "the v1 payload and the five-line v1 manifest prefix match digests pinned in the test suites independently of this file",
+      "v2: every control and semantic negative is schema-valid, and every schema_negative fails with exactly its expected (instance_path, keyword) set",
+      "v2: independently written Python and JS readings of x-semantic-rules and x-evaluation-order admit every control and refuse every negative with exactly its expected diagnostics and effect, recomputing every launch digest from the case's captured material",
+      "v2: RFC 8785 serialization against pinned serializer primitives (RFC 8785 Appendix B), and the v2 input boundary (safe integers through raw and in-memory paths, duplicate and __proto__ members, lone surrogates) against pinned documents, rejects and wrong preimages, identically in both readings",
+      "v2: source-tree capture against pinned manifests, unbindable and ancestor-inconsistent captures, and wrong-walk alternates",
+      "v2: the write_scope apply check against pinned outcomes and protected state, and runtime journals against the frozen run-status lifecycle",
+      "v2: every new launch field, every semantic rule and every review finding has a positive and a negative vector"
     ],
     "not_checked": [
-      "the remaining semantic diagnostics and expected_effect, which need a conforming reader"
+      "the remaining semantic diagnostics and expected_effect, which need a conforming reader",
+      "v2: a harness's own capture of launch material, its qualification records and evidence, and its apply-time write_scope checker, which need a conforming harness and installed-route qualification"
     ]
   }
 }

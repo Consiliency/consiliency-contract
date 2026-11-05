@@ -52,7 +52,7 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.6.6");
+  assert.equal(CONTRACT_VERSION, "0.7.0");
   assert.equal(loadContract().contract_version, CONTRACT_VERSION);
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
@@ -868,12 +868,22 @@ test("the protected_source_category schema accepts a valid descriptor and reject
 // the envelope_digest rule. Mirrors the Python suite.
 
 const SR_ROOT = "core/supervised-run";
-const SR_PAYLOAD = [
-  "admitted-launch-envelope.schema.json",
-  "run-status.schema.json",
-  "conformance/README.md",
-  "conformance/envelope.vectors.json",
-  "conformance/run-status.vectors.json",
+// The frozen v1 payload, pinned here independently of provenance.json (0.7.0 adds v2 alongside).
+const SR_V1_PINS = {
+  "admitted-launch-envelope.schema.json": "0273f7a5d80eab95ee84660cd657445e881431bca3b8f91cec61015a5d39d41d",
+  "run-status.schema.json": "5118c1ab8604e85990150d66bf6b8c1af979dcc404fc84ee5a3c4ba4fead9a30",
+  "conformance/README.md": "2d5045245105af88f1f45f720aa8bc3f366efc95c25e25a9c50e402a175533ca",
+  "conformance/envelope.vectors.json": "876d322c313b444e49d7a95ee8f7ca39eef13c45864c67a0b3877235e1db6d7f",
+  "conformance/run-status.vectors.json": "5bf9dfbf65805f7340290586d546038fc88659785e60e2f55532df4ac6696730",
+};
+const SR_V1_MANIFEST_SHA256 = "b9c2dad7ca32d32b9860e56c2e14141827955a50b52a54c8088760d9756e1285";
+const SR_PAYLOAD = Object.keys(SR_V1_PINS);
+const SR_V2_PAYLOAD = [
+  "admitted-launch-envelope.v2.schema.json",
+  "conformance/README.v2.md",
+  "conformance/envelope.v2.vectors.json",
+  "conformance/envelope.v2.canonical.vectors.json",
+  "conformance/envelope.v2.apply.vectors.json",
 ];
 
 function srResolve(root, ref) {
@@ -910,6 +920,7 @@ function srValid(schema, value, root) {
     if (schema.pattern !== undefined && !new RegExp(schema.pattern, "u").test(value)) return false;
   }
   if (Number.isInteger(value) && schema.minimum !== undefined && value < schema.minimum) return false;
+  if (Number.isInteger(value) && schema.maximum !== undefined && value > schema.maximum) return false;
   if (Array.isArray(value)) {
     if (schema.minItems !== undefined && value.length < schema.minItems) return false;
     if (schema.uniqueItems && new Set(value.map(canonical)).size !== value.length) return false;
@@ -918,6 +929,7 @@ function srValid(schema, value, root) {
   if (srTypeOk("object", value)) {
     const props = schema.properties ?? {};
     if ((schema.required ?? []).some((key) => !(key in value))) return false;
+    if (schema.minProperties !== undefined && Object.keys(value).length < schema.minProperties) return false;
     if (schema.additionalProperties === false && Object.keys(value).some((key) => !(key in props))) return false;
     if (!Object.entries(value).every(([key, entry]) => !(key in props) || srValid(props[key], entry, root))) return false;
   }
@@ -943,9 +955,11 @@ function srApplyPatch(document, patch) {
         else parent[Number(key)] = op.value;
       } else throw new Error(`unsupported op ${op.op}`);
     } else {
-      if (op.op === "remove" || op.op === "replace") assert.ok(key in parent, op.path);
+      if (op.op === "remove" || op.op === "replace") assert.ok(Object.prototype.hasOwnProperty.call(parent, key), op.path);
       if (op.op === "remove") delete parent[key];
-      else if (op.op === "add" || op.op === "replace") parent[key] = op.value;
+      else if (op.op === "add" || op.op === "replace") {
+        Object.defineProperty(parent, key, { value: op.value, enumerable: true, writable: true, configurable: true });
+      }
       else throw new Error(`unsupported op ${op.op}`);
     }
   }
@@ -953,8 +967,9 @@ function srApplyPatch(document, patch) {
 }
 
 function srEnvelopeDigest(envelope) {
+  // RFC 8785 (r2Jcs below): UTF-16 member order, ECMAScript numbers, rejects lone surrogates and non-finite numbers.
   const { envelope_digest: _omit, ...body } = envelope;
-  return createHash("sha256").update(canonical(body), "utf8").digest("hex");
+  return createHash("sha256").update(r2Jcs(body), "utf8").digest("hex");
 }
 
 function srVectorSets() {
@@ -978,17 +993,25 @@ test("supervised-run payload is registered and byte-identical to its pinned dige
   const prov = JSON.parse(readFileSync(`${SR_ROOT}/provenance.json`, "utf8"));
   assert.equal(prov.schema, "consiliency.supervised_run_provenance.v1");
   assert.match(prov.normative_source.spec_commit, /^[0-9a-f]{40}$/);
-  assert.deepEqual(Object.keys(prov.distributed.files).sort(), [...SR_PAYLOAD].sort());
-  assert.deepEqual(prov.distributed.files, prov.normative_source.files);
-  for (const rel of SR_PAYLOAD) {
+  assert.deepEqual(prov.normative_source.files, SR_V1_PINS);
+  assert.deepEqual(Object.keys(prov.authored_here.files).sort(), [...SR_V2_PAYLOAD].sort());
+  assert.deepEqual(prov.distributed.files, { ...prov.normative_source.files, ...prov.authored_here.files });
+  for (const rel of [...SR_PAYLOAD, ...SR_V2_PAYLOAD]) {
     const digest = createHash("sha256").update(readFileSync(`${SR_ROOT}/${rel}`)).digest("hex");
     assert.equal(digest, prov.distributed.files[rel], `${rel}: shipped bytes must match the pinned sha256`);
   }
-  assert.deepEqual(prov.distributed.manifest, prov.normative_source.manifest);
+  for (const [rel, pin] of Object.entries(SR_V1_PINS)) {
+    assert.equal(createHash("sha256").update(readFileSync(`${SR_ROOT}/${rel}`)).digest("hex"), pin, `v1 frozen: ${rel}`);
+  }
+  assert.equal(prov.distributed.manifest.path, prov.normative_source.manifest.path);
+  assert.equal(prov.normative_source.manifest.sha256, SR_V1_MANIFEST_SHA256);
+  assert.deepEqual(prov.distributed.manifest.v1_prefix, { lines: 5, sha256: SR_V1_MANIFEST_SHA256 });
   const manifestBytes = readFileSync(`${SR_ROOT}/${prov.distributed.manifest.path}`);
   assert.equal(createHash("sha256").update(manifestBytes).digest("hex"), prov.distributed.manifest.sha256);
+  const prefix = manifestBytes.toString("utf8").split("\n").slice(0, 5).join("\n") + "\n";
+  assert.equal(createHash("sha256").update(prefix, "utf8").digest("hex"), SR_V1_MANIFEST_SHA256, "v1 manifest lines moved");
   const lines = manifestBytes.toString("utf8").split("\n").filter(Boolean);
-  assert.equal(lines.length, SR_PAYLOAD.length);
+  assert.equal(lines.length, SR_PAYLOAD.length + SR_V2_PAYLOAD.length);
   for (const line of lines) {
     const [, digest, rel] = line.match(/^([0-9a-f]{64}) {2}(\S+)$/);
     const shipped = join("conformance", rel).replaceAll("\\", "/");
@@ -1064,4 +1087,943 @@ test("every supervised-run control and patched negative is schema-valid; envelop
   assert.ok(srValid(runSchema, line, runSchema), "root $ref is journal_line");
   assert.ok(!srValid(defs.journal_line, { ...line, line_kind: "note" }, runSchema));
   assert.ok(!srValid(defs.journal_line, { ...line, seq: -1 }, runSchema));
+});
+
+// --- admitted_launch_envelope.v2 (0.7.0) ---
+//
+// An independently written JS reading of the v2 contract, mirroring the Python suite: the I-JSON
+// parse boundary and RFC 8785 serializer, source-tree capture, the staged x-semantic-rules over
+// captured launch material, the write_scope apply check and the frozen run-status lifecycle subset.
+// Test-only; not part of the package API and not a conforming harness.
+
+class R2Unbindable extends Error {}
+
+function r2IsWellFormed(text) {
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = text.charCodeAt(i + 1);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return false;
+      i += 1;
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// ECMAScript Number::toString of a finite binary64 value: the RFC 8785 serializer primitive (not the v2 domain).
+function r2EsNumber(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) throw new R2Unbindable("non-finite number");
+  return Object.is(value, -0) ? "0" : String(value);
+}
+
+// The v2 commitment domain (x-canonicalization): integer-valued numbers only within +-(2^53 - 1), whatever the spelling.
+function r2DomainNumber(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) throw new R2Unbindable("non-finite number");
+  if (Number.isInteger(value) && Math.abs(value) > Number.MAX_SAFE_INTEGER) throw new R2Unbindable("integer-valued number outside the safe range");
+  return r2EsNumber(value);
+}
+
+function r2EsString(text) {
+  if (!r2IsWellFormed(text)) throw new R2Unbindable("lone surrogate");
+  const short = { '"': '\\"', "\\": "\\\\", "\b": "\\b", "\f": "\\f", "\n": "\\n", "\r": "\\r", "\t": "\\t" };
+  let out = '"';
+  for (const ch of text) {
+    const code = ch.codePointAt(0);
+    if (short[ch] !== undefined) out += short[ch];
+    else if (code < 0x20) out += `\\u${code.toString(16).padStart(4, "0")}`;
+    else out += ch;
+  }
+  return `${out}"`;
+}
+
+function r2Jcs(value) {
+  if (value === null) return "null";
+  if (value === true || value === false) return String(value);
+  if (typeof value === "number") return r2DomainNumber(value);
+  if (typeof value === "string") return r2EsString(value);
+  if (Array.isArray(value)) return `[${value.map(r2Jcs).join(",")}]`;
+  if (typeof value === "object") {
+    // Default sort compares UTF-16 code units, which is the RFC 8785 member order.
+    return `{${Object.keys(value).sort().map((key) => `${r2EsString(key)}:${r2Jcs(value[key])}`).join(",")}}`;
+  }
+  throw new R2Unbindable(`not a JSON value: ${typeof value}`);
+}
+
+function r2Sha(data) {
+  return createHash("sha256").update(data, typeof data === "string" ? "utf8" : undefined).digest("hex");
+}
+
+function r2JcsSha(value) {
+  return r2Sha(r2Jcs(value));
+}
+
+// The RFC 8785 / I-JSON boundary on raw bytes: a small recursive-descent parser, because JSON.parse
+// silently keeps the last duplicate member and cannot see a lossy integer literal.
+function r2StrictParse(bytes) {
+  let text;
+  try {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new R2Unbindable("invalid UTF-8");
+  }
+  let i = 0;
+  const ws = () => { while (" \t\n\r".includes(text[i] ?? "x")) i += 1; };
+  const fail = (why) => { throw new R2Unbindable(`${why} at ${i}`); };
+  const parseString = () => {
+    if (text[i] !== '"') fail("expected string");
+    i += 1;
+    let out = "";
+    for (;;) {
+      const ch = text[i];
+      if (ch === undefined) fail("unterminated string");
+      if (ch === '"') { i += 1; break; }
+      if (ch.charCodeAt(0) < 0x20) fail("control character in string");
+      if (ch === "\\") {
+        const esc = text[i + 1];
+        const map = { '"': '"', "\\": "\\", "/": "/", b: "\b", f: "\f", n: "\n", r: "\r", t: "\t" };
+        if (map[esc] !== undefined) { out += map[esc]; i += 2; continue; }
+        if (esc === "u" && /^[0-9a-fA-F]{4}$/.test(text.slice(i + 2, i + 6))) {
+          out += String.fromCharCode(parseInt(text.slice(i + 2, i + 6), 16));
+          i += 6;
+          continue;
+        }
+        fail("bad escape");
+      }
+      out += ch;
+      i += 1;
+    }
+    if (!r2IsWellFormed(out)) fail("lone surrogate");
+    return out;
+  };
+  const parseValue = () => {
+    ws();
+    const ch = text[i];
+    if (ch === "{") {
+      i += 1;
+      // Own data properties on a null-prototype object: "__proto__" is an ordinary member, never the inherited setter.
+      const out = Object.create(null);
+      const seen = new Set();
+      ws();
+      if (text[i] === "}") { i += 1; return out; }
+      for (;;) {
+        ws();
+        const key = parseString();
+        if (seen.has(key)) fail("duplicate member");
+        seen.add(key);
+        ws();
+        if (text[i] !== ":") fail("expected colon");
+        i += 1;
+        Object.defineProperty(out, key, { value: parseValue(), enumerable: true, writable: true, configurable: true });
+        ws();
+        if (text[i] === ",") { i += 1; continue; }
+        if (text[i] === "}") { i += 1; return out; }
+        fail("expected , or }");
+      }
+    }
+    if (ch === "[") {
+      i += 1;
+      const out = [];
+      ws();
+      if (text[i] === "]") { i += 1; return out; }
+      for (;;) {
+        out.push(parseValue());
+        ws();
+        if (text[i] === ",") { i += 1; continue; }
+        if (text[i] === "]") { i += 1; return out; }
+        fail("expected , or ]");
+      }
+    }
+    if (ch === '"') return parseString();
+    for (const [word, value] of [["true", true], ["false", false], ["null", null]]) {
+      if (text.startsWith(word, i)) { i += word.length; return value; }
+    }
+    const match = /^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?/.exec(text.slice(i));
+    if (!match || match[0] === "-") fail("unexpected token");
+    i += match[0].length;
+    if (match[2] === undefined && match[3] === undefined) {
+      // An integer literal is range-checked before any conversion.
+      const exact = BigInt(match[0]);
+      const limit = BigInt(Number.MAX_SAFE_INTEGER);
+      if (exact > limit || exact < -limit) fail("integer outside the safe range");
+    }
+    const value = Number(match[0]); // round-to-nearest, ties-to-even
+    r2DomainNumber(value);
+    return value;
+  };
+  const value = parseValue();
+  ws();
+  if (i !== text.length) fail("trailing data");
+  return value;
+}
+
+const R2_IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u;
+
+function r2RelpathOk(value, allowDot = false) {
+  if (typeof value !== "string") return false;
+  if (allowDot && value === ".") return true;
+  if (value === "" || value.includes(":") || value.includes("\\")) return false;
+  if (/[\u0000-\u001f\u007f]/u.test(value)) return false;
+  return value.split("/").every((segment) => segment !== "" && segment !== "." && segment !== "..");
+}
+
+function r2ValidText(value) {
+  return typeof value === "string" && !value.includes("\u0000") && r2IsWellFormed(value);
+}
+
+function r2CaptureManifest(capture) {
+  const entries = [];
+  const seen = new Set();
+  const kinds = new Map();
+  for (const item of capture) {
+    const path = item.path;
+    if (typeof path === "string" && (path === ".git" || path.startsWith(".git/"))) continue;
+    if (!r2ValidText(path) || !r2RelpathOk(path)) throw new R2Unbindable("path not representable");
+    if (seen.has(path)) throw new R2Unbindable("duplicate path");
+    seen.add(path);
+    kinds.set(path, item.type);
+    if (item.type === "dir") continue;
+    if (item.type === "file") {
+      if (!Number.isInteger(item.mode)) throw new R2Unbindable("mode unavailable");
+      const data = item.content_hex !== undefined ? Buffer.from(item.content_hex, "hex") : Buffer.from(item.content, "utf8");
+      entries.push([path, (item.mode & 0o111) !== 0 ? "executable_file" : "file", r2Sha(data)]);
+    } else if (item.type === "symlink") {
+      entries.push([path, "symlink", r2Sha(Buffer.from(item.target_hex, "hex"))]);
+    } else {
+      throw new R2Unbindable(`unsupported entry type ${item.type}`);
+    }
+  }
+  // A represented non-directory is never a proper ancestor of a listed path, whatever the listing order.
+  for (const path of kinds.keys()) {
+    const segments = path.split("/");
+    for (let depth = 1; depth < segments.length; depth += 1) {
+      const ancestor = segments.slice(0, depth).join("/");
+      if (kinds.has(ancestor) && kinds.get(ancestor) !== "dir") throw new R2Unbindable("non-directory ancestor");
+    }
+  }
+  return entries.sort((a, b) => Buffer.compare(Buffer.from(a[0], "utf8"), Buffer.from(b[0], "utf8")));
+}
+
+function r2RouteKey(record) {
+  return r2Jcs([record.tier, record.action, record.transport_id,
+    record.executable_chain.map((e) => [e.locator_kind, e.locator, e.sha256]), record.template_sha256, record.qualification_sha256]);
+}
+
+function r2GrantDigest(grant) {
+  return grant.canonical_form === "raw_bytes" ? r2Sha(grant.text) : r2JcsSha(grant.value);
+}
+
+function r2Own(object, key) {
+  return object !== null && typeof object === "object" && Object.prototype.hasOwnProperty.call(object, key);
+}
+
+function r2Set(object, key, value) {
+  Object.defineProperty(object, key, { value, enumerable: true, writable: true, configurable: true });
+}
+
+function r2Redacted(env, classification) {
+  const nonSecret = Object.create(null);
+  const secretNames = [];
+  for (const [name, value] of Object.entries(env)) {
+    if (r2Own(classification, name) && classification[name] === "non_secret") r2Set(nonSecret, name, value);
+    else if (r2Own(classification, name) && classification[name] && typeof classification[name] === "object") secretNames.push(name);
+  }
+  return { non_secret: nonSecret, secret_names: secretNames.sort() };
+}
+
+function r2Strings(node, out = []) {
+  if (typeof node === "string") out.push(node);
+  else if (Array.isArray(node)) node.forEach((item) => r2Strings(item, out));
+  else if (node && typeof node === "object") for (const [key, item] of Object.entries(node)) { out.push(key); r2Strings(item, out); }
+  return out;
+}
+
+function r2SameJson(a, b) {
+  try {
+    return r2Jcs(a) === r2Jcs(b);
+  } catch {
+    return false;
+  }
+}
+
+function r2Evaluate(schema, value, staged = true) {
+  const env = value.envelope;
+  if (sr2Errors(schema, env, schema, "/envelope").size > 0) {
+    return [["envelope_schema_invalid"], { attempt: { state: "refused", worker_invocations: 0, refusal: { reason: "envelope_schema_invalid" } } }];
+  }
+  const ctx = value.validator_context;
+  const mat = value.launch_material;
+  const launch = env.launch;
+  const tier = env.enforcement.tier;
+  const info = schema["x-enforcement-tiers"][tier];
+  const proc = mat.process;
+  const sources = [launch.instructions.source, ...launch.references.map((r) => r.source)].filter((s) => s !== null);
+  let classification = null;
+  try {
+    classification = r2StrictParse(Buffer.from(mat.environment.policy, "utf8")).classification ?? null;
+  } catch {
+    classification = null;
+  }
+  let constraint = null;
+  let record = null;
+  const stages = [
+    () => {
+      const { envelope_digest: _omit, ...body } = env;
+      try {
+        return r2JcsSha(body) === env.envelope_digest ? [] : ["envelope_digest_mismatch"];
+      } catch {
+        return ["envelope_digest_mismatch"];
+      }
+    },
+    () => {
+      if (env.assignment_digest !== ctx.expected_assignment_digest || env.units.crosswalk_ref !== ctx.expected_crosswalk_ref) return ["authority_foreign"];
+      return env.units.snapshot_ref !== ctx.expected_snapshot_ref ? ["authority_baseline_stale"] : [];
+    },
+    () => {
+      const out = [];
+      const state = launch.workspace_state;
+      const paths = [
+        ...env.workspace.repo_relative_locators,
+        ...sources.filter((s) => s.namespace === "workspace" || s.namespace === "declared_root").map((s) => s.path),
+        ...launch.executable_chain.filter((e) => e.locator_kind === "repo_relative").map((e) => e.locator),
+        ...state.target_map.flatMap((p) => [p.workspace_locator, p.protected_locator]),
+      ];
+      if (!paths.every((p) => r2RelpathOk(p)) || !r2RelpathOk(state.cwd.path, true)) out.push("locator_not_repo_relative");
+      const { caller_context: _cc, ...rest } = env;
+      if (r2Strings(rest).some((s) => [...s].length > 512 || /[\u0000-\u001f\u007f]/u.test(s))) out.push("raw_output_in_record");
+      if (env.executable_dependencies.declared && env.executable_dependencies.admitted_dependency_digest === null) out.push("dependency_digest_required");
+      if (["separate_clone", "git_worktree_of_protected"].includes(env.workspace.kind) && state.base_commit === null) out.push("workspace_source_inconsistent");
+      const chain = launch.executable_chain;
+      if (chain.at(-1).role !== "executable" || chain.slice(0, -1).some((e) => e.role !== "wrapper") ||
+          chain.some((e) => e.locator_kind === "declared" && !R2_IDENTIFIER.test(e.locator))) out.push("executable_chain_invalid");
+      if (launch.references.filter((r) => r.role === "baseline").length !== 1) out.push("baseline_reference_required");
+      const scope = env.workspace.repo_relative_locators;
+      if (state.target_map.some((p) => !scope.some((s) => p.protected_locator === s || p.protected_locator.startsWith(`${s}/`)))) out.push("target_map_outside_scope");
+      return out;
+    },
+    () => (info.status === "reserved" ? ["tier_unqualified"] : []),
+    () => {
+      const trusted = launch.trusted_policy;
+      if (trusted.qualification_sha256 === null) return ["route_not_qualified"];
+      const key = r2RouteKey({ tier, action: launch.action, transport_id: launch.transport_id, executable_chain: launch.executable_chain,
+        template_sha256: trusted.template_sha256, qualification_sha256: trusted.qualification_sha256 });
+      const matches = ctx.qualified_routes.filter((r) => r2RouteKey(r) === key);
+      if (matches.length !== 1) return ["route_not_qualified"];
+      [record] = matches;
+      return [];
+    },
+    () => {
+      const out = new Set();
+      const unsupported = env.enforcement.required_constraints.filter((c) => info.constraints[c] === "not_enforced");
+      if (unsupported.length) { out.add("constraint_unsupported"); [constraint] = unsupported; }
+      if (!info.workspace_kinds.includes(env.workspace.kind)) out.add("workspace_not_separate_copy");
+      const held = record ?? { grants: {}, credential_sources: [] };
+      const grants = launch.grants ?? {};
+      if (Object.entries(grants).some(([kind, c]) => !info.grant_kinds.includes(kind) || !r2SameJson(held.grants[kind], c))) out.add("grant_unqualified");
+      if (r2Own(grants, "dependency_projection_sha256") && !env.executable_dependencies.declared) out.add("grant_unqualified");
+      if (sources.some((s) => s.namespace === "descriptor") && !r2Own(grants, "descriptor_capabilities_sha256")) out.add("grant_unqualified");
+      if (launch.workspace_state.cwd.namespace === "view_root" && !r2Own(grants, "filesystem_view_sha256")) out.add("grant_unqualified");
+      if (classification && typeof classification === "object") {
+        for (const name of Object.keys(proc.worker.env)) {
+          const entry = r2Own(classification, name) ? classification[name] : undefined;
+          if (entry && typeof entry === "object" && !(held.credential_sources ?? []).includes(entry.secret)) out.add("grant_unqualified");
+        }
+      }
+      if (launch.action === "execution" && launch.stop.deadline_action === "not_armed") out.add("stop_policy_unbounded");
+      if (launch.stop.timeout_seconds > ctx.timeout_max_seconds) out.add("timeout_over_declared_max");
+      return [...out];
+    },
+    () => r2Material(env, launch, mat, proc, classification),
+  ];
+  const reported = new Set();
+  for (const stage of stages) {
+    for (const code of stage()) reported.add(code);
+    if (reported.size && staged) break;
+  }
+  const order = schema["x-evaluation-order"].stages.flat();
+  const codes = [...reported].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  if (!codes.length) return [[], { attempt: { state: "queued", worker_invocations: 0 } }];
+  const refusal = { reason: codes[0], constraint: codes[0] === "constraint_unsupported" ? constraint : null, tier };
+  return [codes, { attempt: { state: "refused", worker_invocations: 0, refusal } }];
+}
+
+function r2Material(env, launch, mat, proc, classification) {
+  const out = new Set();
+  const unbound = () => out.add("launch_input_unbound");
+  const { spawn, worker } = proc;
+  const policy = mat.policy;
+  const grantsMat = policy.grants;
+  const bytes = (text) => Buffer.byteLength(text, "utf8");
+
+  let files = null;
+  let manifest = null;
+  try {
+    manifest = r2CaptureManifest(mat.workspace.capture);
+    files = new Map(manifest.map((e) => [e[0], e]));
+  } catch (error) {
+    if (!(error instanceof R2Unbindable)) throw error;
+    unbound();
+  }
+  const treeJoins = (path, sha) => {
+    if (files === null) return true;
+    const entry = files.get(path);
+    return entry !== undefined && (entry[1] === "file" || entry[1] === "executable_file") && entry[2] === sha;
+  };
+  const grantValue = (kind) => (grantsMat[kind]?.canonical_form === "rfc8785" ? grantsMat[kind].value : null);
+  const descriptors = grantValue("descriptor_capabilities_sha256")?.descriptors ?? [];
+  if (descriptors.some((d) => d && d.terminal)) unbound();
+  const roots = new Set(policy.config.split("\n").map((line) => line.split(/\s+/)).filter((p) => p.length >= 2 && p[0] === "root").map((p) => p[1]));
+  const resolvable = (source, captured) => {
+    if (captured.content === null || captured.content === undefined || !captured.within_root) return false;
+    if (source.namespace === "declared_root") return roots.has(source.root);
+    if (source.namespace === "descriptor") return descriptors.some((d) => d && d.id === source.descriptor);
+    return true;
+  };
+
+  const argvsOk = [spawn.argv, worker.argv].every((vec) => Array.isArray(vec) && vec.every(r2ValidText));
+  if (!argvsOk) unbound();
+  const envOk = (map) => map !== null && typeof map === "object" &&
+    Object.entries(map).every(([n, v]) => r2ValidText(n) && n !== "" && !n.includes("=") && r2ValidText(v));
+  const envsOk = envOk(spawn.env) && envOk(worker.env);
+  if (!envsOk) unbound();
+  const classified = envsOk && classification !== null && typeof classification === "object" &&
+    Object.keys(worker.env).every((n) => r2Own(classification, n) && (classification[n] === "non_secret" || (classification[n] && typeof classification[n] === "object" && r2Own(classification[n], "secret"))));
+  if (envsOk && !classified) unbound();
+
+  if (classified) {
+    const secrets = Object.entries(worker.env).filter(([n, v]) => r2Own(classification, n) && classification[n] && typeof classification[n] === "object" && v).map(([, v]) => v);
+    const needles = [...secrets, ...secrets.map(r2Sha)];
+    const committed = r2Strings([
+      env,
+      spawn.argv, worker.argv, mat.instructions.content ?? null, mat.references.map((r) => r.content ?? null),
+      policy.config, policy.template, policy.qualification, mat.environment.policy,
+      Object.values(grantsMat).map((g) => (g.canonical_form === "raw_bytes" ? g.text : r2Jcs(g.value))),
+      Object.entries(worker.env).filter(([n]) => classification[n] === "non_secret").map(([, v]) => v),
+      mat.workspace.capture.filter((c) => typeof c.content === "string").map((c) => c.content),
+    ]);
+    if (needles.some((needle) => committed.some((text) => text.includes(needle)))) unbound();
+  }
+
+  const { stdin } = mat;
+  if (stdin.mode === "pty") unbound();
+  else if (launch.stdin === "devnull") {
+    if (stdin.mode !== "devnull" || stdin.writes.length) unbound();
+  } else if (stdin.mode !== "pipe" || stdin.writes.length !== 1 || stdin.writes[0].after !== "start") unbound();
+  else if (stdin.writes[0].text !== mat.instructions.content) out.add("launch_instructions_mismatch");
+  if (mat.unbound_inputs.length) unbound();
+
+  const instr = launch.instructions;
+  const captured = mat.instructions;
+  if (!r2SameJson(captured.source ?? null, instr.source)) out.add("launch_instructions_mismatch");
+  if (captured.content === null || captured.content === undefined) unbound();
+  else {
+    if (r2Sha(captured.content) !== instr.sha256 || bytes(captured.content) !== instr.byte_length) out.add("launch_instructions_mismatch");
+    if (instr.source === null) {
+      const inline = launch.stdin === "input" || (argvsOk && worker.argv.filter((a) => a === captured.content).length === 1);
+      if (!inline) out.add("launch_instructions_mismatch");
+    } else if (!resolvable(instr.source, captured)) unbound();
+    else if (instr.source.namespace === "workspace" && !treeJoins(instr.source.path, instr.sha256)) out.add("launch_instructions_mismatch");
+  }
+
+  const bound = launch.references.map((r) => [r.role, r2Jcs(r.source), r.sha256, r.byte_length]);
+  const used = mat.references.map((r) => {
+    if (!resolvable(r.source, r)) unbound();
+    const c = r.content ?? null;
+    return [r.role, r2Jcs(r.source), c === null ? null : r2Sha(c), c === null ? null : bytes(c)];
+  });
+  if (JSON.stringify(bound) !== JSON.stringify(used)) out.add("launch_reference_mismatch");
+  for (const r of launch.references) {
+    if (r.source.namespace === "workspace" && !treeJoins(r.source.path, r.sha256)) out.add("launch_reference_mismatch");
+  }
+
+  if (argvsOk && (r2JcsSha(spawn.argv) !== launch.argv.sha256 || spawn.argv.length !== launch.argv.element_count)) out.add("launch_argv_mismatch");
+
+  const chainKey = (chain) => JSON.stringify(chain.map((e) => [e.role, e.locator_kind, e.locator, e.sha256]));
+  if (chainKey(launch.executable_chain) !== chainKey(mat.executable_chain)) out.add("launch_executable_mismatch");
+  for (const e of launch.executable_chain) {
+    if (e.locator_kind === "repo_relative" && !treeJoins(e.locator, e.sha256)) out.add("launch_executable_mismatch");
+  }
+
+  let template = null;
+  try {
+    template = r2StrictParse(Buffer.from(policy.template, "utf8"));
+    if (!r2Own(template, "spawn_cwd")) template = null;
+  } catch {
+    template = null;
+  }
+  if (template === null) unbound();
+  else {
+    const helpers = template.helpers ?? [];
+    if (!r2SameJson(spawn.cwd, template.spawn_cwd)) unbound();
+    if (argvsOk) {
+      const shift = helpers.reduce((sum, h) => sum + (h.argv_shift ?? 0), 0);
+      if (JSON.stringify(spawn.argv.slice(shift)) !== JSON.stringify(worker.argv)) out.add("launch_argv_mismatch");
+    }
+    if (envsOk) {
+      const derived = Object.create(null);
+      for (const [name, val] of Object.entries(spawn.env)) r2Set(derived, name, val);
+      let consumedOk = true;
+      const consumed = new Set();
+      for (const h of helpers) {
+        for (const [name, val] of Object.entries(h.env_consumed ?? {})) {
+          if (!r2Own(derived, name) || derived[name] !== val) consumedOk = false;
+          delete derived[name];
+          consumed.add(name);
+        }
+        for (const [name, val] of Object.entries(h.env_set ?? {})) r2Set(derived, name, val);
+      }
+      const ambient = Object.keys(spawn.env).filter((n) => !consumed.has(n) && !r2Own(worker.env, n));
+      if (!consumedOk || ambient.length) unbound();
+      else if (!r2SameJson(derived, worker.env)) out.add("launch_environment_mismatch");
+    }
+    let derivedCwd = spawn.cwd;
+    for (const h of helpers) if (h.cwd !== undefined && h.cwd !== null) derivedCwd = h.cwd;
+    if (!r2SameJson(derivedCwd, worker.cwd)) out.add("launch_workspace_mismatch");
+  }
+
+  const state = launch.workspace_state;
+  const ws = mat.workspace;
+  if (ws.base_commit !== state.base_commit || !r2SameJson(ws.target_map, state.target_map)) out.add("launch_workspace_mismatch");
+  if (manifest !== null && r2JcsSha(manifest) !== state.content_sha256) out.add("launch_workspace_mismatch");
+  if (!r2SameJson(worker.cwd, state.cwd)) out.add("launch_workspace_mismatch");
+  if (!proc.cwd_resolution.within_root) unbound();
+  if (state.cwd.namespace === "view_root") {
+    const viewRoots = (grantValue("filesystem_view_sha256")?.roots ?? []).map((r) => r && r.id);
+    if (!viewRoots.includes(state.cwd.root)) unbound();
+  }
+  const boundSources = launch.references.map((r) => r2Jcs(r.source));
+  if (proc.cwd_resolution.discovered.some((found) => !boundSources.includes(r2Jcs(found)))) unbound();
+
+  const environment = launch.environment;
+  if (classified && r2JcsSha(r2Redacted(worker.env, classification)) !== environment.map_sha256) out.add("launch_environment_mismatch");
+  if (mat.environment.policy_id !== environment.policy.id || r2Sha(mat.environment.policy) !== environment.policy.sha256) out.add("launch_environment_mismatch");
+
+  const trusted = launch.trusted_policy;
+  const qualification = policy.qualification === null ? null : r2Sha(policy.qualification);
+  if (r2Sha(policy.config) !== trusted.config_sha256 || r2Sha(policy.template) !== trusted.template_sha256 || qualification !== trusted.qualification_sha256) {
+    out.add("launch_policy_mismatch");
+  }
+  const boundGrants = launch.grants ?? {};
+  if (JSON.stringify(Object.keys(boundGrants).sort()) !== JSON.stringify(Object.keys(grantsMat).sort())) out.add("launch_policy_mismatch");
+  for (const [kind, commitment] of Object.entries(boundGrants)) {
+    const g = grantsMat[kind];
+    try {
+      if (!g || g.canonical_form !== commitment.canonical_form || r2GrantDigest(g) !== commitment.sha256) out.add("launch_policy_mismatch");
+    } catch (error) {
+      if (!(error instanceof R2Unbindable)) throw error;
+      unbound();
+    }
+  }
+
+  const { stop } = launch;
+  const { deadline } = proc;
+  const armed = stop.deadline_action === "terminate_process_group" ? stop.timeout_seconds : null;
+  if (deadline.seconds !== armed || (armed !== null && (deadline.origin !== "first_chain_process" || deadline.restarted_at_helper))) out.add("launch_timeout_mismatch");
+
+  for (const probe of proc.probes) {
+    if (probe.phase !== "before_admission" || probe.mutated_captured || (argvsOk && JSON.stringify(probe.argv) === JSON.stringify(worker.argv))) unbound();
+  }
+  return [...out];
+}
+
+function r2Apply(fixture) {
+  const { envelope: env, protected_before: before, proposal } = fixture;
+  const mapping = new Map(env.target_map.map((p) => [p.workspace_locator, p.protected_locator]));
+  const scope = env.repo_relative_locators;
+  const protectedPath = (path) => {
+    const target = mapping.get(path);
+    return target !== undefined && scope.some((s) => target === s || target.startsWith(`${s}/`)) ? target : null;
+  };
+  const unchanged = () => ({ ...before });
+  if (r2Sha(proposal.text) !== proposal.recorded_sha256) return ["proposal_digest_mismatch", unchanged()];
+  const ops = ["modify", "add", "delete", "rename", "copy"];
+  const twoSided = (e) => e.op === "rename" || e.op === "copy";
+  if (proposal.entries.some((e) => !ops.includes(e.op) || typeof e.path !== "string" || (twoSided(e) && typeof e.from !== "string"))) {
+    return ["proposal_unattributable", unchanged()];
+  }
+  if (proposal.entries.some((e) => e.kind !== "file" || e.mode_change)) return ["proposal_entry_unsupported", unchanged()];
+  if (proposal.entries.flatMap((e) => (twoSided(e) ? [e.path, e.from] : [e.path])).some((p) => protectedPath(p) === null)) {
+    return ["proposal_out_of_scope", unchanged()];
+  }
+  const after = { ...before };
+  for (const e of proposal.entries) {
+    const target = protectedPath(e.path);
+    if ((e.op === "modify" || e.op === "delete") && before[target] !== e.base_sha256) return ["proposal_stale", unchanged()];
+    if (["add", "rename", "copy"].includes(e.op) && target in before) return ["proposal_stale", unchanged()];
+    if (twoSided(e)) {
+      const source = protectedPath(e.from);
+      if (before[source] !== e.base_sha256) return ["proposal_stale", unchanged()];
+      if (e.op === "rename") delete after[source];
+    }
+    if (e.op === "delete") delete after[target];
+    else after[target] = e.new_sha256;
+  }
+  return ["proposal_applied", after];
+}
+
+function r2JournalCodes(journal, runSchema) {
+  const lifecycle = runSchema["x-journal-rules"].lifecycle;
+  const codes = new Set();
+  for (const attempt of journal.attempts) {
+    const states = attempt.segments.flatMap((s) => s.lines).filter((l) => typeof l === "object" && (l.line_kind === "state" || l.line_kind === "terminal")).map((l) => l.body);
+    let previous = null;
+    for (const body of states) {
+      const invalid = previous !== null && !lifecycle[previous].includes(body.state);
+      const afterLaunch = body.state === "refused" && (previous === "running" || previous === "cancelling" || body.worker_invocations > 0);
+      if (afterLaunch) codes.add("refused_after_launch");
+      else if (invalid) codes.add("lifecycle_invalid");
+      if (body.body_kind === "terminal") {
+        if (body.state === "finished" && body.termination === null) codes.add("lifecycle_invalid");
+        if (body.state === "refused" && body.refusal === null) codes.add("lifecycle_invalid");
+      }
+      previous = body.state;
+    }
+  }
+  return [...codes].sort();
+}
+
+function sr2Errors(schema, value, root, path = "", out = new Set()) {
+  if (schema.$ref !== undefined) sr2Errors(srResolve(root, schema.$ref), value, root, path, out);
+  if (schema.type !== undefined) {
+    const names = Array.isArray(schema.type) ? schema.type : [schema.type];
+    if (!names.some((name) => srTypeOk(name, value))) {
+      out.add(`${path} type`);
+      return out;
+    }
+  }
+  if ("const" in schema && !r2SameJson(value, schema.const)) out.add(`${path} const`);
+  if (schema.enum !== undefined && !schema.enum.some((entry) => r2SameJson(entry, value))) out.add(`${path} enum`);
+  if (schema.anyOf !== undefined && !schema.anyOf.some((sub) => sr2Errors(sub, value, root, path).size === 0)) out.add(`${path} anyOf`);
+  if (typeof value === "string") {
+    const length = [...value].length;
+    if (schema.minLength !== undefined && length < schema.minLength) out.add(`${path} minLength`);
+    if (schema.maxLength !== undefined && length > schema.maxLength) out.add(`${path} maxLength`);
+    if (schema.pattern !== undefined && !new RegExp(schema.pattern, "u").test(value)) out.add(`${path} pattern`);
+  }
+  if (Number.isInteger(value)) {
+    if (schema.minimum !== undefined && value < schema.minimum) out.add(`${path} minimum`);
+    if (schema.maximum !== undefined && value > schema.maximum) out.add(`${path} maximum`);
+  }
+  if (Array.isArray(value)) {
+    if (schema.minItems !== undefined && value.length < schema.minItems) out.add(`${path} minItems`);
+    if (schema.items !== undefined) value.forEach((item, index) => sr2Errors(schema.items, item, root, `${path}/${index}`, out));
+  }
+  if (srTypeOk("object", value)) {
+    const props = schema.properties ?? {};
+    if ((schema.required ?? []).some((key) => !(key in value))) out.add(`${path} required`);
+    if (schema.minProperties !== undefined && Object.keys(value).length < schema.minProperties) out.add(`${path} minProperties`);
+    if (schema.additionalProperties === false && Object.keys(value).some((key) => !(key in props))) out.add(`${path} additionalProperties`);
+    for (const [key, entry] of Object.entries(value)) if (key in props) sr2Errors(props[key], entry, root, `${path}/${key}`, out);
+  }
+  return out;
+}
+
+function sr2Subset(expected, actual) {
+  if (expected && typeof expected === "object" && !Array.isArray(expected)) {
+    return actual !== null && typeof actual === "object" && Object.entries(expected).every(([k, v]) => k in actual && sr2Subset(v, actual[k]));
+  }
+  return JSON.stringify(expected) === JSON.stringify(actual);
+}
+
+function sr2Load() {
+  const schema = loadSchema("admitted_launch_envelope_v2");
+  const read = (name) => JSON.parse(readFileSync(CONTRACT.supervised_run.vectors[name], "utf8"));
+  const vectors = read("admitted_launch_envelope_v2");
+  const controls = Object.fromEntries(vectors.cases.filter((c) => c.role === "control").map((c) => [c.id, c]));
+  const cases = vectors.cases.map((c) => {
+    if (c.role === "control") return [c, c.input];
+    const patched = srApplyPatch(controls[c.control].input, c.patch);
+    if (c.rehash) patched.envelope.envelope_digest = srEnvelopeDigest(patched.envelope);
+    return [c, patched];
+  });
+  return {
+    schema, vectors, cases, byId: Object.fromEntries(cases.map(([c, v]) => [c.id, v])),
+    canonical: read("admitted_launch_envelope_v2_canonical"), apply: read("admitted_launch_envelope_v2_apply"),
+  };
+}
+
+function sr2Outcome(schema, c, value) {
+  if (c.kind === "echo") return r2SameJson(value.echoed_caller_context, value.envelope.caller_context) ? [] : ["caller_context_interpreted"];
+  return r2Evaluate(schema, value)[0];
+}
+
+test("admitted_launch_envelope.v2: registration, rules, tiers and the caller_context sentence", () => {
+  const { schema, vectors, canonical: canon, apply } = sr2Load();
+  const v1 = loadSchema("admitted_launch_envelope");
+  assert.equal(schema.$id, "urn:contract:admitted_launch_envelope.v2");
+  for (const doc of [vectors, canon, apply]) assert.equal(doc.contract, "admitted_launch_envelope.v2");
+  assert.deepEqual(schema.required.filter((k) => !v1.required.includes(k)), ["launch"]);
+  for (const rule of Object.keys(v1["x-semantic-rules"])) assert.ok(rule in schema["x-semantic-rules"], rule);
+  const flat = schema["x-evaluation-order"].stages.flat();
+  assert.equal(new Set(flat).size, flat.length);
+  assert.deepEqual([...flat, "caller_context_interpreted", "refusal_zero_invocations"].sort(), Object.keys(schema["x-semantic-rules"]).sort());
+  for (const [name, info] of Object.entries(schema["x-enforcement-tiers"])) {
+    assert.ok(!("qualified" in info), name);
+    assert.equal(info.constraints.write_prevention, "not_enforced", name);
+    assert.equal(info.qualification, info.status === "defined" ? "required" : "not_admissible", name);
+  }
+  assert.match(schema.properties.caller_context.description, /never interpreted by the harness or the workbench reader, and never a source of any launch input/);
+  assert.match(schema["x-constraint-semantics"].write_scope, /runs whether or not required_constraints lists write_scope/);
+  assert.match(schema["x-semantic-rules"].refusal_zero_invocations, /zero launch-chain processes/);
+});
+
+test("admitted_launch_envelope.v2: every vector gives exactly its schema errors, digest and staged diagnostics", () => {
+  const { schema, cases } = sr2Load();
+  const counts = { control: 0, negative: 0, schema_negative: 0 };
+  const mismatches = [];
+  const widened = new Set();
+  for (const [c, value] of cases) {
+    counts[c.role] += 1;
+    const errors = sr2Errors(schema, value.envelope, schema, "/envelope");
+    assert.equal(srValid(schema, value.envelope, schema), errors.size === 0, c.id);
+    const expectedErrors = (c.expected_schema_errors ?? []).map((e) => `${e.instance_path} ${e.keyword}`).sort();
+    assert.deepEqual([...errors].sort(), expectedErrors, c.id);
+    if (srEnvelopeDigest(value.envelope) !== value.envelope.envelope_digest) mismatches.push(c.id);
+    assert.deepEqual(sr2Outcome(schema, c, value), c.expected, c.id);
+    if (c.kind === "admission") {
+      const [, effect] = r2Evaluate(schema, value);
+      assert.ok(sr2Subset(c.expected_effect, effect), `${c.id}: ${JSON.stringify(effect)}`);
+      assert.equal(effect.attempt.worker_invocations, 0, c.id);
+      if (c.role === "negative" && JSON.stringify(r2Evaluate(schema, value, false)[0]) !== JSON.stringify(c.expected)) widened.add(c.id);
+    }
+  }
+  assert.deepEqual(counts, { control: 21, negative: 172, schema_negative: 62 });
+  assert.deepEqual(mismatches.sort(), ["S2-digest-not-rehashed", "S2-jcs-ascii-escaped-envelope", "S2-jcs-codepoint-order-envelope"]);
+  for (const id of ["S2-os-enforced", "S2-chain-executable-not-last", "S2-qual-duplicate-identical"]) assert.ok(widened.has(id), id);
+});
+
+test("admitted_launch_envelope.v2: exactly one qualification record, in any order", () => {
+  const { schema, cases } = sr2Load();
+  const permutations = (items) => (items.length <= 1 ? [items] : items.flatMap((x, i) => permutations([...items.slice(0, i), ...items.slice(i + 1)]).map((p) => [x, ...p])));
+  for (const [c, value] of cases) {
+    if (c.kind !== "admission" || c.role === "schema_negative") continue;
+    const routes = value.validator_context.qualified_routes;
+    if (routes.length > 4) continue;
+    for (const order of permutations(routes)) {
+      const permuted = JSON.parse(JSON.stringify(value));
+      permuted.validator_context.qualified_routes = order;
+      assert.deepEqual(r2Evaluate(schema, permuted)[0], c.expected, `${c.id} permuted`);
+    }
+  }
+});
+
+test("admitted_launch_envelope.v2: secrets stay out of commitments; cwd keeps the tree digest; findings are covered", () => {
+  const { cases, byId, apply } = sr2Load();
+  assert.deepEqual(byId["E2-secret-env"].envelope, byId["E2-secret-env-rotated"].envelope);
+  assert.deepEqual(byId["E2-secret-env-opaque"].envelope, byId["E2-secret-env-opaque-rotated"].envelope);
+  const secrets = ["fake-credential-0001-not-a-real-secret", "fake-credential-0002-rotated-not-real"];
+  const needles = [...secrets, ...secrets.map(r2Sha)];
+  const carrying = [];
+  const { schema } = sr2Load();
+  for (const [c, value] of cases) {
+    const text = JSON.stringify(value.envelope);
+    if (needles.some((needle) => text.includes(needle))) {
+      // R2-SECRET-01: an envelope carrying a secret or its digest anywhere, caller_context included, is refused.
+      carrying.push(c.id);
+      assert.deepEqual(c.expected, ["launch_input_unbound"], c.id);
+      assert.deepEqual(r2Evaluate(schema, value)[0], ["launch_input_unbound"], c.id);
+    }
+  }
+  assert.deepEqual(carrying.sort(), [
+    "S3-secret-digest-in-caller-context", "S3-secret-digest-in-caller-context-member-name", "S3-secret-in-caller-context",
+    "S3-secret-in-caller-context-array", "S3-secret-in-caller-context-escaped", "S3-secret-in-caller-context-member-name",
+    "S3-secret-in-caller-context-substring",
+  ]);
+  assert.equal(byId["E2-view-cwd"].envelope.launch.workspace_state.content_sha256, byId["E2-execution"].envelope.launch.workspace_state.content_sha256);
+  assert.deepEqual(byId["E2-helper-transform"].launch_material.process.deadline, { origin: "first_chain_process", seconds: 1800, restarted_at_helper: false });
+  const findings = new Set([...cases.map(([c]) => c.finding), ...apply.applications.map((f) => f.finding), ...apply.journals.map((f) => f.finding)]);
+  for (const f of ["V2-BIND-01", "V2-QUAL-01", "V2-JCS-01", "V2-TREE-01", "V2-TIER-01", "V2-PRIV-01", "R1", "R2", "R3", "V2-GRANT-01", "S3", "V2-VEC-01", "V2-VEC-02", "V2-LOC-01", "S4",
+    "R2-JCS-02", "R2-SECRET-01", "R2-TREE-01", "R2-BIND-01", "R3-TREE-01"]) {
+    assert.ok(findings.has(f), f);
+  }
+});
+
+test("admitted_launch_envelope.v2: RFC 8785 numbers, documents, parse boundary and wrong preimages", () => {
+  const { canonical: canon } = sr2Load();
+  let rfcRows = 0;
+  for (const row of canon.numbers) {
+    const value = Buffer.from(row.bits, "hex").readDoubleBE(0);
+    if (row.reject) assert.throws(() => r2EsNumber(value), R2Unbindable, row.id);
+    else {
+      assert.equal(r2EsNumber(value), row.canonical, row.id);
+      if (row.pin === "RFC 8785 Appendix B") rfcRows += 1;
+    }
+  }
+  assert.equal(rfcRows, 24);
+  const docs = Object.fromEntries(canon.documents.map((d) => [d.id, d]));
+  for (const doc of canon.documents) {
+    const raw = doc.raw !== undefined ? Buffer.from(doc.raw, "utf8") : Buffer.from(doc.raw_hex, "hex");
+    if (doc.reject) {
+      assert.throws(() => r2StrictParse(raw), R2Unbindable, doc.id);
+      continue;
+    }
+    const text = r2Jcs(r2StrictParse(raw));
+    assert.equal(text, doc.canonical, doc.id);
+    assert.equal(r2Sha(text), doc.sha256, doc.id);
+  }
+  assert.equal(docs["J-utf16-keys"].sha256, "10921118479ffb2077228b69799235faedcf1ce522092829370ceb5a2b0840d2");
+  for (const alt of canon.alternates) {
+    assert.equal(r2Sha(alt.preimage), alt.sha256, alt.id);
+    assert.notEqual(alt.sha256, docs[alt.of].sha256, alt.id);
+  }
+  assert.throws(() => r2Jcs({ a: Number.NaN }), R2Unbindable);
+  assert.throws(() => r2Jcs({ a: "\ud800" }), R2Unbindable);
+  assert.throws(() => r2Jcs({ a: undefined }), R2Unbindable);
+});
+
+test("admitted_launch_envelope.v2: source-tree capture", () => {
+  const { canonical: canon } = sr2Load();
+  const trees = Object.fromEntries(canon.tree_captures.map((t) => [t.id, t]));
+  for (const tree of canon.tree_captures) {
+    if (tree.unbindable) {
+      assert.throws(() => r2CaptureManifest(tree.capture), R2Unbindable, tree.id);
+      continue;
+    }
+    const manifest = r2CaptureManifest(tree.capture);
+    assert.deepEqual(manifest, tree.manifest, tree.id);
+    assert.equal(r2JcsSha(manifest), tree.sha256, tree.id);
+  }
+  const root = trees["T-root-git-directory"].sha256;
+  assert.equal(trees["T-implicit-directories"].sha256, root);
+  assert.equal(trees["T-root-git-file-with-children"].sha256, root);
+  for (const id of ["T-symlink-ancestor", "T-symlink-ancestor-listed-after", "T-file-ancestor", "T-file-ancestor-listed-after", "T-nested-git-symlink-ancestor",
+    "T-deep-symlink-ancestor", "T-deep-symlink-ancestor-listed-after", "T-deep-file-ancestor", "T-deep-file-ancestor-listed-after"]) {
+    assert.equal(trees[id].unbindable, true, id);
+  }
+  // R3-TREE-01: every proper ancestor, not only the immediate parent; implicit intermediates are valid.
+  assert.ok(!trees["T-deep-implicit-directories"].unbindable);
+  assert.deepEqual(trees["T-deep-implicit-directories"].manifest.map((e) => e[0]), ["README.md", "a/b/c.txt"]);
+  assert.equal(trees["T-root-git-file"].sha256, root);
+  assert.equal(trees["T-root-git-symlink"].sha256, root);
+  assert.notEqual(trees["T-nested-git-removed"].sha256, root);
+  assert.notEqual(trees["T-exec-bit-cleared"].sha256, root);
+  for (const alt of canon.tree_alternates) {
+    assert.equal(r2JcsSha(alt.manifest), alt.sha256, alt.id);
+    assert.notEqual(r2JcsSha(r2CaptureManifest(trees[alt.of].capture)), alt.sha256, alt.id);
+  }
+});
+
+test("admitted_launch_envelope.v2: write_scope apply check and runtime journals", () => {
+  const { apply } = sr2Load();
+  const runSchema = loadSchema("supervised_run_status");
+  for (const fixture of apply.applications) {
+    const [outcome, after] = r2Apply(fixture);
+    assert.equal(outcome, fixture.expected.outcome, fixture.id);
+    assert.deepEqual(after, fixture.expected.protected_after, fixture.id);
+    assert.deepEqual(fixture.envelope.required_constraints, [], fixture.id);
+    if (outcome !== "proposal_applied") assert.deepEqual(after, fixture.protected_before, fixture.id);
+  }
+  for (const entry of apply.journals) {
+    for (const line of entry.journal.attempts.flatMap((a) => a.segments.flatMap((s) => s.lines))) {
+      assert.ok(srValid(runSchema.$defs.journal_line, line, runSchema), entry.id);
+    }
+    assert.deepEqual(r2JournalCodes(entry.journal, runSchema), entry.expected, entry.id);
+  }
+  const v1 = JSON.parse(readFileSync(CONTRACT.supervised_run.vectors.supervised_run_status, "utf8"));
+  const controls = Object.fromEntries(v1.cases.filter((c) => c.role === "control").map((c) => [c.id, c]));
+  let checked = 0;
+  for (const c of v1.cases) {
+    if (c.kind !== "journal" || !c.expected.every((code) => code === "refused_after_launch" || code === "lifecycle_invalid")) continue;
+    const value = c.role === "control" ? c.input : srApplyPatch(controls[c.control].input, c.patch);
+    assert.deepEqual(r2JournalCodes(value.journal, runSchema), c.expected, c.id);
+    checked += 1;
+  }
+  assert.ok(checked >= 6);
+});
+
+test("admitted_launch_envelope.v2: the README worked grant example is the control, byte for byte", () => {
+  const { byId } = sr2Load();
+  const readme = readFileSync(`${SR_ROOT}/conformance/README.v2.md`, "utf8");
+  const worked = byId["E2-grants-worked"];
+  for (const [kind, commitment] of Object.entries(worked.envelope.launch.grants)) {
+    assert.ok(readme.includes(commitment.sha256), kind);
+    assert.equal(r2GrantDigest(worked.launch_material.policy.grants[kind]), commitment.sha256, kind);
+  }
+  const record = worked.validator_context.qualified_routes[1];
+  assert.deepEqual(record.grants, worked.envelope.launch.grants);
+  assert.ok(readme.includes(r2Jcs(record.grants)));
+});
+
+test("admitted_launch_envelope.v2: drive-absolute locators are refused in every field family", () => {
+  // V2-LOC-01: built here because package data may not carry drive-absolute strings.
+  const { schema, byId } = sr2Load();
+  for (const spelling of ["C" + ":/src", "C" + ":\\src", "c" + ":/", "\\\\server\\share"]) assert.ok(!r2RelpathOk(spelling), spelling);
+  const drive = "C" + ":/src/module/target.ts";
+  const edits = {
+    workspace: (e) => e.workspace.repo_relative_locators.push("C" + ":/src"),
+    source: (e) => { e.launch.references[1].source.path = drive; },
+    target_map: (e) => { e.launch.workspace_state.target_map[0].workspace_locator = drive; },
+    cwd: (e) => { e.launch.workspace_state.cwd.path = "C" + ":/src"; },
+  };
+  for (const [family, edit] of Object.entries(edits)) {
+    const value = JSON.parse(JSON.stringify(byId["E2-execution"]));
+    edit(value.envelope);
+    value.envelope.envelope_digest = srEnvelopeDigest(value.envelope);
+    assert.deepEqual(r2Evaluate(schema, value)[0], ["locator_not_repo_relative"], family);
+  }
+});
+
+test("admitted_launch_envelope.v2: safe-integer commitment domain through raw parsing and in-memory values", () => {
+  // R2-JCS-01
+  const { canonical: canon } = sr2Load();
+  for (const row of canon.domain) {
+    for (const path of ["raw", "in_memory"]) {
+      let got;
+      try {
+        const value = path === "raw" ? r2StrictParse(Buffer.from(`[${row.token}]`, "utf8"))[0] : JSON.parse(row.token);
+        got = r2Jcs([value]).slice(1, -1);
+      } catch (error) {
+        if (!(error instanceof R2Unbindable)) throw error;
+        got = undefined;
+      }
+      assert.equal(got, row.canonical, `${row.id} ${path}`);
+    }
+  }
+  for (const value of [2 ** 53, -(2 ** 53), 1e21, 999999999999999900000]) assert.throws(() => r2Jcs({ n: value }), R2Unbindable, String(value));
+  assert.equal(r2Jcs({ n: Number.MAX_SAFE_INTEGER }), '{"n":9007199254740991}');
+  assert.equal(r2EsNumber(1e21), "1e+21"); // the serializer primitive is separate from acceptance
+});
+
+test("admitted_launch_envelope.v2: __proto__ is an ordinary own member, pinned across readers", () => {
+  // R2-JCS-02
+  const { canonical: canon, schema, byId } = sr2Load();
+  const parsed = r2StrictParse(Buffer.from('{"__proto__":{"x":1}}', "utf8"));
+  assert.ok(Object.prototype.hasOwnProperty.call(parsed, "__proto__"));
+  assert.equal(r2Jcs(parsed), '{"__proto__":{"x":1}}');
+  assert.equal(r2Sha(r2Jcs(parsed)), "0fb20b06cf5847cf21cc37dd0d3602c176cc3f96ea4281167bbfe61cbe5813a3");
+  assert.equal(canon.documents.find((d) => d.id === "J-proto-object").sha256, "0fb20b06cf5847cf21cc37dd0d3602c176cc3f96ea4281167bbfe61cbe5813a3");
+  assert.deepEqual(r2Evaluate(schema, byId["E2-jcs-proto"])[0], []);
+  assert.ok(Object.prototype.hasOwnProperty.call(byId["E2-jcs-proto"].envelope.caller_context, "__proto__"));
+});
+
+test("admitted_launch_envelope.v2: instruction byte_length is the UTF-8 byte count", () => {
+  // R2-BIND-01
+  const { schema, byId } = sr2Load();
+  const control = byId["E2-multibyte-instructions"];
+  const content = control.launch_material.instructions.content;
+  assert.notEqual([...content].length, Buffer.byteLength(content, "utf8"));
+  assert.equal(control.envelope.launch.instructions.byte_length, Buffer.byteLength(content, "utf8"));
+  for (const id of ["S3-instructions-length-char-count", "S3-instructions-length-plus-one"]) {
+    assert.equal(byId[id].envelope.launch.instructions.sha256, control.envelope.launch.instructions.sha256);
+    assert.deepEqual(r2Evaluate(schema, byId[id])[0], ["launch_instructions_mismatch"], id);
+  }
+});
+
+test("admitted_launch_envelope.v2: a non-immediate file or symlink ancestor refuses with zero workers", () => {
+  // R3-TREE-01
+  const { schema, byId } = sr2Load();
+  const control = byId["E2-review-deep-implicit"];
+  assert.deepEqual(r2Evaluate(schema, control)[0], []);
+  const paths = control.launch_material.workspace.capture.map((c) => c.path);
+  assert.ok(paths.includes("plans/deep/review-instructions.md") && !paths.includes("plans") && !paths.includes("plans/deep"));
+  for (const kind of ["symlink", "file"]) {
+    for (const suffix of ["", "-listed-after"]) {
+      const id = `S4-tree-deep-${kind}-ancestor${suffix}`;
+      const [codes, effect] = r2Evaluate(schema, byId[id]);
+      assert.deepEqual(codes, ["launch_input_unbound"], id);
+      assert.equal(effect.attempt.state, "refused", id);
+      assert.equal(effect.attempt.worker_invocations, 0, id);
+    }
+  }
 });

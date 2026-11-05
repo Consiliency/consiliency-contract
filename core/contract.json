@@ -80,7 +80,9 @@
     "vectors": {
       "admitted_launch_envelope": "core/supervised-run/conformance/envelope.vectors.json",
       "supervised_run_status": "core/supervised-run/conformance/run-status.vectors.json",
-      "admitted_launch_envelope_v2": "core/supervised-run/conformance/envelope.v2.vectors.json"
+      "admitted_launch_envelope_v2": "core/supervised-run/conformance/envelope.v2.vectors.json",
+      "admitted_launch_envelope_v2_canonical": "core/supervised-run/conformance/envelope.v2.canonical.vectors.json",
+      "admitted_launch_envelope_v2_apply": "core/supervised-run/conformance/envelope.v2.apply.vectors.json"
     }
   },
   "conformance": {

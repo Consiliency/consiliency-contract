@@ -28,9 +28,11 @@
       "admitted_launch_envelope.v2"
     ],
     "files": {
-      "admitted-launch-envelope.v2.schema.json": "603ec71cc5e74e4024fb63c2780ec98e809cc331f62f8a490cac54383263b0cc",
-      "conformance/README.v2.md": "24288603922193559580013357e1e755c77b8ab3e5c21be868cfae6947df4dfe",
-      "conformance/envelope.v2.vectors.json": "f2e3ac4615aaae70d70c400296cebd5918b049870b3d398906062b44619c7beb"
+      "admitted-launch-envelope.v2.schema.json": "8c9c83683cd8209a7f7aad40e13d4d35cd5658b0fbf93fbf87b3e66171a8e497",
+      "conformance/README.v2.md": "6777df3a040f1b2f941d650d76282879141786b60012e6f7bab9bd471ae833fb",
+      "conformance/envelope.v2.vectors.json": "2aa1c3948913c43276d19633abed0a7bed5666b051c41eb069745d6888e50036",
+      "conformance/envelope.v2.canonical.vectors.json": "bef986a21314f5799b1d573faecea1ce2825486f72f457d805b5e1d534c75a3e",
+      "conformance/envelope.v2.apply.vectors.json": "57e0fd4d2e88c75bb8dfbab94448431ca3c752f6444febf1bd492323b044c078"
     }
   },
   "distributed": {
@@ -41,13 +43,15 @@
       "conformance/README.md": "2d5045245105af88f1f45f720aa8bc3f366efc95c25e25a9c50e402a175533ca",
       "conformance/envelope.vectors.json": "876d322c313b444e49d7a95ee8f7ca39eef13c45864c67a0b3877235e1db6d7f",
       "conformance/run-status.vectors.json": "5bf9dfbf65805f7340290586d546038fc88659785e60e2f55532df4ac6696730",
-      "admitted-launch-envelope.v2.schema.json": "603ec71cc5e74e4024fb63c2780ec98e809cc331f62f8a490cac54383263b0cc",
-      "conformance/README.v2.md": "24288603922193559580013357e1e755c77b8ab3e5c21be868cfae6947df4dfe",
-      "conformance/envelope.v2.vectors.json": "f2e3ac4615aaae70d70c400296cebd5918b049870b3d398906062b44619c7beb"
+      "admitted-launch-envelope.v2.schema.json": "8c9c83683cd8209a7f7aad40e13d4d35cd5658b0fbf93fbf87b3e66171a8e497",
+      "conformance/README.v2.md": "6777df3a040f1b2f941d650d76282879141786b60012e6f7bab9bd471ae833fb",
+      "conformance/envelope.v2.vectors.json": "2aa1c3948913c43276d19633abed0a7bed5666b051c41eb069745d6888e50036",
+      "conformance/envelope.v2.canonical.vectors.json": "bef986a21314f5799b1d573faecea1ce2825486f72f457d805b5e1d534c75a3e",
+      "conformance/envelope.v2.apply.vectors.json": "57e0fd4d2e88c75bb8dfbab94448431ca3c752f6444febf1bd492323b044c078"
     },
     "manifest": {
       "path": "conformance/SHA256SUMS",
-      "sha256": "04e50191df748a2f41eac348e5eede9353cb9a7a6b0ab6b4458e5530e6b75df2",
+      "sha256": "31a0b53af64ec45f35bcb30eb3eb03a6c6a590854840685d1a3fab8eaa37138c",
       "v1_prefix": {
         "lines": 5,
         "sha256": "b9c2dad7ca32d32b9860e56c2e14141827955a50b52a54c8088760d9756e1285"
@@ -70,7 +74,9 @@
     "vectors": {
       "admitted_launch_envelope": "core/supervised-run/conformance/envelope.vectors.json",
       "supervised_run_status": "core/supervised-run/conformance/run-status.vectors.json",
-      "admitted_launch_envelope_v2": "core/supervised-run/conformance/envelope.v2.vectors.json"
+      "admitted_launch_envelope_v2": "core/supervised-run/conformance/envelope.v2.vectors.json",
+      "admitted_launch_envelope_v2_canonical": "core/supervised-run/conformance/envelope.v2.canonical.vectors.json",
+      "admitted_launch_envelope_v2_apply": "core/supervised-run/conformance/envelope.v2.apply.vectors.json"
     }
   },
   "consumer_reconciliation": {
@@ -96,12 +102,15 @@
       "journal segment chains of the controls verify",
       "the v1 payload and the five-line v1 manifest prefix match digests pinned in the test suites independently of this file",
       "v2: every control and semantic negative is schema-valid, and every schema_negative fails with exactly its expected (instance_path, keyword) set",
-      "v2: a test-local reading of x-semantic-rules and x-evaluation-order admits every control and refuses every negative with exactly its expected diagnostics and effect, including every launch digest recomputed from the case's launch material",
-      "v2: every new launch field and every semantic rule has a positive and a negative vector"
+      "v2: independently written Python and JS readings of x-semantic-rules and x-evaluation-order admit every control and refuse every negative with exactly its expected diagnostics and effect, recomputing every launch digest from the case's captured material",
+      "v2: RFC 8785 serialization and the I-JSON parse boundary against pinned numbers (RFC 8785 Appendix B), documents, rejects and wrong preimages, identically in both readings",
+      "v2: source-tree capture against pinned manifests, unbindable captures and wrong-walk alternates",
+      "v2: the write_scope apply check against pinned outcomes and protected state, and runtime journals against the frozen run-status lifecycle",
+      "v2: every new launch field, every semantic rule and every review finding has a positive and a negative vector"
     ],
     "not_checked": [
       "the remaining semantic diagnostics and expected_effect, which need a conforming reader",
-      "v2: a harness's own capture of launch material, qualification records and apply-time write_scope checking, which need a conforming harness"
+      "v2: a harness's own capture of launch material, its qualification records and evidence, and its apply-time write_scope checker, which need a conforming harness and installed-route qualification"
     ]
   }
 }

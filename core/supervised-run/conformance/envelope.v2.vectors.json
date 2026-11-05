@@ -4394,7 +4394,7 @@
       "input": {
         "envelope": {
           "schema": "admitted_launch_envelope.v2",
-          "envelope_digest": "a83be592e0a21b58fbaf845a01ddb85d1891c9a341a3d481acdf31eb5ecb7527",
+          "envelope_digest": "ca6d1e115e565c397c495749125012dff498624c3e97b56107b0dd32d707d5c8",
           "assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
           "units": {
             "target_unit_ids": [
@@ -4513,10 +4513,12 @@
               "half": 0.5,
               "one": 1.0,
               "negzero": -0.0,
-              "big": 1e+21,
+              "max_safe": 9007199254740991,
+              "min_safe": -9007199254740991,
+              "max_safe_float": 9007199254740991.0,
               "small": 1e-07,
-              "edge": 9.999999999999999e+20,
-              "frac": 333333333.3333333
+              "frac": 333333333.3333333,
+              "near_boundary": 4503599627370495.5
             },
             "nested": {
               "😀": [
@@ -4760,7 +4762,7 @@
       "input": {
         "envelope": {
           "schema": "admitted_launch_envelope.v2",
-          "envelope_digest": "a83be592e0a21b58fbaf845a01ddb85d1891c9a341a3d481acdf31eb5ecb7527",
+          "envelope_digest": "ca6d1e115e565c397c495749125012dff498624c3e97b56107b0dd32d707d5c8",
           "assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
           "units": {
             "target_unit_ids": [
@@ -4879,10 +4881,12 @@
               "half": 0.5,
               "one": 1.0,
               "negzero": -0.0,
-              "big": 1e+21,
+              "max_safe": 9007199254740991,
+              "min_safe": -9007199254740991,
+              "max_safe_float": 9007199254740991.0,
               "small": 1e-07,
-              "edge": 9.999999999999999e+20,
-              "frac": 333333333.3333333
+              "frac": 333333333.3333333,
+              "near_boundary": 4503599627370495.5
             },
             "nested": {
               "😀": [
@@ -5123,10 +5127,12 @@
             "half": 0.5,
             "one": 1.0,
             "negzero": -0.0,
-            "big": 1e+21,
+            "max_safe": 9007199254740991,
+            "min_safe": -9007199254740991,
+            "max_safe_float": 9007199254740991.0,
             "small": 1e-07,
-            "edge": 9.999999999999999e+20,
-            "frac": 333333333.3333333
+            "frac": 333333333.3333333,
+            "near_boundary": 4503599627370495.5
           },
           "escapes": "quote\" back\\ nl\n tab\t ctl\u0001 del sep ",
           "2": "two",
@@ -5334,6 +5340,1777 @@
               {
                 "after": "start",
                 "text": "Apply the obligation to the target unit and return a proposal.\n"
+              }
+            ]
+          },
+          "process": {
+            "spawn": {
+              "argv": [
+                "provider-cli",
+                "exec",
+                "--read-only",
+                "--label=café",
+                "-"
+              ],
+              "env": {
+                "HOME": "scratch/home",
+                "LANG": "C.UTF-8",
+                "PATH": "usr/bin",
+                "TMPDIR": "scratch/tmp"
+              },
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              }
+            },
+            "worker": {
+              "argv": [
+                "provider-cli",
+                "exec",
+                "--read-only",
+                "--label=café",
+                "-"
+              ],
+              "env": {
+                "HOME": "scratch/home",
+                "LANG": "C.UTF-8",
+                "PATH": "usr/bin",
+                "TMPDIR": "scratch/tmp"
+              },
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              }
+            },
+            "cwd_resolution": {
+              "within_root": true,
+              "discovered": []
+            },
+            "deadline": {
+              "origin": "first_chain_process",
+              "seconds": 1800,
+              "restarted_at_helper": false
+            },
+            "probes": [
+              {
+                "phase": "before_admission",
+                "mutated_captured": false,
+                "argv": [
+                  "provider-cli",
+                  "--version"
+                ]
+              }
+            ]
+          },
+          "executable_chain": [
+            {
+              "role": "executable",
+              "locator_kind": "declared",
+              "locator": "provider-cli",
+              "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+            }
+          ],
+          "workspace": {
+            "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+            "capture": [
+              {
+                "path": ".git",
+                "type": "dir"
+              },
+              {
+                "path": ".git/HEAD",
+                "type": "file",
+                "mode": 420,
+                "content": "ref: refs/heads/main\n"
+              },
+              {
+                "path": ".git/config",
+                "type": "file",
+                "mode": 420,
+                "content": "[core]\n"
+              },
+              {
+                "path": "docs",
+                "type": "dir"
+              },
+              {
+                "path": "src",
+                "type": "dir"
+              },
+              {
+                "path": "src/module",
+                "type": "dir"
+              },
+              {
+                "path": "README.md",
+                "type": "file",
+                "mode": 420,
+                "content": "Example project.\n"
+              },
+              {
+                "path": "docs/context.md",
+                "type": "file",
+                "mode": 420,
+                "content": "Context: the target unit exports one constant.\n"
+              },
+              {
+                "path": "src/module/target.ts",
+                "type": "file",
+                "mode": 420,
+                "content": "export const target = 1;\n"
+              }
+            ],
+            "target_map": [
+              {
+                "workspace_locator": "src/module/target.ts",
+                "protected_locator": "src/module/target.ts"
+              }
+            ]
+          },
+          "environment": {
+            "policy_id": "scrub-scratch",
+            "policy": "{\"build\": \"scrub: drop provider self-markers and mutation credentials; relocate HOME and TMPDIR to scratch\", \"classification\": {\"HELPER_MODE\": \"non_secret\", \"HOME\": \"non_secret\", \"LANG\": \"non_secret\", \"PATH\": \"non_secret\", \"TERM\": \"non_secret\", \"TMPDIR\": \"non_secret\", \"WORKER_ROLE\": \"non_secret\"}}\n"
+          },
+          "policy": {
+            "config": "timeout_max_seconds = 1800\nheartbeat_seconds = 30\nquiet_seconds = 300\n",
+            "template": "{\"argv\": [\"provider-cli\", \"exec\", \"--read-only\", \"--label={label}\", \"-\"], \"helpers\": [], \"spawn_cwd\": {\"namespace\": \"workspace\", \"path\": \".\"}}\n",
+            "qualification": "qualification: provider-cli 1.4.2 build; exec read-only; proposal return; audit\n",
+            "grants": {}
+          },
+          "unbound_inputs": []
+        }
+      },
+      "expected": [],
+      "expected_effect": {
+        "attempt": {
+          "state": "queued",
+          "worker_invocations": 0
+        }
+      }
+    },
+    {
+      "id": "E2-jcs-proto",
+      "kind": "admission",
+      "role": "control",
+      "input": {
+        "envelope": {
+          "schema": "admitted_launch_envelope.v2",
+          "envelope_digest": "0ba625a7471e1ca94788e175fdfe5580fc9740a5eb068091ab5a5f5d0647d43b",
+          "assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "units": {
+            "target_unit_ids": [
+              "unit:target"
+            ],
+            "readonly_neighbor_unit_ids": [
+              "unit:neighbor"
+            ],
+            "snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+            "crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d"
+          },
+          "workspace": {
+            "kind": "separate_clone",
+            "repo_relative_locators": [
+              "src/module"
+            ]
+          },
+          "enforcement": {
+            "tier": "provider_readonly_patch_return_audit",
+            "required_constraints": [
+              "write_scope"
+            ]
+          },
+          "launch": {
+            "action": "execution",
+            "transport_id": "cli",
+            "stdin": "input",
+            "instructions": {
+              "sha256": "a07043de7c6e651cc24d79e3a08c1f9b557779aff1bfcb11cd34c60517e34ab5",
+              "byte_length": 63,
+              "source": null
+            },
+            "references": [
+              {
+                "role": "baseline",
+                "sha256": "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8",
+                "byte_length": 25,
+                "source": {
+                  "namespace": "workspace",
+                  "path": "src/module/target.ts"
+                }
+              },
+              {
+                "role": "context",
+                "sha256": "028fca921564ffd58d7312f72627ef562a63c0e1067ac0c26dfeac570db003e7",
+                "byte_length": 47,
+                "source": {
+                  "namespace": "workspace",
+                  "path": "docs/context.md"
+                }
+              }
+            ],
+            "argv": {
+              "canonical_form": "rfc8785_array_of_strings",
+              "sha256": "a4ca82d4d88b1c13bd66cdf1d06368b654c2f6f3bac535d6a19e932f9992a3e0",
+              "element_count": 5
+            },
+            "executable_chain": [
+              {
+                "role": "executable",
+                "locator_kind": "declared",
+                "locator": "provider-cli",
+                "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+              }
+            ],
+            "workspace_state": {
+              "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+              "content_form": "rfc8785_tree_manifest",
+              "content_sha256": "a22a2ce22e92343476310612bf3dff9179cb1f6fdda386a5492f8b80cac4ed39",
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              },
+              "target_map": [
+                {
+                  "workspace_locator": "src/module/target.ts",
+                  "protected_locator": "src/module/target.ts"
+                }
+              ]
+            },
+            "environment": {
+              "canonical_form": "rfc8785_redacted_environment",
+              "map_sha256": "d78243cccf89ac42578625ef302e025109c38aeeed7cf027a5837d383fb8e3bd",
+              "policy": {
+                "id": "scrub-scratch",
+                "sha256": "ff236b122fb950a6902e0446851b325cefe709185b572b8d403fcf56ed10c016"
+              }
+            },
+            "trusted_policy": {
+              "config_sha256": "b1e1f1621d53d65c37d3c6626b171d3e0c34257d6eae4ae2410c86cfc1d5f461",
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6"
+            },
+            "stop": {
+              "timeout_seconds": 1800,
+              "deadline_action": "terminate_process_group"
+            }
+          },
+          "obligations": {
+            "definition_digests": [
+              "7327e7658f4b4a5b072b5e9543e5e5139abf685bd64fc85c1e99768ae3b93d98"
+            ]
+          },
+          "executable_dependencies": {
+            "declared": false,
+            "admitted_dependency_digest": null
+          },
+          "caller_context": {
+            "__proto__": {
+              "x": 1
+            },
+            "n": null,
+            "s": "v",
+            "nested": {
+              "__proto__": null,
+              "list": [
+                {
+                  "__proto__": "s"
+                }
+              ]
+            }
+          },
+          "redaction_posture": "digests_and_repo_relative_locators_only"
+        },
+        "validator_context": {
+          "expected_assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "expected_snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+          "expected_crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d",
+          "timeout_max_seconds": 1800,
+          "qualified_routes": [
+            {
+              "tier": "provider_readonly_patch_return_audit",
+              "action": "execution",
+              "transport_id": "batch",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6",
+              "grants": {},
+              "credential_sources": []
+            },
+            {
+              "tier": "provider_readonly_patch_return_audit",
+              "action": "execution",
+              "transport_id": "cli",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6",
+              "grants": {},
+              "credential_sources": []
+            }
+          ]
+        },
+        "launch_material": {
+          "instructions": {
+            "source": null,
+            "content": "Apply the obligation to the target unit and return a proposal.\n",
+            "within_root": true
+          },
+          "references": [
+            {
+              "role": "baseline",
+              "source": {
+                "namespace": "workspace",
+                "path": "src/module/target.ts"
+              },
+              "content": "export const target = 1;\n",
+              "within_root": true
+            },
+            {
+              "role": "context",
+              "source": {
+                "namespace": "workspace",
+                "path": "docs/context.md"
+              },
+              "content": "Context: the target unit exports one constant.\n",
+              "within_root": true
+            }
+          ],
+          "stdin": {
+            "mode": "pipe",
+            "writes": [
+              {
+                "after": "start",
+                "text": "Apply the obligation to the target unit and return a proposal.\n"
+              }
+            ]
+          },
+          "process": {
+            "spawn": {
+              "argv": [
+                "provider-cli",
+                "exec",
+                "--read-only",
+                "--label=café",
+                "-"
+              ],
+              "env": {
+                "HOME": "scratch/home",
+                "LANG": "C.UTF-8",
+                "PATH": "usr/bin",
+                "TMPDIR": "scratch/tmp"
+              },
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              }
+            },
+            "worker": {
+              "argv": [
+                "provider-cli",
+                "exec",
+                "--read-only",
+                "--label=café",
+                "-"
+              ],
+              "env": {
+                "HOME": "scratch/home",
+                "LANG": "C.UTF-8",
+                "PATH": "usr/bin",
+                "TMPDIR": "scratch/tmp"
+              },
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              }
+            },
+            "cwd_resolution": {
+              "within_root": true,
+              "discovered": []
+            },
+            "deadline": {
+              "origin": "first_chain_process",
+              "seconds": 1800,
+              "restarted_at_helper": false
+            },
+            "probes": [
+              {
+                "phase": "before_admission",
+                "mutated_captured": false,
+                "argv": [
+                  "provider-cli",
+                  "--version"
+                ]
+              }
+            ]
+          },
+          "executable_chain": [
+            {
+              "role": "executable",
+              "locator_kind": "declared",
+              "locator": "provider-cli",
+              "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+            }
+          ],
+          "workspace": {
+            "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+            "capture": [
+              {
+                "path": ".git",
+                "type": "dir"
+              },
+              {
+                "path": ".git/HEAD",
+                "type": "file",
+                "mode": 420,
+                "content": "ref: refs/heads/main\n"
+              },
+              {
+                "path": ".git/config",
+                "type": "file",
+                "mode": 420,
+                "content": "[core]\n"
+              },
+              {
+                "path": "docs",
+                "type": "dir"
+              },
+              {
+                "path": "src",
+                "type": "dir"
+              },
+              {
+                "path": "src/module",
+                "type": "dir"
+              },
+              {
+                "path": "README.md",
+                "type": "file",
+                "mode": 420,
+                "content": "Example project.\n"
+              },
+              {
+                "path": "docs/context.md",
+                "type": "file",
+                "mode": 420,
+                "content": "Context: the target unit exports one constant.\n"
+              },
+              {
+                "path": "src/module/target.ts",
+                "type": "file",
+                "mode": 420,
+                "content": "export const target = 1;\n"
+              }
+            ],
+            "target_map": [
+              {
+                "workspace_locator": "src/module/target.ts",
+                "protected_locator": "src/module/target.ts"
+              }
+            ]
+          },
+          "environment": {
+            "policy_id": "scrub-scratch",
+            "policy": "{\"build\": \"scrub: drop provider self-markers and mutation credentials; relocate HOME and TMPDIR to scratch\", \"classification\": {\"HELPER_MODE\": \"non_secret\", \"HOME\": \"non_secret\", \"LANG\": \"non_secret\", \"PATH\": \"non_secret\", \"TERM\": \"non_secret\", \"TMPDIR\": \"non_secret\", \"WORKER_ROLE\": \"non_secret\"}}\n"
+          },
+          "policy": {
+            "config": "timeout_max_seconds = 1800\nheartbeat_seconds = 30\nquiet_seconds = 300\n",
+            "template": "{\"argv\": [\"provider-cli\", \"exec\", \"--read-only\", \"--label={label}\", \"-\"], \"helpers\": [], \"spawn_cwd\": {\"namespace\": \"workspace\", \"path\": \".\"}}\n",
+            "qualification": "qualification: provider-cli 1.4.2 build; exec read-only; proposal return; audit\n",
+            "grants": {}
+          },
+          "unbound_inputs": []
+        }
+      },
+      "expected": [],
+      "expected_effect": {
+        "attempt": {
+          "state": "queued",
+          "worker_invocations": 0
+        }
+      }
+    },
+    {
+      "id": "E2-jcs-proto-echo",
+      "kind": "echo",
+      "role": "control",
+      "input": {
+        "envelope": {
+          "schema": "admitted_launch_envelope.v2",
+          "envelope_digest": "0ba625a7471e1ca94788e175fdfe5580fc9740a5eb068091ab5a5f5d0647d43b",
+          "assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "units": {
+            "target_unit_ids": [
+              "unit:target"
+            ],
+            "readonly_neighbor_unit_ids": [
+              "unit:neighbor"
+            ],
+            "snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+            "crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d"
+          },
+          "workspace": {
+            "kind": "separate_clone",
+            "repo_relative_locators": [
+              "src/module"
+            ]
+          },
+          "enforcement": {
+            "tier": "provider_readonly_patch_return_audit",
+            "required_constraints": [
+              "write_scope"
+            ]
+          },
+          "launch": {
+            "action": "execution",
+            "transport_id": "cli",
+            "stdin": "input",
+            "instructions": {
+              "sha256": "a07043de7c6e651cc24d79e3a08c1f9b557779aff1bfcb11cd34c60517e34ab5",
+              "byte_length": 63,
+              "source": null
+            },
+            "references": [
+              {
+                "role": "baseline",
+                "sha256": "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8",
+                "byte_length": 25,
+                "source": {
+                  "namespace": "workspace",
+                  "path": "src/module/target.ts"
+                }
+              },
+              {
+                "role": "context",
+                "sha256": "028fca921564ffd58d7312f72627ef562a63c0e1067ac0c26dfeac570db003e7",
+                "byte_length": 47,
+                "source": {
+                  "namespace": "workspace",
+                  "path": "docs/context.md"
+                }
+              }
+            ],
+            "argv": {
+              "canonical_form": "rfc8785_array_of_strings",
+              "sha256": "a4ca82d4d88b1c13bd66cdf1d06368b654c2f6f3bac535d6a19e932f9992a3e0",
+              "element_count": 5
+            },
+            "executable_chain": [
+              {
+                "role": "executable",
+                "locator_kind": "declared",
+                "locator": "provider-cli",
+                "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+              }
+            ],
+            "workspace_state": {
+              "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+              "content_form": "rfc8785_tree_manifest",
+              "content_sha256": "a22a2ce22e92343476310612bf3dff9179cb1f6fdda386a5492f8b80cac4ed39",
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              },
+              "target_map": [
+                {
+                  "workspace_locator": "src/module/target.ts",
+                  "protected_locator": "src/module/target.ts"
+                }
+              ]
+            },
+            "environment": {
+              "canonical_form": "rfc8785_redacted_environment",
+              "map_sha256": "d78243cccf89ac42578625ef302e025109c38aeeed7cf027a5837d383fb8e3bd",
+              "policy": {
+                "id": "scrub-scratch",
+                "sha256": "ff236b122fb950a6902e0446851b325cefe709185b572b8d403fcf56ed10c016"
+              }
+            },
+            "trusted_policy": {
+              "config_sha256": "b1e1f1621d53d65c37d3c6626b171d3e0c34257d6eae4ae2410c86cfc1d5f461",
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6"
+            },
+            "stop": {
+              "timeout_seconds": 1800,
+              "deadline_action": "terminate_process_group"
+            }
+          },
+          "obligations": {
+            "definition_digests": [
+              "7327e7658f4b4a5b072b5e9543e5e5139abf685bd64fc85c1e99768ae3b93d98"
+            ]
+          },
+          "executable_dependencies": {
+            "declared": false,
+            "admitted_dependency_digest": null
+          },
+          "caller_context": {
+            "__proto__": {
+              "x": 1
+            },
+            "n": null,
+            "s": "v",
+            "nested": {
+              "__proto__": null,
+              "list": [
+                {
+                  "__proto__": "s"
+                }
+              ]
+            }
+          },
+          "redaction_posture": "digests_and_repo_relative_locators_only"
+        },
+        "validator_context": {
+          "expected_assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "expected_snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+          "expected_crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d",
+          "timeout_max_seconds": 1800,
+          "qualified_routes": [
+            {
+              "tier": "provider_readonly_patch_return_audit",
+              "action": "execution",
+              "transport_id": "batch",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6",
+              "grants": {},
+              "credential_sources": []
+            },
+            {
+              "tier": "provider_readonly_patch_return_audit",
+              "action": "execution",
+              "transport_id": "cli",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6",
+              "grants": {},
+              "credential_sources": []
+            }
+          ]
+        },
+        "launch_material": {
+          "instructions": {
+            "source": null,
+            "content": "Apply the obligation to the target unit and return a proposal.\n",
+            "within_root": true
+          },
+          "references": [
+            {
+              "role": "baseline",
+              "source": {
+                "namespace": "workspace",
+                "path": "src/module/target.ts"
+              },
+              "content": "export const target = 1;\n",
+              "within_root": true
+            },
+            {
+              "role": "context",
+              "source": {
+                "namespace": "workspace",
+                "path": "docs/context.md"
+              },
+              "content": "Context: the target unit exports one constant.\n",
+              "within_root": true
+            }
+          ],
+          "stdin": {
+            "mode": "pipe",
+            "writes": [
+              {
+                "after": "start",
+                "text": "Apply the obligation to the target unit and return a proposal.\n"
+              }
+            ]
+          },
+          "process": {
+            "spawn": {
+              "argv": [
+                "provider-cli",
+                "exec",
+                "--read-only",
+                "--label=café",
+                "-"
+              ],
+              "env": {
+                "HOME": "scratch/home",
+                "LANG": "C.UTF-8",
+                "PATH": "usr/bin",
+                "TMPDIR": "scratch/tmp"
+              },
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              }
+            },
+            "worker": {
+              "argv": [
+                "provider-cli",
+                "exec",
+                "--read-only",
+                "--label=café",
+                "-"
+              ],
+              "env": {
+                "HOME": "scratch/home",
+                "LANG": "C.UTF-8",
+                "PATH": "usr/bin",
+                "TMPDIR": "scratch/tmp"
+              },
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              }
+            },
+            "cwd_resolution": {
+              "within_root": true,
+              "discovered": []
+            },
+            "deadline": {
+              "origin": "first_chain_process",
+              "seconds": 1800,
+              "restarted_at_helper": false
+            },
+            "probes": [
+              {
+                "phase": "before_admission",
+                "mutated_captured": false,
+                "argv": [
+                  "provider-cli",
+                  "--version"
+                ]
+              }
+            ]
+          },
+          "executable_chain": [
+            {
+              "role": "executable",
+              "locator_kind": "declared",
+              "locator": "provider-cli",
+              "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+            }
+          ],
+          "workspace": {
+            "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+            "capture": [
+              {
+                "path": ".git",
+                "type": "dir"
+              },
+              {
+                "path": ".git/HEAD",
+                "type": "file",
+                "mode": 420,
+                "content": "ref: refs/heads/main\n"
+              },
+              {
+                "path": ".git/config",
+                "type": "file",
+                "mode": 420,
+                "content": "[core]\n"
+              },
+              {
+                "path": "docs",
+                "type": "dir"
+              },
+              {
+                "path": "src",
+                "type": "dir"
+              },
+              {
+                "path": "src/module",
+                "type": "dir"
+              },
+              {
+                "path": "README.md",
+                "type": "file",
+                "mode": 420,
+                "content": "Example project.\n"
+              },
+              {
+                "path": "docs/context.md",
+                "type": "file",
+                "mode": 420,
+                "content": "Context: the target unit exports one constant.\n"
+              },
+              {
+                "path": "src/module/target.ts",
+                "type": "file",
+                "mode": 420,
+                "content": "export const target = 1;\n"
+              }
+            ],
+            "target_map": [
+              {
+                "workspace_locator": "src/module/target.ts",
+                "protected_locator": "src/module/target.ts"
+              }
+            ]
+          },
+          "environment": {
+            "policy_id": "scrub-scratch",
+            "policy": "{\"build\": \"scrub: drop provider self-markers and mutation credentials; relocate HOME and TMPDIR to scratch\", \"classification\": {\"HELPER_MODE\": \"non_secret\", \"HOME\": \"non_secret\", \"LANG\": \"non_secret\", \"PATH\": \"non_secret\", \"TERM\": \"non_secret\", \"TMPDIR\": \"non_secret\", \"WORKER_ROLE\": \"non_secret\"}}\n"
+          },
+          "policy": {
+            "config": "timeout_max_seconds = 1800\nheartbeat_seconds = 30\nquiet_seconds = 300\n",
+            "template": "{\"argv\": [\"provider-cli\", \"exec\", \"--read-only\", \"--label={label}\", \"-\"], \"helpers\": [], \"spawn_cwd\": {\"namespace\": \"workspace\", \"path\": \".\"}}\n",
+            "qualification": "qualification: provider-cli 1.4.2 build; exec read-only; proposal return; audit\n",
+            "grants": {}
+          },
+          "unbound_inputs": []
+        },
+        "echoed_caller_context": {
+          "__proto__": {
+            "x": 1
+          },
+          "n": null,
+          "s": "v",
+          "nested": {
+            "__proto__": null,
+            "list": [
+              {
+                "__proto__": "s"
+              }
+            ]
+          }
+        }
+      },
+      "expected": []
+    },
+    {
+      "id": "E2-secret-env-opaque",
+      "kind": "admission",
+      "role": "control",
+      "input": {
+        "envelope": {
+          "schema": "admitted_launch_envelope.v2",
+          "envelope_digest": "f14ee865b26ed4d50dfe3508801782fc965946b446af125f0b2d356f2b4d5a21",
+          "assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "units": {
+            "target_unit_ids": [
+              "unit:target"
+            ],
+            "readonly_neighbor_unit_ids": [
+              "unit:neighbor"
+            ],
+            "snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+            "crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d"
+          },
+          "workspace": {
+            "kind": "separate_clone",
+            "repo_relative_locators": [
+              "src/module"
+            ]
+          },
+          "enforcement": {
+            "tier": "provider_readonly_patch_return_audit",
+            "required_constraints": [
+              "write_scope"
+            ]
+          },
+          "launch": {
+            "action": "execution",
+            "transport_id": "cli",
+            "stdin": "input",
+            "instructions": {
+              "sha256": "a07043de7c6e651cc24d79e3a08c1f9b557779aff1bfcb11cd34c60517e34ab5",
+              "byte_length": 63,
+              "source": null
+            },
+            "references": [
+              {
+                "role": "baseline",
+                "sha256": "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8",
+                "byte_length": 25,
+                "source": {
+                  "namespace": "workspace",
+                  "path": "src/module/target.ts"
+                }
+              },
+              {
+                "role": "context",
+                "sha256": "028fca921564ffd58d7312f72627ef562a63c0e1067ac0c26dfeac570db003e7",
+                "byte_length": 47,
+                "source": {
+                  "namespace": "workspace",
+                  "path": "docs/context.md"
+                }
+              }
+            ],
+            "argv": {
+              "canonical_form": "rfc8785_array_of_strings",
+              "sha256": "a4ca82d4d88b1c13bd66cdf1d06368b654c2f6f3bac535d6a19e932f9992a3e0",
+              "element_count": 5
+            },
+            "executable_chain": [
+              {
+                "role": "executable",
+                "locator_kind": "declared",
+                "locator": "provider-cli",
+                "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+              }
+            ],
+            "workspace_state": {
+              "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+              "content_form": "rfc8785_tree_manifest",
+              "content_sha256": "a22a2ce22e92343476310612bf3dff9179cb1f6fdda386a5492f8b80cac4ed39",
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              },
+              "target_map": [
+                {
+                  "workspace_locator": "src/module/target.ts",
+                  "protected_locator": "src/module/target.ts"
+                }
+              ]
+            },
+            "environment": {
+              "canonical_form": "rfc8785_redacted_environment",
+              "map_sha256": "b5590af117f4dbf80c016acf3ab3e2d9649adbe28784c8a37d9019ff631472e3",
+              "policy": {
+                "id": "scrub-scratch",
+                "sha256": "dcb1dee580a120d129a0126edc6c9f05053d655d8264c09e60bea601e7e02505"
+              }
+            },
+            "trusted_policy": {
+              "config_sha256": "b1e1f1621d53d65c37d3c6626b171d3e0c34257d6eae4ae2410c86cfc1d5f461",
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6"
+            },
+            "stop": {
+              "timeout_seconds": 1800,
+              "deadline_action": "terminate_process_group"
+            }
+          },
+          "obligations": {
+            "definition_digests": [
+              "7327e7658f4b4a5b072b5e9543e5e5139abf685bd64fc85c1e99768ae3b93d98"
+            ]
+          },
+          "executable_dependencies": {
+            "declared": false,
+            "admitted_dependency_digest": null
+          },
+          "caller_context": {
+            "ticket": "opaque-123",
+            "notes": [
+              "free text",
+              {
+                "k": "v"
+              }
+            ],
+            "labels": {
+              "team-a": "reviewed"
+            },
+            "n": 3
+          },
+          "redaction_posture": "digests_and_repo_relative_locators_only"
+        },
+        "validator_context": {
+          "expected_assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "expected_snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+          "expected_crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d",
+          "timeout_max_seconds": 1800,
+          "qualified_routes": [
+            {
+              "tier": "provider_readonly_patch_return_audit",
+              "action": "execution",
+              "transport_id": "batch",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6",
+              "grants": {},
+              "credential_sources": [
+                "ci-credentials"
+              ]
+            },
+            {
+              "tier": "provider_readonly_patch_return_audit",
+              "action": "execution",
+              "transport_id": "cli",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6",
+              "grants": {},
+              "credential_sources": [
+                "ci-credentials"
+              ]
+            }
+          ]
+        },
+        "launch_material": {
+          "instructions": {
+            "source": null,
+            "content": "Apply the obligation to the target unit and return a proposal.\n",
+            "within_root": true
+          },
+          "references": [
+            {
+              "role": "baseline",
+              "source": {
+                "namespace": "workspace",
+                "path": "src/module/target.ts"
+              },
+              "content": "export const target = 1;\n",
+              "within_root": true
+            },
+            {
+              "role": "context",
+              "source": {
+                "namespace": "workspace",
+                "path": "docs/context.md"
+              },
+              "content": "Context: the target unit exports one constant.\n",
+              "within_root": true
+            }
+          ],
+          "stdin": {
+            "mode": "pipe",
+            "writes": [
+              {
+                "after": "start",
+                "text": "Apply the obligation to the target unit and return a proposal.\n"
+              }
+            ]
+          },
+          "process": {
+            "spawn": {
+              "argv": [
+                "provider-cli",
+                "exec",
+                "--read-only",
+                "--label=café",
+                "-"
+              ],
+              "env": {
+                "HOME": "scratch/home",
+                "LANG": "C.UTF-8",
+                "PATH": "usr/bin",
+                "TMPDIR": "scratch/tmp",
+                "API_TOKEN": "fake-credential-0001-not-a-real-secret"
+              },
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              }
+            },
+            "worker": {
+              "argv": [
+                "provider-cli",
+                "exec",
+                "--read-only",
+                "--label=café",
+                "-"
+              ],
+              "env": {
+                "HOME": "scratch/home",
+                "LANG": "C.UTF-8",
+                "PATH": "usr/bin",
+                "TMPDIR": "scratch/tmp",
+                "API_TOKEN": "fake-credential-0001-not-a-real-secret"
+              },
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              }
+            },
+            "cwd_resolution": {
+              "within_root": true,
+              "discovered": []
+            },
+            "deadline": {
+              "origin": "first_chain_process",
+              "seconds": 1800,
+              "restarted_at_helper": false
+            },
+            "probes": [
+              {
+                "phase": "before_admission",
+                "mutated_captured": false,
+                "argv": [
+                  "provider-cli",
+                  "--version"
+                ]
+              }
+            ]
+          },
+          "executable_chain": [
+            {
+              "role": "executable",
+              "locator_kind": "declared",
+              "locator": "provider-cli",
+              "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+            }
+          ],
+          "workspace": {
+            "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+            "capture": [
+              {
+                "path": ".git",
+                "type": "dir"
+              },
+              {
+                "path": ".git/HEAD",
+                "type": "file",
+                "mode": 420,
+                "content": "ref: refs/heads/main\n"
+              },
+              {
+                "path": ".git/config",
+                "type": "file",
+                "mode": 420,
+                "content": "[core]\n"
+              },
+              {
+                "path": "docs",
+                "type": "dir"
+              },
+              {
+                "path": "src",
+                "type": "dir"
+              },
+              {
+                "path": "src/module",
+                "type": "dir"
+              },
+              {
+                "path": "README.md",
+                "type": "file",
+                "mode": 420,
+                "content": "Example project.\n"
+              },
+              {
+                "path": "docs/context.md",
+                "type": "file",
+                "mode": 420,
+                "content": "Context: the target unit exports one constant.\n"
+              },
+              {
+                "path": "src/module/target.ts",
+                "type": "file",
+                "mode": 420,
+                "content": "export const target = 1;\n"
+              }
+            ],
+            "target_map": [
+              {
+                "workspace_locator": "src/module/target.ts",
+                "protected_locator": "src/module/target.ts"
+              }
+            ]
+          },
+          "environment": {
+            "policy_id": "scrub-scratch",
+            "policy": "{\"build\": \"scrub: drop provider self-markers and mutation credentials; relocate HOME and TMPDIR to scratch\", \"classification\": {\"API_TOKEN\": {\"secret\": \"ci-credentials\"}, \"HELPER_MODE\": \"non_secret\", \"HOME\": \"non_secret\", \"LANG\": \"non_secret\", \"PATH\": \"non_secret\", \"TERM\": \"non_secret\", \"TMPDIR\": \"non_secret\", \"WORKER_ROLE\": \"non_secret\"}}\n"
+          },
+          "policy": {
+            "config": "timeout_max_seconds = 1800\nheartbeat_seconds = 30\nquiet_seconds = 300\n",
+            "template": "{\"argv\": [\"provider-cli\", \"exec\", \"--read-only\", \"--label={label}\", \"-\"], \"helpers\": [], \"spawn_cwd\": {\"namespace\": \"workspace\", \"path\": \".\"}}\n",
+            "qualification": "qualification: provider-cli 1.4.2 build; exec read-only; proposal return; audit\n",
+            "grants": {}
+          },
+          "unbound_inputs": []
+        }
+      },
+      "expected": [],
+      "expected_effect": {
+        "attempt": {
+          "state": "queued",
+          "worker_invocations": 0
+        }
+      }
+    },
+    {
+      "id": "E2-secret-env-opaque-rotated",
+      "kind": "admission",
+      "role": "control",
+      "input": {
+        "envelope": {
+          "schema": "admitted_launch_envelope.v2",
+          "envelope_digest": "f14ee865b26ed4d50dfe3508801782fc965946b446af125f0b2d356f2b4d5a21",
+          "assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "units": {
+            "target_unit_ids": [
+              "unit:target"
+            ],
+            "readonly_neighbor_unit_ids": [
+              "unit:neighbor"
+            ],
+            "snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+            "crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d"
+          },
+          "workspace": {
+            "kind": "separate_clone",
+            "repo_relative_locators": [
+              "src/module"
+            ]
+          },
+          "enforcement": {
+            "tier": "provider_readonly_patch_return_audit",
+            "required_constraints": [
+              "write_scope"
+            ]
+          },
+          "launch": {
+            "action": "execution",
+            "transport_id": "cli",
+            "stdin": "input",
+            "instructions": {
+              "sha256": "a07043de7c6e651cc24d79e3a08c1f9b557779aff1bfcb11cd34c60517e34ab5",
+              "byte_length": 63,
+              "source": null
+            },
+            "references": [
+              {
+                "role": "baseline",
+                "sha256": "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8",
+                "byte_length": 25,
+                "source": {
+                  "namespace": "workspace",
+                  "path": "src/module/target.ts"
+                }
+              },
+              {
+                "role": "context",
+                "sha256": "028fca921564ffd58d7312f72627ef562a63c0e1067ac0c26dfeac570db003e7",
+                "byte_length": 47,
+                "source": {
+                  "namespace": "workspace",
+                  "path": "docs/context.md"
+                }
+              }
+            ],
+            "argv": {
+              "canonical_form": "rfc8785_array_of_strings",
+              "sha256": "a4ca82d4d88b1c13bd66cdf1d06368b654c2f6f3bac535d6a19e932f9992a3e0",
+              "element_count": 5
+            },
+            "executable_chain": [
+              {
+                "role": "executable",
+                "locator_kind": "declared",
+                "locator": "provider-cli",
+                "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+              }
+            ],
+            "workspace_state": {
+              "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+              "content_form": "rfc8785_tree_manifest",
+              "content_sha256": "a22a2ce22e92343476310612bf3dff9179cb1f6fdda386a5492f8b80cac4ed39",
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              },
+              "target_map": [
+                {
+                  "workspace_locator": "src/module/target.ts",
+                  "protected_locator": "src/module/target.ts"
+                }
+              ]
+            },
+            "environment": {
+              "canonical_form": "rfc8785_redacted_environment",
+              "map_sha256": "b5590af117f4dbf80c016acf3ab3e2d9649adbe28784c8a37d9019ff631472e3",
+              "policy": {
+                "id": "scrub-scratch",
+                "sha256": "dcb1dee580a120d129a0126edc6c9f05053d655d8264c09e60bea601e7e02505"
+              }
+            },
+            "trusted_policy": {
+              "config_sha256": "b1e1f1621d53d65c37d3c6626b171d3e0c34257d6eae4ae2410c86cfc1d5f461",
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6"
+            },
+            "stop": {
+              "timeout_seconds": 1800,
+              "deadline_action": "terminate_process_group"
+            }
+          },
+          "obligations": {
+            "definition_digests": [
+              "7327e7658f4b4a5b072b5e9543e5e5139abf685bd64fc85c1e99768ae3b93d98"
+            ]
+          },
+          "executable_dependencies": {
+            "declared": false,
+            "admitted_dependency_digest": null
+          },
+          "caller_context": {
+            "ticket": "opaque-123",
+            "notes": [
+              "free text",
+              {
+                "k": "v"
+              }
+            ],
+            "labels": {
+              "team-a": "reviewed"
+            },
+            "n": 3
+          },
+          "redaction_posture": "digests_and_repo_relative_locators_only"
+        },
+        "validator_context": {
+          "expected_assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "expected_snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+          "expected_crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d",
+          "timeout_max_seconds": 1800,
+          "qualified_routes": [
+            {
+              "tier": "provider_readonly_patch_return_audit",
+              "action": "execution",
+              "transport_id": "batch",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6",
+              "grants": {},
+              "credential_sources": [
+                "ci-credentials"
+              ]
+            },
+            {
+              "tier": "provider_readonly_patch_return_audit",
+              "action": "execution",
+              "transport_id": "cli",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6",
+              "grants": {},
+              "credential_sources": [
+                "ci-credentials"
+              ]
+            }
+          ]
+        },
+        "launch_material": {
+          "instructions": {
+            "source": null,
+            "content": "Apply the obligation to the target unit and return a proposal.\n",
+            "within_root": true
+          },
+          "references": [
+            {
+              "role": "baseline",
+              "source": {
+                "namespace": "workspace",
+                "path": "src/module/target.ts"
+              },
+              "content": "export const target = 1;\n",
+              "within_root": true
+            },
+            {
+              "role": "context",
+              "source": {
+                "namespace": "workspace",
+                "path": "docs/context.md"
+              },
+              "content": "Context: the target unit exports one constant.\n",
+              "within_root": true
+            }
+          ],
+          "stdin": {
+            "mode": "pipe",
+            "writes": [
+              {
+                "after": "start",
+                "text": "Apply the obligation to the target unit and return a proposal.\n"
+              }
+            ]
+          },
+          "process": {
+            "spawn": {
+              "argv": [
+                "provider-cli",
+                "exec",
+                "--read-only",
+                "--label=café",
+                "-"
+              ],
+              "env": {
+                "HOME": "scratch/home",
+                "LANG": "C.UTF-8",
+                "PATH": "usr/bin",
+                "TMPDIR": "scratch/tmp",
+                "API_TOKEN": "fake-credential-0002-rotated-not-real"
+              },
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              }
+            },
+            "worker": {
+              "argv": [
+                "provider-cli",
+                "exec",
+                "--read-only",
+                "--label=café",
+                "-"
+              ],
+              "env": {
+                "HOME": "scratch/home",
+                "LANG": "C.UTF-8",
+                "PATH": "usr/bin",
+                "TMPDIR": "scratch/tmp",
+                "API_TOKEN": "fake-credential-0002-rotated-not-real"
+              },
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              }
+            },
+            "cwd_resolution": {
+              "within_root": true,
+              "discovered": []
+            },
+            "deadline": {
+              "origin": "first_chain_process",
+              "seconds": 1800,
+              "restarted_at_helper": false
+            },
+            "probes": [
+              {
+                "phase": "before_admission",
+                "mutated_captured": false,
+                "argv": [
+                  "provider-cli",
+                  "--version"
+                ]
+              }
+            ]
+          },
+          "executable_chain": [
+            {
+              "role": "executable",
+              "locator_kind": "declared",
+              "locator": "provider-cli",
+              "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+            }
+          ],
+          "workspace": {
+            "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+            "capture": [
+              {
+                "path": ".git",
+                "type": "dir"
+              },
+              {
+                "path": ".git/HEAD",
+                "type": "file",
+                "mode": 420,
+                "content": "ref: refs/heads/main\n"
+              },
+              {
+                "path": ".git/config",
+                "type": "file",
+                "mode": 420,
+                "content": "[core]\n"
+              },
+              {
+                "path": "docs",
+                "type": "dir"
+              },
+              {
+                "path": "src",
+                "type": "dir"
+              },
+              {
+                "path": "src/module",
+                "type": "dir"
+              },
+              {
+                "path": "README.md",
+                "type": "file",
+                "mode": 420,
+                "content": "Example project.\n"
+              },
+              {
+                "path": "docs/context.md",
+                "type": "file",
+                "mode": 420,
+                "content": "Context: the target unit exports one constant.\n"
+              },
+              {
+                "path": "src/module/target.ts",
+                "type": "file",
+                "mode": 420,
+                "content": "export const target = 1;\n"
+              }
+            ],
+            "target_map": [
+              {
+                "workspace_locator": "src/module/target.ts",
+                "protected_locator": "src/module/target.ts"
+              }
+            ]
+          },
+          "environment": {
+            "policy_id": "scrub-scratch",
+            "policy": "{\"build\": \"scrub: drop provider self-markers and mutation credentials; relocate HOME and TMPDIR to scratch\", \"classification\": {\"API_TOKEN\": {\"secret\": \"ci-credentials\"}, \"HELPER_MODE\": \"non_secret\", \"HOME\": \"non_secret\", \"LANG\": \"non_secret\", \"PATH\": \"non_secret\", \"TERM\": \"non_secret\", \"TMPDIR\": \"non_secret\", \"WORKER_ROLE\": \"non_secret\"}}\n"
+          },
+          "policy": {
+            "config": "timeout_max_seconds = 1800\nheartbeat_seconds = 30\nquiet_seconds = 300\n",
+            "template": "{\"argv\": [\"provider-cli\", \"exec\", \"--read-only\", \"--label={label}\", \"-\"], \"helpers\": [], \"spawn_cwd\": {\"namespace\": \"workspace\", \"path\": \".\"}}\n",
+            "qualification": "qualification: provider-cli 1.4.2 build; exec read-only; proposal return; audit\n",
+            "grants": {}
+          },
+          "unbound_inputs": []
+        }
+      },
+      "expected": [],
+      "expected_effect": {
+        "attempt": {
+          "state": "queued",
+          "worker_invocations": 0
+        }
+      }
+    },
+    {
+      "id": "E2-multibyte-instructions",
+      "kind": "admission",
+      "role": "control",
+      "input": {
+        "envelope": {
+          "schema": "admitted_launch_envelope.v2",
+          "envelope_digest": "e0ae863b7a09036cd7bcf4c8bede3e909d9fb3bab03c9f56bda47816d6d00ddf",
+          "assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "units": {
+            "target_unit_ids": [
+              "unit:target"
+            ],
+            "readonly_neighbor_unit_ids": [
+              "unit:neighbor"
+            ],
+            "snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+            "crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d"
+          },
+          "workspace": {
+            "kind": "separate_clone",
+            "repo_relative_locators": [
+              "src/module"
+            ]
+          },
+          "enforcement": {
+            "tier": "provider_readonly_patch_return_audit",
+            "required_constraints": [
+              "write_scope"
+            ]
+          },
+          "launch": {
+            "action": "execution",
+            "transport_id": "cli",
+            "stdin": "input",
+            "instructions": {
+              "sha256": "6bf533d0290de0d954b99265d6780632ff68e28a2f85adc028501d4378134763",
+              "byte_length": 78,
+              "source": null
+            },
+            "references": [
+              {
+                "role": "baseline",
+                "sha256": "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8",
+                "byte_length": 25,
+                "source": {
+                  "namespace": "workspace",
+                  "path": "src/module/target.ts"
+                }
+              },
+              {
+                "role": "context",
+                "sha256": "028fca921564ffd58d7312f72627ef562a63c0e1067ac0c26dfeac570db003e7",
+                "byte_length": 47,
+                "source": {
+                  "namespace": "workspace",
+                  "path": "docs/context.md"
+                }
+              }
+            ],
+            "argv": {
+              "canonical_form": "rfc8785_array_of_strings",
+              "sha256": "a4ca82d4d88b1c13bd66cdf1d06368b654c2f6f3bac535d6a19e932f9992a3e0",
+              "element_count": 5
+            },
+            "executable_chain": [
+              {
+                "role": "executable",
+                "locator_kind": "declared",
+                "locator": "provider-cli",
+                "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+              }
+            ],
+            "workspace_state": {
+              "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+              "content_form": "rfc8785_tree_manifest",
+              "content_sha256": "a22a2ce22e92343476310612bf3dff9179cb1f6fdda386a5492f8b80cac4ed39",
+              "cwd": {
+                "namespace": "workspace",
+                "path": "."
+              },
+              "target_map": [
+                {
+                  "workspace_locator": "src/module/target.ts",
+                  "protected_locator": "src/module/target.ts"
+                }
+              ]
+            },
+            "environment": {
+              "canonical_form": "rfc8785_redacted_environment",
+              "map_sha256": "d78243cccf89ac42578625ef302e025109c38aeeed7cf027a5837d383fb8e3bd",
+              "policy": {
+                "id": "scrub-scratch",
+                "sha256": "ff236b122fb950a6902e0446851b325cefe709185b572b8d403fcf56ed10c016"
+              }
+            },
+            "trusted_policy": {
+              "config_sha256": "b1e1f1621d53d65c37d3c6626b171d3e0c34257d6eae4ae2410c86cfc1d5f461",
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6"
+            },
+            "stop": {
+              "timeout_seconds": 1800,
+              "deadline_action": "terminate_process_group"
+            }
+          },
+          "obligations": {
+            "definition_digests": [
+              "7327e7658f4b4a5b072b5e9543e5e5139abf685bd64fc85c1e99768ae3b93d98"
+            ]
+          },
+          "executable_dependencies": {
+            "declared": false,
+            "admitted_dependency_digest": null
+          },
+          "caller_context": {
+            "ticket": "opaque-123",
+            "nested": {
+              "k": [
+                1,
+                2
+              ]
+            }
+          },
+          "redaction_posture": "digests_and_repo_relative_locators_only"
+        },
+        "validator_context": {
+          "expected_assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "expected_snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+          "expected_crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d",
+          "timeout_max_seconds": 1800,
+          "qualified_routes": [
+            {
+              "tier": "provider_readonly_patch_return_audit",
+              "action": "execution",
+              "transport_id": "batch",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6",
+              "grants": {},
+              "credential_sources": []
+            },
+            {
+              "tier": "provider_readonly_patch_return_audit",
+              "action": "execution",
+              "transport_id": "cli",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "52d73694edb96ab84c376bf4d3fd133d27a44334011322a782c091a5ebc9f620",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6",
+              "grants": {},
+              "credential_sources": []
+            }
+          ]
+        },
+        "launch_material": {
+          "instructions": {
+            "source": null,
+            "content": "Wende die Verpflichtung an — gib einen Vorschlag zurück: ✓ Ziel-Einheit.\n",
+            "within_root": true
+          },
+          "references": [
+            {
+              "role": "baseline",
+              "source": {
+                "namespace": "workspace",
+                "path": "src/module/target.ts"
+              },
+              "content": "export const target = 1;\n",
+              "within_root": true
+            },
+            {
+              "role": "context",
+              "source": {
+                "namespace": "workspace",
+                "path": "docs/context.md"
+              },
+              "content": "Context: the target unit exports one constant.\n",
+              "within_root": true
+            }
+          ],
+          "stdin": {
+            "mode": "pipe",
+            "writes": [
+              {
+                "after": "start",
+                "text": "Wende die Verpflichtung an — gib einen Vorschlag zurück: ✓ Ziel-Einheit.\n"
               }
             ]
           },
@@ -8284,7 +10061,7 @@
         {
           "op": "replace",
           "path": "/envelope/envelope_digest",
-          "value": "a5708385c1a567e1f18b1d85f410d400ac865e9e85f69557ec8b9a4a0dcbc7e9"
+          "value": "ef3e40064d41abe556b80118386d144894433163e5586712270d32f60aac4dc5"
         }
       ],
       "expected": [
@@ -8313,7 +10090,7 @@
         {
           "op": "replace",
           "path": "/envelope/envelope_digest",
-          "value": "9c2d648eb1208cc6acb30282d67eb4835d67ed98b040f367ba665c3464d7c1e0"
+          "value": "ec0487c2c05e667c01139ba25ceb356454b02175cce16f4d7703823f09dae7a3"
         }
       ],
       "expected": [
@@ -10982,6 +12759,629 @@
       "finding": "V2-LOC-01"
     },
     {
+      "id": "S3-secret-in-caller-context",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-secret-env-opaque",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/caller_context/note",
+          "value": "fake-credential-0001-not-a-real-secret"
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "caller_context stays opaque, but its decoded content is committed material: a classified secret refuses.",
+      "finding": "R2-SECRET-01"
+    },
+    {
+      "id": "S3-secret-digest-in-caller-context",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-secret-env-opaque",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/caller_context/note",
+          "value": "13c35f38ed637e3f7f61464fe083cfd428ab3608cc562cc19d8712f5da0d3114"
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "A secret-derived digest in caller_context.",
+      "finding": "R2-SECRET-01"
+    },
+    {
+      "id": "S3-secret-in-caller-context-array",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-secret-env-opaque",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/caller_context/notes/1/k",
+          "value": [
+            "ok",
+            "fake-credential-0001-not-a-real-secret"
+          ]
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "Nested inside an array element.",
+      "finding": "R2-SECRET-01"
+    },
+    {
+      "id": "S3-secret-in-caller-context-member-name",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-secret-env-opaque",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/caller_context/labels/fake-credential-0001-not-a-real-secret",
+          "value": "x"
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "As a member name.",
+      "finding": "R2-SECRET-01"
+    },
+    {
+      "id": "S3-secret-digest-in-caller-context-member-name",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-secret-env-opaque",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/caller_context/labels/13c35f38ed637e3f7f61464fe083cfd428ab3608cc562cc19d8712f5da0d3114",
+          "value": "x"
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "finding": "R2-SECRET-01"
+    },
+    {
+      "id": "S3-secret-in-caller-context-escaped",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-secret-env-opaque",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/caller_context/note",
+          "value": "\u0066\u0061\u006b\u0065\u002d\u0063\u0072\u0065\u0064\u0065\u006e\u0074\u0069\u0061\u006c\u002d\u0030\u0030\u0030\u0031\u002d\u006e\u006f\u0074\u002d\u0061\u002d\u0072\u0065\u0061\u006c\u002d\u0073\u0065\u0063\u0072\u0065\u0074"
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "The vector spells the secret entirely in \\u escapes; the check runs on decoded content.",
+      "finding": "R2-SECRET-01"
+    },
+    {
+      "id": "S3-secret-in-caller-context-substring",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-secret-env-opaque",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/caller_context/note",
+          "value": "prefix fake-credential-0001-not-a-real-secret suffix"
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "finding": "R2-SECRET-01"
+    },
+    {
+      "id": "S3-tree-symlink-ancestor",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/content_sha256",
+          "value": "0384471ddf6959580ecd0f5a62196eb800ac7b997b7a371f6a33a31edbb4dbc9"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/3/type",
+          "value": "symlink"
+        },
+        {
+          "op": "add",
+          "path": "/launch_material/workspace/capture/3/target_hex",
+          "value": "2e2e2f657363617065"
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      },
+      "note": "plans is a symlink, yet plans/review-instructions.md is listed after it; tree and envelope digests are recomputed as a reader without the ancestor check would.",
+      "finding": "R2-TREE-01"
+    },
+    {
+      "id": "S3-tree-symlink-ancestor-listed-after",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/content_sha256",
+          "value": "0384471ddf6959580ecd0f5a62196eb800ac7b997b7a371f6a33a31edbb4dbc9"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/3/path",
+          "value": "schemas"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/4/path",
+          "value": "src"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/5/path",
+          "value": "src/module"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/6/path",
+          "value": "tools"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/7/path",
+          "value": "README.md"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/7/type",
+          "value": "file"
+        },
+        {
+          "op": "add",
+          "path": "/launch_material/workspace/capture/7/mode",
+          "value": 420
+        },
+        {
+          "op": "add",
+          "path": "/launch_material/workspace/capture/7/content",
+          "value": "Example project.\n"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/8/path",
+          "value": "plans/review-instructions.md"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/8/content",
+          "value": "Review the proposal against the obligation; report findings only.\n"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/9/path",
+          "value": "schemas/output.json"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/9/content",
+          "value": "{\"type\":\"object\",\"required\":[\"findings\"]}\n"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/10/path",
+          "value": "src/module/target.ts"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/10/content",
+          "value": "export const target = 1;\n"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/11/path",
+          "value": "tools/run.sh"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/11/mode",
+          "value": 493
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/11/content",
+          "value": "#!/bin/sh\nexec \"$@\"\n"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/12/path",
+          "value": "plans"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/12/type",
+          "value": "symlink"
+        },
+        {
+          "op": "remove",
+          "path": "/launch_material/workspace/capture/12/mode"
+        },
+        {
+          "op": "remove",
+          "path": "/launch_material/workspace/capture/12/content"
+        },
+        {
+          "op": "add",
+          "path": "/launch_material/workspace/capture/12/target_hex",
+          "value": "2e2e2f657363617065"
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      },
+      "note": "plans is a symlink, yet plans/review-instructions.md is listed before it; tree and envelope digests are recomputed as a reader without the ancestor check would.",
+      "finding": "R2-TREE-01"
+    },
+    {
+      "id": "S3-tree-file-ancestor",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/content_sha256",
+          "value": "63fd873f275f5565b42fde5b075b7bd198039c7ec4d4f56c0a86b598aeb7ebbd"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/3/type",
+          "value": "file"
+        },
+        {
+          "op": "add",
+          "path": "/launch_material/workspace/capture/3/mode",
+          "value": 420
+        },
+        {
+          "op": "add",
+          "path": "/launch_material/workspace/capture/3/content",
+          "value": "not a directory\n"
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      },
+      "note": "plans is a file, yet plans/review-instructions.md is listed after it; tree and envelope digests are recomputed as a reader without the ancestor check would.",
+      "finding": "R2-TREE-01"
+    },
+    {
+      "id": "S3-tree-file-ancestor-listed-after",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/content_sha256",
+          "value": "63fd873f275f5565b42fde5b075b7bd198039c7ec4d4f56c0a86b598aeb7ebbd"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/3/path",
+          "value": "schemas"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/4/path",
+          "value": "src"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/5/path",
+          "value": "src/module"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/6/path",
+          "value": "tools"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/7/path",
+          "value": "README.md"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/7/type",
+          "value": "file"
+        },
+        {
+          "op": "add",
+          "path": "/launch_material/workspace/capture/7/mode",
+          "value": 420
+        },
+        {
+          "op": "add",
+          "path": "/launch_material/workspace/capture/7/content",
+          "value": "Example project.\n"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/8/path",
+          "value": "plans/review-instructions.md"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/8/content",
+          "value": "Review the proposal against the obligation; report findings only.\n"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/9/path",
+          "value": "schemas/output.json"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/9/content",
+          "value": "{\"type\":\"object\",\"required\":[\"findings\"]}\n"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/10/path",
+          "value": "src/module/target.ts"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/10/content",
+          "value": "export const target = 1;\n"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/11/path",
+          "value": "tools/run.sh"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/11/mode",
+          "value": 493
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/11/content",
+          "value": "#!/bin/sh\nexec \"$@\"\n"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/12/path",
+          "value": "plans"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/12/mode",
+          "value": 420
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture/12/content",
+          "value": "not a directory\n"
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      },
+      "note": "plans is a file, yet plans/review-instructions.md is listed before it; tree and envelope digests are recomputed as a reader without the ancestor check would.",
+      "finding": "R2-TREE-01"
+    },
+    {
+      "id": "S3-instructions-length-char-count",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-multibyte-instructions",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/instructions/byte_length",
+          "value": 73
+        }
+      ],
+      "expected": [
+        "launch_instructions_mismatch"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_instructions_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "Bytes, source and digest unchanged; byte_length is the character count, not the UTF-8 byte count.",
+      "finding": "R2-BIND-01"
+    },
+    {
+      "id": "S3-instructions-length-plus-one",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-multibyte-instructions",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/instructions/byte_length",
+          "value": 79
+        }
+      ],
+      "expected": [
+        "launch_instructions_mismatch"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_instructions_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "finding": "R2-BIND-01"
+    },
+    {
       "id": "S2-caller-context-interpreted",
       "kind": "echo",
       "role": "negative",
@@ -11003,6 +13403,23 @@
         "caller_context_interpreted"
       ],
       "finding": "S4"
+    },
+    {
+      "id": "S3-jcs-proto-echo-dropped",
+      "kind": "echo",
+      "role": "negative",
+      "control": "E2-jcs-proto-echo",
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/echoed_caller_context/__proto__"
+        }
+      ],
+      "expected": [
+        "caller_context_interpreted"
+      ],
+      "finding": "R2-JCS-02",
+      "note": "An echo that lost the __proto__ member is not the payload."
     },
     {
       "id": "S2-jcs-echo-number-changed",

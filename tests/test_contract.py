@@ -1219,11 +1219,20 @@ class R2Unbindable(ValueError):
     pass
 
 
+R2_MAX_SAFE_INTEGER = 9007199254740991
+
+
 def r2_es_number(x) -> str:
+    """ECMAScript Number::toString of a finite binary64 value: the RFC 8785 serializer primitive.
+
+    This primitive is not the v2 commitment domain; r2_domain_number adds the safe-integer bound.
+    """
     if isinstance(x, bool):
         raise R2Unbindable("boolean is not a number")
     if isinstance(x, int):
-        x = _r2_int_to_double(x)
+        if float(x) != x:
+            raise R2Unbindable("integer is not a binary64 value")
+        x = float(x)
     if _r2_math.isnan(x) or _r2_math.isinf(x):
         raise R2Unbindable("non-finite number")
     if x == 0:
@@ -1246,16 +1255,20 @@ def r2_es_number(x) -> str:
     return f"{mantissa}e{'+' if e >= 0 else '-'}{abs(e)}"
 
 
-def _r2_int_to_double(value: int) -> float:
-    # Lossless only: up to 2**53 every integer is exact; above it, only a value that is already the
-    # ECMAScript form of its double (so text -> double -> text round-trips) is accepted.
-    try:
-        as_float = float(value)
-    except OverflowError as exc:
-        raise R2Unbindable("integer out of double range") from exc
-    if abs(value) > 2 ** 53 and r2_es_number(as_float) != str(value):
-        raise R2Unbindable("integer not losslessly representable as a double")
-    return as_float
+def r2_domain_number(x) -> str:
+    """The v2 commitment domain (x-canonicalization): finite binary64, integer-valued only within
+    +-(2**53 - 1), checked on the value whatever its spelling; host integers are range-checked first."""
+    if isinstance(x, bool):
+        raise R2Unbindable("boolean is not a number")
+    if isinstance(x, int):
+        if abs(x) > R2_MAX_SAFE_INTEGER:
+            raise R2Unbindable("integer outside the safe range")
+        return r2_es_number(float(x))
+    if _r2_math.isnan(x) or _r2_math.isinf(x):
+        raise R2Unbindable("non-finite number")
+    if x.is_integer() and abs(x) > R2_MAX_SAFE_INTEGER:
+        raise R2Unbindable("integer-valued number outside the safe range")
+    return r2_es_number(x)
 
 
 _R2_SHORT = {'"': '\\"', "\\": "\\\\", "\b": "\\b", "\f": "\\f", "\n": "\\n", "\r": "\\r", "\t": "\\t"}
@@ -1276,7 +1289,7 @@ def r2_jcs_text(value) -> str:
     if value is None or isinstance(value, bool):
         return {None: "null", True: "true", False: "false"}[value]
     if isinstance(value, (int, float)):
-        return r2_es_number(value)
+        return r2_domain_number(value)
     if isinstance(value, str):
         return r2_es_string(value)
     if isinstance(value, list):
@@ -1312,14 +1325,13 @@ def _r2_no_dups(pairs):
 
 def _r2_parse_int(text):
     value = int(text)
-    _r2_int_to_double(value)
+    r2_domain_number(value)  # range-checked before any conversion
     return value
 
 
 def _r2_parse_float(text):
-    value = float(text)
-    if _r2_math.isinf(value) or _r2_math.isnan(value):
-        raise R2Unbindable("non-finite number")
+    value = float(text)  # round-to-nearest, ties-to-even
+    r2_domain_number(value)
     return value
 
 
@@ -1375,7 +1387,7 @@ def r2_valid_text(value) -> bool:
 
 def r2_capture_manifest(capture: list) -> list:
     """x-digest-forms.rfc8785_tree_manifest from a capture listing; raises R2Unbindable."""
-    entries, seen = [], set()
+    entries, seen, kinds = [], set(), {}
     for item in capture:
         path = item.get("path")
         if isinstance(path, str) and (path == ".git" or path.startswith(".git/")):
@@ -1385,6 +1397,7 @@ def r2_capture_manifest(capture: list) -> list:
         if path in seen:
             raise R2Unbindable("duplicate path")
         seen.add(path)
+        kinds[path] = item.get("type")
         kind = item.get("type")
         if kind == "dir":
             continue
@@ -1398,6 +1411,14 @@ def r2_capture_manifest(capture: list) -> list:
             entries.append([path, "symlink", r2_sha(bytes.fromhex(item["target_hex"]))])
         else:
             raise R2Unbindable(f"unsupported entry type {kind}")
+    # Ancestor consistency, whatever the listing order: a represented non-directory is never a proper
+    # ancestor of another listed path (directories may be implicit).
+    for path in kinds:
+        segments = path.split("/")
+        for depth in range(1, len(segments)):
+            ancestor = "/".join(segments[:depth])
+            if ancestor in kinds and kinds[ancestor] != "dir":
+                raise R2Unbindable("non-directory ancestor")
     return sorted(entries, key=lambda entry: entry[0].encode("utf-8"))
 
 
@@ -1616,6 +1637,7 @@ def r2_evaluate(schema: dict, value: dict, *, staged: bool = True):
         if classified:
             secrets = [v for n, v in worker["env"].items() if isinstance(classification.get(n), dict) and v]
             committed = _r2_strings([
+                env,
                 spawn["argv"], worker["argv"], mat["instructions"].get("content"),
                 [r.get("content") for r in mat["references"]], policy["config"], policy["template"],
                 policy["qualification"], mat["environment"]["policy"],
@@ -1932,7 +1954,6 @@ def r2_journal_codes(journal: dict, run_schema: dict) -> list:
             previous = state
     return sorted(codes)
 
-
 class SupervisedRunEnvelopeV2Test(unittest.TestCase):
     """admitted_launch_envelope.v2 (0.7.0): every vector replayed through the reference reading above."""
 
@@ -1943,7 +1964,9 @@ class SupervisedRunEnvelopeV2Test(unittest.TestCase):
     FINDINGS = {
         "V2-BIND-01", "V2-QUAL-01", "V2-JCS-01", "V2-TREE-01", "V2-TIER-01", "V2-PRIV-01", "R1", "R2", "R3",
         "V2-GRANT-01", "S3", "V2-VEC-01", "V2-VEC-02", "V2-LOC-01", "S4",
+        "R2-JCS-02", "R2-SECRET-01", "R2-TREE-01", "R2-BIND-01",
     }
+    PROTO_OBJECT_SHA256 = "0fb20b06cf5847cf21cc37dd0d3602c176cc3f96ea4281167bbfe61cbe5813a3"
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -2040,7 +2063,7 @@ class SupervisedRunEnvelopeV2Test(unittest.TestCase):
                 self.assertEqual(case["expected"], ["envelope_schema_invalid"], case["id"])
                 self.assertTrue(case["expected_schema_errors"], case["id"])
         roles = [case["role"] for case, _ in self.cases]
-        self.assertEqual((roles.count("control"), roles.count("negative"), roles.count("schema_negative")), (15, 154, 62))
+        self.assertEqual((roles.count("control"), roles.count("negative"), roles.count("schema_negative")), (20, 168, 62))
 
     # ---- envelope admission
 
@@ -2149,11 +2172,23 @@ class SupervisedRunEnvelopeV2Test(unittest.TestCase):
     def test_secret_values_never_enter_a_commitment(self) -> None:
         # V2-PRIV-01 + S1: rotating the fake secret does not move the envelope; no value or value digest appears anywhere.
         self.assertEqual(self.by_id["E2-secret-env"]["envelope"], self.by_id["E2-secret-env-rotated"]["envelope"])
+        self.assertEqual(self.by_id["E2-secret-env-opaque"]["envelope"], self.by_id["E2-secret-env-opaque-rotated"]["envelope"])
         needles = [s for secret in self.FAKE_SECRETS for s in (secret, hashlib.sha256(secret.encode()).hexdigest())]
+        carrying = set()
         for case, value in self.cases:
             text = json.dumps(value["envelope"], ensure_ascii=False)
-            for needle in needles:
-                self.assertNotIn(needle, text, case["id"])
+            if any(needle in text for needle in needles):
+                carrying.add(case["id"])
+                # R2-SECRET-01: an envelope that carries a secret or its digest anywhere is refused, never admitted.
+                self.assertEqual(case["expected"], ["launch_input_unbound"], case["id"])
+                self.assertEqual(r2_evaluate(self.schema, value)[0], ["launch_input_unbound"], case["id"])
+        self.assertEqual(carrying, {
+            "S3-secret-in-caller-context", "S3-secret-digest-in-caller-context", "S3-secret-in-caller-context-array",
+            "S3-secret-in-caller-context-member-name", "S3-secret-digest-in-caller-context-member-name",
+            "S3-secret-in-caller-context-escaped", "S3-secret-in-caller-context-substring",
+        })
+        raw = Path(CONTRACT["supervised_run"]["vectors"]["admitted_launch_envelope_v2"]).read_text(encoding="utf-8")
+        self.assertIn("".join(f"\\u{ord(ch):04x}" for ch in self.FAKE_SECRETS[0]), raw)  # the escaped spelling is really escaped
         commitment = self.schema["x-environment-commitment"]
         self.assertIn("No salt or key is added", commitment["confidentiality"])
         self.assertIn("not confidentiality protection", commitment["confidentiality"])
@@ -2202,6 +2237,48 @@ class SupervisedRunEnvelopeV2Test(unittest.TestCase):
                 rfc_rows += row["pin"] == "RFC 8785 Appendix B"
         self.assertEqual(rfc_rows, 24)
 
+    def test_commitment_domain_safe_integers(self) -> None:
+        # R2-JCS-01: the same verdict through raw parsing and through in-memory commitment, whatever the spelling.
+        tokens = {row["token"]: row for row in self.canonical["domain"]}
+        for row in self.canonical["domain"]:
+            for path in ("raw", "in_memory"):
+                try:
+                    value = r2_strict_parse(f"[{row['token']}]".encode()) [0] if path == "raw" else json.loads(row["token"])
+                    got = r2_jcs_text([value])[1:-1]
+                except (R2Unbindable, ValueError):
+                    got = None
+                self.assertEqual(got, row.get("canonical"), f"{row['id']} {path}")
+        for token in ("9007199254740992", "-9007199254740992", "9007199254740992.0", "9.007199254740992e15", "1e21", "999999999999999900000"):
+            self.assertFalse(tokens[token]["accept"], token)
+        for token in ("9007199254740991", "-9007199254740991", "1.0", "-0"):
+            self.assertTrue(tokens[token]["accept"], token)
+        for value in (2 ** 53, -(2 ** 53), 2.0 ** 53, 1e21, 999999999999999900000):
+            with self.assertRaises(R2Unbindable, msg=repr(value)):
+                r2_jcs_text({"n": value})
+        self.assertEqual(r2_jcs_text({"n": R2_MAX_SAFE_INTEGER}), '{"n":9007199254740991}')
+        # The serializer primitive still formats large doubles (RFC 8785 Appendix B); acceptance is a separate rule.
+        self.assertEqual(r2_es_number(1e21), "1e+21")
+
+    def test_proto_member_is_ordinary_and_pinned(self) -> None:
+        # R2-JCS-02: independently pinned bytes; Python's dicts preserve the member; the JS suite checks own properties.
+        docs = {d["id"]: d for d in self.canonical["documents"]}
+        self.assertEqual(docs["J-proto-object"]["canonical"], '{"__proto__":{"x":1}}')
+        self.assertEqual(docs["J-proto-object"]["sha256"], self.PROTO_OBJECT_SHA256)
+        self.assertEqual(r2_sha(r2_jcs_text(r2_strict_parse(b'{"__proto__":{"x":1}}'))), self.PROTO_OBJECT_SHA256)
+        self.assertEqual(r2_evaluate(self.schema, self.by_id["E2-jcs-proto"])[0], [])
+        self.assertIn("__proto__", self.by_id["E2-jcs-proto"]["envelope"]["caller_context"])
+
+    def test_instruction_byte_length_is_utf8_bytes(self) -> None:
+        # R2-BIND-01
+        value = self.by_id["E2-multibyte-instructions"]
+        content = value["launch_material"]["instructions"]["content"]
+        self.assertNotEqual(len(content), len(content.encode("utf-8")))
+        self.assertEqual(value["envelope"]["launch"]["instructions"]["byte_length"], len(content.encode("utf-8")))
+        for cid in ("S3-instructions-length-char-count", "S3-instructions-length-plus-one"):
+            case = self.by_id[cid]
+            self.assertEqual(case["envelope"]["launch"]["instructions"]["sha256"], value["envelope"]["launch"]["instructions"]["sha256"])
+            self.assertEqual(r2_evaluate(self.schema, case)[0], ["launch_instructions_mismatch"], cid)
+
     def test_rfc8785_documents_and_parse_boundary(self) -> None:
         docs = {d["id"]: d for d in self.canonical["documents"]}
         for doc in self.canonical["documents"]:
@@ -2238,6 +2315,11 @@ class SupervisedRunEnvelopeV2Test(unittest.TestCase):
         self.assertEqual(trees["T-root-git-symlink"]["sha256"], root)
         self.assertNotEqual(trees["T-nested-git-removed"]["sha256"], root)
         self.assertNotEqual(trees["T-exec-bit-cleared"]["sha256"], root)
+        # R2-TREE-01: implicit directories are fine; a represented non-directory ancestor is refused in either order.
+        self.assertEqual(trees["T-implicit-directories"]["sha256"], root)
+        self.assertEqual(trees["T-root-git-file-with-children"]["sha256"], root)
+        for tid in ("T-symlink-ancestor", "T-symlink-ancestor-listed-after", "T-file-ancestor", "T-file-ancestor-listed-after", "T-nested-git-symlink-ancestor"):
+            self.assertTrue(trees[tid].get("unbindable"), tid)
         for alt in self.canonical["tree_alternates"]:
             self.assertEqual(r2_tree_sha(alt["manifest"]), alt["sha256"], alt["id"])
             derived = r2_tree_sha(r2_capture_manifest(trees[alt["of"]]["capture"]))

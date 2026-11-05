@@ -955,9 +955,11 @@ function srApplyPatch(document, patch) {
         else parent[Number(key)] = op.value;
       } else throw new Error(`unsupported op ${op.op}`);
     } else {
-      if (op.op === "remove" || op.op === "replace") assert.ok(key in parent, op.path);
+      if (op.op === "remove" || op.op === "replace") assert.ok(Object.prototype.hasOwnProperty.call(parent, key), op.path);
       if (op.op === "remove") delete parent[key];
-      else if (op.op === "add" || op.op === "replace") parent[key] = op.value;
+      else if (op.op === "add" || op.op === "replace") {
+        Object.defineProperty(parent, key, { value: op.value, enumerable: true, writable: true, configurable: true });
+      }
       else throw new Error(`unsupported op ${op.op}`);
     }
   }
@@ -1110,9 +1112,17 @@ function r2IsWellFormed(text) {
   return true;
 }
 
+// ECMAScript Number::toString of a finite binary64 value: the RFC 8785 serializer primitive (not the v2 domain).
 function r2EsNumber(value) {
   if (typeof value !== "number" || !Number.isFinite(value)) throw new R2Unbindable("non-finite number");
   return Object.is(value, -0) ? "0" : String(value);
+}
+
+// The v2 commitment domain (x-canonicalization): integer-valued numbers only within +-(2^53 - 1), whatever the spelling.
+function r2DomainNumber(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) throw new R2Unbindable("non-finite number");
+  if (Number.isInteger(value) && Math.abs(value) > Number.MAX_SAFE_INTEGER) throw new R2Unbindable("integer-valued number outside the safe range");
+  return r2EsNumber(value);
 }
 
 function r2EsString(text) {
@@ -1131,7 +1141,7 @@ function r2EsString(text) {
 function r2Jcs(value) {
   if (value === null) return "null";
   if (value === true || value === false) return String(value);
-  if (typeof value === "number") return r2EsNumber(value);
+  if (typeof value === "number") return r2DomainNumber(value);
   if (typeof value === "string") return r2EsString(value);
   if (Array.isArray(value)) return `[${value.map(r2Jcs).join(",")}]`;
   if (typeof value === "object") {
@@ -1192,7 +1202,8 @@ function r2StrictParse(bytes) {
     const ch = text[i];
     if (ch === "{") {
       i += 1;
-      const out = {};
+      // Own data properties on a null-prototype object: "__proto__" is an ordinary member, never the inherited setter.
+      const out = Object.create(null);
       const seen = new Set();
       ws();
       if (text[i] === "}") { i += 1; return out; }
@@ -1204,7 +1215,7 @@ function r2StrictParse(bytes) {
         ws();
         if (text[i] !== ":") fail("expected colon");
         i += 1;
-        out[key] = parseValue();
+        Object.defineProperty(out, key, { value: parseValue(), enumerable: true, writable: true, configurable: true });
         ws();
         if (text[i] === ",") { i += 1; continue; }
         if (text[i] === "}") { i += 1; return out; }
@@ -1231,13 +1242,14 @@ function r2StrictParse(bytes) {
     const match = /^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?/.exec(text.slice(i));
     if (!match || match[0] === "-") fail("unexpected token");
     i += match[0].length;
-    const value = Number(match[0]);
-    if (!Number.isFinite(value)) fail("non-finite number");
     if (match[2] === undefined && match[3] === undefined) {
+      // An integer literal is range-checked before any conversion.
       const exact = BigInt(match[0]);
-      const limit = 2n ** 53n;
-      if ((exact > limit || exact < -limit) && r2EsNumber(value) !== exact.toString()) fail("integer not losslessly representable");
+      const limit = BigInt(Number.MAX_SAFE_INTEGER);
+      if (exact > limit || exact < -limit) fail("integer outside the safe range");
     }
+    const value = Number(match[0]); // round-to-nearest, ties-to-even
+    r2DomainNumber(value);
     return value;
   };
   const value = parseValue();
@@ -1263,12 +1275,14 @@ function r2ValidText(value) {
 function r2CaptureManifest(capture) {
   const entries = [];
   const seen = new Set();
+  const kinds = new Map();
   for (const item of capture) {
     const path = item.path;
     if (typeof path === "string" && (path === ".git" || path.startsWith(".git/"))) continue;
     if (!r2ValidText(path) || !r2RelpathOk(path)) throw new R2Unbindable("path not representable");
     if (seen.has(path)) throw new R2Unbindable("duplicate path");
     seen.add(path);
+    kinds.set(path, item.type);
     if (item.type === "dir") continue;
     if (item.type === "file") {
       if (!Number.isInteger(item.mode)) throw new R2Unbindable("mode unavailable");
@@ -1278,6 +1292,14 @@ function r2CaptureManifest(capture) {
       entries.push([path, "symlink", r2Sha(Buffer.from(item.target_hex, "hex"))]);
     } else {
       throw new R2Unbindable(`unsupported entry type ${item.type}`);
+    }
+  }
+  // A represented non-directory is never a proper ancestor of a listed path, whatever the listing order.
+  for (const path of kinds.keys()) {
+    const segments = path.split("/");
+    for (let depth = 1; depth < segments.length; depth += 1) {
+      const ancestor = segments.slice(0, depth).join("/");
+      if (kinds.has(ancestor) && kinds.get(ancestor) !== "dir") throw new R2Unbindable("non-directory ancestor");
     }
   }
   return entries.sort((a, b) => Buffer.compare(Buffer.from(a[0], "utf8"), Buffer.from(b[0], "utf8")));
@@ -1292,12 +1314,20 @@ function r2GrantDigest(grant) {
   return grant.canonical_form === "raw_bytes" ? r2Sha(grant.text) : r2JcsSha(grant.value);
 }
 
+function r2Own(object, key) {
+  return object !== null && typeof object === "object" && Object.prototype.hasOwnProperty.call(object, key);
+}
+
+function r2Set(object, key, value) {
+  Object.defineProperty(object, key, { value, enumerable: true, writable: true, configurable: true });
+}
+
 function r2Redacted(env, classification) {
-  const nonSecret = {};
+  const nonSecret = Object.create(null);
   const secretNames = [];
   for (const [name, value] of Object.entries(env)) {
-    if (classification[name] === "non_secret") nonSecret[name] = value;
-    else if (classification[name] && typeof classification[name] === "object") secretNames.push(name);
+    if (r2Own(classification, name) && classification[name] === "non_secret") r2Set(nonSecret, name, value);
+    else if (r2Own(classification, name) && classification[name] && typeof classification[name] === "object") secretNames.push(name);
   }
   return { non_secret: nonSecret, secret_names: secretNames.sort() };
 }
@@ -1391,12 +1421,12 @@ function r2Evaluate(schema, value, staged = true) {
       const held = record ?? { grants: {}, credential_sources: [] };
       const grants = launch.grants ?? {};
       if (Object.entries(grants).some(([kind, c]) => !info.grant_kinds.includes(kind) || !r2SameJson(held.grants[kind], c))) out.add("grant_unqualified");
-      if ("dependency_projection_sha256" in grants && !env.executable_dependencies.declared) out.add("grant_unqualified");
-      if (sources.some((s) => s.namespace === "descriptor") && !("descriptor_capabilities_sha256" in grants)) out.add("grant_unqualified");
-      if (launch.workspace_state.cwd.namespace === "view_root" && !("filesystem_view_sha256" in grants)) out.add("grant_unqualified");
+      if (r2Own(grants, "dependency_projection_sha256") && !env.executable_dependencies.declared) out.add("grant_unqualified");
+      if (sources.some((s) => s.namespace === "descriptor") && !r2Own(grants, "descriptor_capabilities_sha256")) out.add("grant_unqualified");
+      if (launch.workspace_state.cwd.namespace === "view_root" && !r2Own(grants, "filesystem_view_sha256")) out.add("grant_unqualified");
       if (classification && typeof classification === "object") {
         for (const name of Object.keys(proc.worker.env)) {
-          const entry = classification[name];
+          const entry = r2Own(classification, name) ? classification[name] : undefined;
           if (entry && typeof entry === "object" && !(held.credential_sources ?? []).includes(entry.secret)) out.add("grant_unqualified");
         }
       }
@@ -1404,7 +1434,7 @@ function r2Evaluate(schema, value, staged = true) {
       if (launch.stop.timeout_seconds > ctx.timeout_max_seconds) out.add("timeout_over_declared_max");
       return [...out];
     },
-    () => r2Material(launch, mat, proc, classification),
+    () => r2Material(env, launch, mat, proc, classification),
   ];
   const reported = new Set();
   for (const stage of stages) {
@@ -1418,7 +1448,7 @@ function r2Evaluate(schema, value, staged = true) {
   return [codes, { attempt: { state: "refused", worker_invocations: 0, refusal } }];
 }
 
-function r2Material(launch, mat, proc, classification) {
+function r2Material(env, launch, mat, proc, classification) {
   const out = new Set();
   const unbound = () => out.add("launch_input_unbound");
   const { spawn, worker } = proc;
@@ -1458,13 +1488,14 @@ function r2Material(launch, mat, proc, classification) {
   const envsOk = envOk(spawn.env) && envOk(worker.env);
   if (!envsOk) unbound();
   const classified = envsOk && classification !== null && typeof classification === "object" &&
-    Object.keys(worker.env).every((n) => classification[n] === "non_secret" || (classification[n] && typeof classification[n] === "object" && "secret" in classification[n]));
+    Object.keys(worker.env).every((n) => r2Own(classification, n) && (classification[n] === "non_secret" || (classification[n] && typeof classification[n] === "object" && r2Own(classification[n], "secret"))));
   if (envsOk && !classified) unbound();
 
   if (classified) {
-    const secrets = Object.entries(worker.env).filter(([n, v]) => classification[n] && typeof classification[n] === "object" && v).map(([, v]) => v);
+    const secrets = Object.entries(worker.env).filter(([n, v]) => r2Own(classification, n) && classification[n] && typeof classification[n] === "object" && v).map(([, v]) => v);
     const needles = [...secrets, ...secrets.map(r2Sha)];
     const committed = r2Strings([
+      env,
       spawn.argv, worker.argv, mat.instructions.content ?? null, mat.references.map((r) => r.content ?? null),
       policy.config, policy.template, policy.qualification, mat.environment.policy,
       Object.values(grantsMat).map((g) => (g.canonical_form === "raw_bytes" ? g.text : r2Jcs(g.value))),
@@ -1517,7 +1548,7 @@ function r2Material(launch, mat, proc, classification) {
   let template = null;
   try {
     template = r2StrictParse(Buffer.from(policy.template, "utf8"));
-    if (!("spawn_cwd" in template)) template = null;
+    if (!r2Own(template, "spawn_cwd")) template = null;
   } catch {
     template = null;
   }
@@ -1530,18 +1561,19 @@ function r2Material(launch, mat, proc, classification) {
       if (JSON.stringify(spawn.argv.slice(shift)) !== JSON.stringify(worker.argv)) out.add("launch_argv_mismatch");
     }
     if (envsOk) {
-      const derived = { ...spawn.env };
+      const derived = Object.create(null);
+      for (const [name, val] of Object.entries(spawn.env)) r2Set(derived, name, val);
       let consumedOk = true;
       const consumed = new Set();
       for (const h of helpers) {
         for (const [name, val] of Object.entries(h.env_consumed ?? {})) {
-          if (derived[name] !== val) consumedOk = false;
+          if (!r2Own(derived, name) || derived[name] !== val) consumedOk = false;
           delete derived[name];
           consumed.add(name);
         }
-        Object.assign(derived, h.env_set ?? {});
+        for (const [name, val] of Object.entries(h.env_set ?? {})) r2Set(derived, name, val);
       }
-      const ambient = Object.keys(spawn.env).filter((n) => !consumed.has(n) && !(n in worker.env));
+      const ambient = Object.keys(spawn.env).filter((n) => !consumed.has(n) && !r2Own(worker.env, n));
       if (!consumedOk || ambient.length) unbound();
       else if (!r2SameJson(derived, worker.env)) out.add("launch_environment_mismatch");
     }
@@ -1756,7 +1788,7 @@ test("admitted_launch_envelope.v2: every vector gives exactly its schema errors,
       if (c.role === "negative" && JSON.stringify(r2Evaluate(schema, value, false)[0]) !== JSON.stringify(c.expected)) widened.add(c.id);
     }
   }
-  assert.deepEqual(counts, { control: 15, negative: 154, schema_negative: 62 });
+  assert.deepEqual(counts, { control: 20, negative: 168, schema_negative: 62 });
   assert.deepEqual(mismatches.sort(), ["S2-digest-not-rehashed", "S2-jcs-ascii-escaped-envelope", "S2-jcs-codepoint-order-envelope"]);
   for (const id of ["S2-os-enforced", "S2-chain-executable-not-last", "S2-qual-duplicate-identical"]) assert.ok(widened.has(id), id);
 });
@@ -1779,16 +1811,30 @@ test("admitted_launch_envelope.v2: exactly one qualification record, in any orde
 test("admitted_launch_envelope.v2: secrets stay out of commitments; cwd keeps the tree digest; findings are covered", () => {
   const { cases, byId, apply } = sr2Load();
   assert.deepEqual(byId["E2-secret-env"].envelope, byId["E2-secret-env-rotated"].envelope);
+  assert.deepEqual(byId["E2-secret-env-opaque"].envelope, byId["E2-secret-env-opaque-rotated"].envelope);
   const secrets = ["fake-credential-0001-not-a-real-secret", "fake-credential-0002-rotated-not-real"];
   const needles = [...secrets, ...secrets.map(r2Sha)];
+  const carrying = [];
+  const { schema } = sr2Load();
   for (const [c, value] of cases) {
     const text = JSON.stringify(value.envelope);
-    for (const needle of needles) assert.ok(!text.includes(needle), c.id);
+    if (needles.some((needle) => text.includes(needle))) {
+      // R2-SECRET-01: an envelope carrying a secret or its digest anywhere, caller_context included, is refused.
+      carrying.push(c.id);
+      assert.deepEqual(c.expected, ["launch_input_unbound"], c.id);
+      assert.deepEqual(r2Evaluate(schema, value)[0], ["launch_input_unbound"], c.id);
+    }
   }
+  assert.deepEqual(carrying.sort(), [
+    "S3-secret-digest-in-caller-context", "S3-secret-digest-in-caller-context-member-name", "S3-secret-in-caller-context",
+    "S3-secret-in-caller-context-array", "S3-secret-in-caller-context-escaped", "S3-secret-in-caller-context-member-name",
+    "S3-secret-in-caller-context-substring",
+  ]);
   assert.equal(byId["E2-view-cwd"].envelope.launch.workspace_state.content_sha256, byId["E2-execution"].envelope.launch.workspace_state.content_sha256);
   assert.deepEqual(byId["E2-helper-transform"].launch_material.process.deadline, { origin: "first_chain_process", seconds: 1800, restarted_at_helper: false });
   const findings = new Set([...cases.map(([c]) => c.finding), ...apply.applications.map((f) => f.finding), ...apply.journals.map((f) => f.finding)]);
-  for (const f of ["V2-BIND-01", "V2-QUAL-01", "V2-JCS-01", "V2-TREE-01", "V2-TIER-01", "V2-PRIV-01", "R1", "R2", "R3", "V2-GRANT-01", "S3", "V2-VEC-01", "V2-VEC-02", "V2-LOC-01", "S4"]) {
+  for (const f of ["V2-BIND-01", "V2-QUAL-01", "V2-JCS-01", "V2-TREE-01", "V2-TIER-01", "V2-PRIV-01", "R1", "R2", "R3", "V2-GRANT-01", "S3", "V2-VEC-01", "V2-VEC-02", "V2-LOC-01", "S4",
+    "R2-JCS-02", "R2-SECRET-01", "R2-TREE-01", "R2-BIND-01"]) {
     assert.ok(findings.has(f), f);
   }
 });
@@ -1839,6 +1885,11 @@ test("admitted_launch_envelope.v2: source-tree capture", () => {
     assert.equal(r2JcsSha(manifest), tree.sha256, tree.id);
   }
   const root = trees["T-root-git-directory"].sha256;
+  assert.equal(trees["T-implicit-directories"].sha256, root);
+  assert.equal(trees["T-root-git-file-with-children"].sha256, root);
+  for (const id of ["T-symlink-ancestor", "T-symlink-ancestor-listed-after", "T-file-ancestor", "T-file-ancestor-listed-after", "T-nested-git-symlink-ancestor"]) {
+    assert.equal(trees[id].unbindable, true, id);
+  }
   assert.equal(trees["T-root-git-file"].sha256, root);
   assert.equal(trees["T-root-git-symlink"].sha256, root);
   assert.notEqual(trees["T-nested-git-removed"].sha256, root);
@@ -1906,5 +1957,51 @@ test("admitted_launch_envelope.v2: drive-absolute locators are refused in every 
     edit(value.envelope);
     value.envelope.envelope_digest = srEnvelopeDigest(value.envelope);
     assert.deepEqual(r2Evaluate(schema, value)[0], ["locator_not_repo_relative"], family);
+  }
+});
+
+test("admitted_launch_envelope.v2: safe-integer commitment domain through raw parsing and in-memory values", () => {
+  // R2-JCS-01
+  const { canonical: canon } = sr2Load();
+  for (const row of canon.domain) {
+    for (const path of ["raw", "in_memory"]) {
+      let got;
+      try {
+        const value = path === "raw" ? r2StrictParse(Buffer.from(`[${row.token}]`, "utf8"))[0] : JSON.parse(row.token);
+        got = r2Jcs([value]).slice(1, -1);
+      } catch (error) {
+        if (!(error instanceof R2Unbindable)) throw error;
+        got = undefined;
+      }
+      assert.equal(got, row.canonical, `${row.id} ${path}`);
+    }
+  }
+  for (const value of [2 ** 53, -(2 ** 53), 1e21, 999999999999999900000]) assert.throws(() => r2Jcs({ n: value }), R2Unbindable, String(value));
+  assert.equal(r2Jcs({ n: Number.MAX_SAFE_INTEGER }), '{"n":9007199254740991}');
+  assert.equal(r2EsNumber(1e21), "1e+21"); // the serializer primitive is separate from acceptance
+});
+
+test("admitted_launch_envelope.v2: __proto__ is an ordinary own member, pinned across readers", () => {
+  // R2-JCS-02
+  const { canonical: canon, schema, byId } = sr2Load();
+  const parsed = r2StrictParse(Buffer.from('{"__proto__":{"x":1}}', "utf8"));
+  assert.ok(Object.prototype.hasOwnProperty.call(parsed, "__proto__"));
+  assert.equal(r2Jcs(parsed), '{"__proto__":{"x":1}}');
+  assert.equal(r2Sha(r2Jcs(parsed)), "0fb20b06cf5847cf21cc37dd0d3602c176cc3f96ea4281167bbfe61cbe5813a3");
+  assert.equal(canon.documents.find((d) => d.id === "J-proto-object").sha256, "0fb20b06cf5847cf21cc37dd0d3602c176cc3f96ea4281167bbfe61cbe5813a3");
+  assert.deepEqual(r2Evaluate(schema, byId["E2-jcs-proto"])[0], []);
+  assert.ok(Object.prototype.hasOwnProperty.call(byId["E2-jcs-proto"].envelope.caller_context, "__proto__"));
+});
+
+test("admitted_launch_envelope.v2: instruction byte_length is the UTF-8 byte count", () => {
+  // R2-BIND-01
+  const { schema, byId } = sr2Load();
+  const control = byId["E2-multibyte-instructions"];
+  const content = control.launch_material.instructions.content;
+  assert.notEqual([...content].length, Buffer.byteLength(content, "utf8"));
+  assert.equal(control.envelope.launch.instructions.byte_length, Buffer.byteLength(content, "utf8"));
+  for (const id of ["S3-instructions-length-char-count", "S3-instructions-length-plus-one"]) {
+    assert.equal(byId[id].envelope.launch.instructions.sha256, control.envelope.launch.instructions.sha256);
+    assert.deepEqual(r2Evaluate(schema, byId[id])[0], ["launch_instructions_mismatch"], id);
   }
 });

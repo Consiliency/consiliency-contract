@@ -73,8 +73,11 @@ The bound environment policy classifies every variable, in trust, as non-secret 
 source. A variable it does not classify fails closed. Each secret's source must be authorized by the single matching
 qualification record (`grant_unqualified` otherwise).
 
-No secret value, and no digest of one, may appear in any commitment: argv, references, policy, template or grant
-documents. A route that would need one bound is not representable. Rotating a secret value leaves the envelope
+No secret value, and no digest of one, may appear in any commitment: the envelope itself, `caller_context`
+included (member names, nested values and arrays, after decoding escapes), argv, references, and policy, template or
+grant documents. `caller_context` stays opaque. That means no field has a meaning, and generic secret-safety
+validation is not interpretation. Its producer must not put secrets in it, and a known secret or derived digest
+found there is `launch_input_unbound`; the payload is never redacted to pass. A route that would need one bound is not representable. Rotating a secret value leaves the envelope
 unchanged; the vectors `E2-secret-env` and `E2-secret-env-rotated` show this. The digest is deterministic, unsalted
 and unkeyed. It commits the non-secret content but does not keep it confidential.
 
@@ -155,13 +158,23 @@ RFC 8785 throughout:
 - strings use only the RFC 8785 escapes;
 - the output is UTF-8.
 
-Before anything is hashed, raw input passes the I-JSON boundary. It must be valid UTF-8, with no duplicate member
-names, no lone surrogates and only finite numbers. An integer literal above 2^53 is accepted only if it is already
-the ECMAScript form of its double. Unrepresentable launch input is `launch_input_unbound`.
+Before anything is hashed, the v2 input boundary is checked on raw input and again on in-memory values:
+
+- valid UTF-8, no duplicate member names, no lone surrogates;
+- `__proto__` is an ordinary member name like any other;
+- numbers are finite binary64 values, and an integer-valued number must lie within -9007199254740991 through
+  9007199254740991, whatever its spelling. So `9007199254740992`, `9007199254740992.0`, `9.007199254740992e15`,
+  `1e21` and `999999999999999900000` are all refused. Non-integral numbers stay valid.
+
+This is a deliberately narrower v2 profile, not a claim that RFC 8785 disallows larger doubles; large opaque
+identifiers can be strings. Unrepresentable launch input is `launch_input_unbound`.
 
 The file contains:
 
-- `numbers`: IEEE-754 bit patterns, with the RFC 8785 Appendix B rows copied from the RFC;
+- `numbers`: serializer primitives only. They are IEEE-754 bit patterns and their ECMAScript Number-to-String form,
+  with the RFC 8785 Appendix B rows copied from the RFC. They prove serialization, not acceptance;
+- `domain`: number tokens, each accepted with its canonical form or refused, through both raw parsing and in-memory
+  commitment;
 - `documents`: raw text, the exact canonical text and its digest, or `reject`;
 - `alternates`: wrong preimages that must not match;
 - `tree_captures`: capture listings, the manifest each must yield and its digest, or `unbindable`;
@@ -174,6 +187,8 @@ Capture follows these rules:
 - A symlink hashes its raw target bytes and is never followed.
 - Entries are sorted by the UTF-8 bytes of their path.
 - Other object types, duplicate or ungrammatical paths, and missing modes are unbindable.
+- A represented file, symlink or other non-directory object is never a proper ancestor of another listed path,
+  whatever the listing order; directories may be implicit. Capture never traverses a symlink ancestor.
 
 ## Apply and journals (envelope.v2.apply.vectors.json)
 

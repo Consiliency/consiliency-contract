@@ -1788,7 +1788,7 @@ test("admitted_launch_envelope.v2: every vector gives exactly its schema errors,
       if (c.role === "negative" && JSON.stringify(r2Evaluate(schema, value, false)[0]) !== JSON.stringify(c.expected)) widened.add(c.id);
     }
   }
-  assert.deepEqual(counts, { control: 20, negative: 168, schema_negative: 62 });
+  assert.deepEqual(counts, { control: 21, negative: 172, schema_negative: 62 });
   assert.deepEqual(mismatches.sort(), ["S2-digest-not-rehashed", "S2-jcs-ascii-escaped-envelope", "S2-jcs-codepoint-order-envelope"]);
   for (const id of ["S2-os-enforced", "S2-chain-executable-not-last", "S2-qual-duplicate-identical"]) assert.ok(widened.has(id), id);
 });
@@ -1834,7 +1834,7 @@ test("admitted_launch_envelope.v2: secrets stay out of commitments; cwd keeps th
   assert.deepEqual(byId["E2-helper-transform"].launch_material.process.deadline, { origin: "first_chain_process", seconds: 1800, restarted_at_helper: false });
   const findings = new Set([...cases.map(([c]) => c.finding), ...apply.applications.map((f) => f.finding), ...apply.journals.map((f) => f.finding)]);
   for (const f of ["V2-BIND-01", "V2-QUAL-01", "V2-JCS-01", "V2-TREE-01", "V2-TIER-01", "V2-PRIV-01", "R1", "R2", "R3", "V2-GRANT-01", "S3", "V2-VEC-01", "V2-VEC-02", "V2-LOC-01", "S4",
-    "R2-JCS-02", "R2-SECRET-01", "R2-TREE-01", "R2-BIND-01"]) {
+    "R2-JCS-02", "R2-SECRET-01", "R2-TREE-01", "R2-BIND-01", "R3-TREE-01"]) {
     assert.ok(findings.has(f), f);
   }
 });
@@ -1887,9 +1887,13 @@ test("admitted_launch_envelope.v2: source-tree capture", () => {
   const root = trees["T-root-git-directory"].sha256;
   assert.equal(trees["T-implicit-directories"].sha256, root);
   assert.equal(trees["T-root-git-file-with-children"].sha256, root);
-  for (const id of ["T-symlink-ancestor", "T-symlink-ancestor-listed-after", "T-file-ancestor", "T-file-ancestor-listed-after", "T-nested-git-symlink-ancestor"]) {
+  for (const id of ["T-symlink-ancestor", "T-symlink-ancestor-listed-after", "T-file-ancestor", "T-file-ancestor-listed-after", "T-nested-git-symlink-ancestor",
+    "T-deep-symlink-ancestor", "T-deep-symlink-ancestor-listed-after", "T-deep-file-ancestor", "T-deep-file-ancestor-listed-after"]) {
     assert.equal(trees[id].unbindable, true, id);
   }
+  // R3-TREE-01: every proper ancestor, not only the immediate parent; implicit intermediates are valid.
+  assert.ok(!trees["T-deep-implicit-directories"].unbindable);
+  assert.deepEqual(trees["T-deep-implicit-directories"].manifest.map((e) => e[0]), ["README.md", "a/b/c.txt"]);
   assert.equal(trees["T-root-git-file"].sha256, root);
   assert.equal(trees["T-root-git-symlink"].sha256, root);
   assert.notEqual(trees["T-nested-git-removed"].sha256, root);
@@ -2003,5 +2007,23 @@ test("admitted_launch_envelope.v2: instruction byte_length is the UTF-8 byte cou
   for (const id of ["S3-instructions-length-char-count", "S3-instructions-length-plus-one"]) {
     assert.equal(byId[id].envelope.launch.instructions.sha256, control.envelope.launch.instructions.sha256);
     assert.deepEqual(r2Evaluate(schema, byId[id])[0], ["launch_instructions_mismatch"], id);
+  }
+});
+
+test("admitted_launch_envelope.v2: a non-immediate file or symlink ancestor refuses with zero workers", () => {
+  // R3-TREE-01
+  const { schema, byId } = sr2Load();
+  const control = byId["E2-review-deep-implicit"];
+  assert.deepEqual(r2Evaluate(schema, control)[0], []);
+  const paths = control.launch_material.workspace.capture.map((c) => c.path);
+  assert.ok(paths.includes("plans/deep/review-instructions.md") && !paths.includes("plans") && !paths.includes("plans/deep"));
+  for (const kind of ["symlink", "file"]) {
+    for (const suffix of ["", "-listed-after"]) {
+      const id = `S4-tree-deep-${kind}-ancestor${suffix}`;
+      const [codes, effect] = r2Evaluate(schema, byId[id]);
+      assert.deepEqual(codes, ["launch_input_unbound"], id);
+      assert.equal(effect.attempt.state, "refused", id);
+      assert.equal(effect.attempt.worker_invocations, 0, id);
+    }
   }
 });

@@ -1014,6 +1014,135 @@
       "unbindable": true
     },
     {
+      "id": "T-deep-implicit-directories",
+      "capture": [
+        {
+          "path": "README.md",
+          "type": "file",
+          "mode": 420,
+          "content": "Example project.\n"
+        },
+        {
+          "path": "a/b/c.txt",
+          "type": "file",
+          "mode": 420,
+          "content": "c\n"
+        }
+      ],
+      "why": "a and a/b implicit: valid",
+      "manifest": [
+        [
+          "README.md",
+          "file",
+          "c5e5e5aaf7121e63dfe976e0c06d32f46f8bfd29b87f4f5a157bc8168b2a7505"
+        ],
+        [
+          "a/b/c.txt",
+          "file",
+          "a3a5e715f0cc574a73c3f9bebb6bc24f32ffd5b67b387244c2c909da779a1478"
+        ]
+      ],
+      "sha256": "163226eff16355a070049da59cce1fd51e08be35f621f0dd29dd29e7d01b2764"
+    },
+    {
+      "id": "T-deep-symlink-ancestor",
+      "capture": [
+        {
+          "path": "README.md",
+          "type": "file",
+          "mode": 420,
+          "content": "Example project.\n"
+        },
+        {
+          "path": "a",
+          "type": "symlink",
+          "target_hex": "2e2e2f657363617065"
+        },
+        {
+          "path": "a/b/c.txt",
+          "type": "file",
+          "mode": 420,
+          "content": "c\n"
+        }
+      ],
+      "why": "a is a symlink, a/b is implicit, a/b/c.txt listed after it: non-immediate ancestor",
+      "unbindable": true
+    },
+    {
+      "id": "T-deep-symlink-ancestor-listed-after",
+      "capture": [
+        {
+          "path": "README.md",
+          "type": "file",
+          "mode": 420,
+          "content": "Example project.\n"
+        },
+        {
+          "path": "a/b/c.txt",
+          "type": "file",
+          "mode": 420,
+          "content": "c\n"
+        },
+        {
+          "path": "a",
+          "type": "symlink",
+          "target_hex": "2e2e2f657363617065"
+        }
+      ],
+      "why": "a is a symlink, a/b is implicit, a/b/c.txt listed before it: non-immediate ancestor",
+      "unbindable": true
+    },
+    {
+      "id": "T-deep-file-ancestor",
+      "capture": [
+        {
+          "path": "README.md",
+          "type": "file",
+          "mode": 420,
+          "content": "Example project.\n"
+        },
+        {
+          "path": "a",
+          "type": "file",
+          "mode": 420,
+          "content": "not a directory\n"
+        },
+        {
+          "path": "a/b/c.txt",
+          "type": "file",
+          "mode": 420,
+          "content": "c\n"
+        }
+      ],
+      "why": "a is a file, a/b is implicit, a/b/c.txt listed after it: non-immediate ancestor",
+      "unbindable": true
+    },
+    {
+      "id": "T-deep-file-ancestor-listed-after",
+      "capture": [
+        {
+          "path": "README.md",
+          "type": "file",
+          "mode": 420,
+          "content": "Example project.\n"
+        },
+        {
+          "path": "a/b/c.txt",
+          "type": "file",
+          "mode": 420,
+          "content": "c\n"
+        },
+        {
+          "path": "a",
+          "type": "file",
+          "mode": 420,
+          "content": "not a directory\n"
+        }
+      ],
+      "why": "a is a file, a/b is implicit, a/b/c.txt listed before it: non-immediate ancestor",
+      "unbindable": true
+    },
+    {
       "id": "T-implicit-directories",
       "capture": [
         {

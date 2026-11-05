@@ -1964,7 +1964,7 @@ class SupervisedRunEnvelopeV2Test(unittest.TestCase):
     FINDINGS = {
         "V2-BIND-01", "V2-QUAL-01", "V2-JCS-01", "V2-TREE-01", "V2-TIER-01", "V2-PRIV-01", "R1", "R2", "R3",
         "V2-GRANT-01", "S3", "V2-VEC-01", "V2-VEC-02", "V2-LOC-01", "S4",
-        "R2-JCS-02", "R2-SECRET-01", "R2-TREE-01", "R2-BIND-01",
+        "R2-JCS-02", "R2-SECRET-01", "R2-TREE-01", "R2-BIND-01", "R3-TREE-01",
     }
     PROTO_OBJECT_SHA256 = "0fb20b06cf5847cf21cc37dd0d3602c176cc3f96ea4281167bbfe61cbe5813a3"
 
@@ -2063,7 +2063,7 @@ class SupervisedRunEnvelopeV2Test(unittest.TestCase):
                 self.assertEqual(case["expected"], ["envelope_schema_invalid"], case["id"])
                 self.assertTrue(case["expected_schema_errors"], case["id"])
         roles = [case["role"] for case, _ in self.cases]
-        self.assertEqual((roles.count("control"), roles.count("negative"), roles.count("schema_negative")), (20, 168, 62))
+        self.assertEqual((roles.count("control"), roles.count("negative"), roles.count("schema_negative")), (21, 172, 62))
 
     # ---- envelope admission
 
@@ -2318,13 +2318,33 @@ class SupervisedRunEnvelopeV2Test(unittest.TestCase):
         # R2-TREE-01: implicit directories are fine; a represented non-directory ancestor is refused in either order.
         self.assertEqual(trees["T-implicit-directories"]["sha256"], root)
         self.assertEqual(trees["T-root-git-file-with-children"]["sha256"], root)
-        for tid in ("T-symlink-ancestor", "T-symlink-ancestor-listed-after", "T-file-ancestor", "T-file-ancestor-listed-after", "T-nested-git-symlink-ancestor"):
+        for tid in ("T-symlink-ancestor", "T-symlink-ancestor-listed-after", "T-file-ancestor", "T-file-ancestor-listed-after", "T-nested-git-symlink-ancestor",
+                    "T-deep-symlink-ancestor", "T-deep-symlink-ancestor-listed-after", "T-deep-file-ancestor", "T-deep-file-ancestor-listed-after"):
             self.assertTrue(trees[tid].get("unbindable"), tid)
+        # R3-TREE-01: every proper ancestor, not only the immediate parent; implicit intermediates are valid.
+        self.assertFalse(trees["T-deep-implicit-directories"].get("unbindable"))
+        self.assertEqual([e[0] for e in trees["T-deep-implicit-directories"]["manifest"]], ["README.md", "a/b/c.txt"])
+
         for alt in self.canonical["tree_alternates"]:
             self.assertEqual(r2_tree_sha(alt["manifest"]), alt["sha256"], alt["id"])
             derived = r2_tree_sha(r2_capture_manifest(trees[alt["of"]]["capture"]))
             self.assertNotEqual(derived, alt["sha256"], alt["id"])
             self.assertEqual(alt["expected"], "launch_workspace_mismatch")
+
+    def test_non_immediate_ancestor_refuses_with_zero_workers(self) -> None:
+        # R3-TREE-01: the instruction sits two levels below a symlink or file, with the intermediate directory implicit.
+        control = self.by_id["E2-review-deep-implicit"]
+        self.assertEqual(r2_evaluate(self.schema, control)[0], [])
+        paths = [c["path"] for c in control["launch_material"]["workspace"]["capture"]]
+        self.assertIn("plans/deep/review-instructions.md", paths)
+        self.assertNotIn("plans", paths)
+        self.assertNotIn("plans/deep", paths)
+        for kind in ("symlink", "file"):
+            for suffix in ("", "-listed-after"):
+                cid = f"S4-tree-deep-{kind}-ancestor{suffix}"
+                codes, effect = r2_evaluate(self.schema, self.by_id[cid])
+                self.assertEqual(codes, ["launch_input_unbound"], cid)
+                self.assertEqual((effect["attempt"]["state"], effect["attempt"]["worker_invocations"]), ("refused", 0), cid)
 
     # ---- apply check and runtime journal (V2-TIER-01, S3)
 

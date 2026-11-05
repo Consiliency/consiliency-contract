@@ -30,8 +30,8 @@
     "files": {
       "admitted-launch-envelope.v2.schema.json": "6d6b2f89c55d160c2c132c29b3aa330a0a91c40ab017707040478a60b469194f",
       "conformance/README.v2.md": "c6ab5d9da4707adf5dad9602b483b201a2dfe89f638ecba84129e0c477d72637",
-      "conformance/envelope.v2.vectors.json": "eebc0caad16260a3ecac5a9aaf84ff4e2e2128c365527a75b5badbf2fd6f1dcf",
-      "conformance/envelope.v2.canonical.vectors.json": "f0ac6702befe89b81aa152628c511c790393cc8f9b31b07174430ce5ecc5037f",
+      "conformance/envelope.v2.vectors.json": "e742d2774d410c2508405eaffed84575b992483da68c07f28591097d6ec5bc2f",
+      "conformance/envelope.v2.canonical.vectors.json": "f7f11c7667d12b0c876102781fdd5773074f5301f152a6d18be509894bc0e8f8",
       "conformance/envelope.v2.apply.vectors.json": "57e0fd4d2e88c75bb8dfbab94448431ca3c752f6444febf1bd492323b044c078"
     }
   },
@@ -45,13 +45,13 @@
       "conformance/run-status.vectors.json": "5bf9dfbf65805f7340290586d546038fc88659785e60e2f55532df4ac6696730",
       "admitted-launch-envelope.v2.schema.json": "6d6b2f89c55d160c2c132c29b3aa330a0a91c40ab017707040478a60b469194f",
       "conformance/README.v2.md": "c6ab5d9da4707adf5dad9602b483b201a2dfe89f638ecba84129e0c477d72637",
-      "conformance/envelope.v2.vectors.json": "eebc0caad16260a3ecac5a9aaf84ff4e2e2128c365527a75b5badbf2fd6f1dcf",
-      "conformance/envelope.v2.canonical.vectors.json": "f0ac6702befe89b81aa152628c511c790393cc8f9b31b07174430ce5ecc5037f",
+      "conformance/envelope.v2.vectors.json": "e742d2774d410c2508405eaffed84575b992483da68c07f28591097d6ec5bc2f",
+      "conformance/envelope.v2.canonical.vectors.json": "f7f11c7667d12b0c876102781fdd5773074f5301f152a6d18be509894bc0e8f8",
       "conformance/envelope.v2.apply.vectors.json": "57e0fd4d2e88c75bb8dfbab94448431ca3c752f6444febf1bd492323b044c078"
     },
     "manifest": {
       "path": "conformance/SHA256SUMS",
-      "sha256": "ecb417b515fd1496948f455f1f612110894da07416f1cd0868fe511d7b6ee22a",
+      "sha256": "48904c259e4a1c24d3e841f56b6c2a84ce2cff32014cf573b3e41b34fac1f1fc",
       "v1_prefix": {
         "lines": 5,
         "sha256": "b9c2dad7ca32d32b9860e56c2e14141827955a50b52a54c8088760d9756e1285"

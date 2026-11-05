@@ -6914,6 +6914,510 @@
       }
     },
     {
+      "id": "E2-review-deep-implicit",
+      "kind": "admission",
+      "role": "control",
+      "input": {
+        "envelope": {
+          "schema": "admitted_launch_envelope.v2",
+          "envelope_digest": "3bfce65018f357c3c50f6f9674f4af2b93869b00cc8b87a6fac56c03b96cbda5",
+          "assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "units": {
+            "target_unit_ids": [
+              "unit:target"
+            ],
+            "readonly_neighbor_unit_ids": [
+              "unit:neighbor"
+            ],
+            "snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+            "crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d"
+          },
+          "workspace": {
+            "kind": "git_worktree_of_protected",
+            "repo_relative_locators": [
+              "src/module"
+            ]
+          },
+          "enforcement": {
+            "tier": "post_write_audit_only",
+            "required_constraints": []
+          },
+          "launch": {
+            "action": "review",
+            "transport_id": "cli",
+            "stdin": "devnull",
+            "instructions": {
+              "sha256": "ff97d3bd01fec235e8213b04ad5ef91e4bc65c61ba05534abcdee0ed7afa5756",
+              "byte_length": 66,
+              "source": {
+                "namespace": "workspace",
+                "path": "plans/deep/review-instructions.md"
+              }
+            },
+            "references": [
+              {
+                "role": "baseline",
+                "sha256": "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8",
+                "byte_length": 25,
+                "source": {
+                  "namespace": "workspace",
+                  "path": "src/module/target.ts"
+                }
+              },
+              {
+                "role": "config",
+                "sha256": "4054102f002bf68b86674afea76cce6d1b0a590c7b88639c91f7d0e88cd2c8f9",
+                "byte_length": 42,
+                "source": {
+                  "namespace": "workspace",
+                  "path": "schemas/output.json"
+                }
+              }
+            ],
+            "argv": {
+              "canonical_form": "rfc8785_array_of_strings",
+              "sha256": "745c731f19d520530682c8f265772ec9bd422c6ca33cc0fc722d306ee71bc66b",
+              "element_count": 6
+            },
+            "executable_chain": [
+              {
+                "role": "wrapper",
+                "locator_kind": "declared",
+                "locator": "scratch-wrap",
+                "sha256": "d7678b94b28485094ee7e7f2b3571904e615fafdafc8b904bfa4bcd9a0cb2889"
+              },
+              {
+                "role": "wrapper",
+                "locator_kind": "repo_relative",
+                "locator": "tools/run.sh",
+                "sha256": "7f812349eb1017d2122230d2daf3592fc5952efee881ffc42585d876687a97ee"
+              },
+              {
+                "role": "executable",
+                "locator_kind": "declared",
+                "locator": "provider-cli",
+                "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+              }
+            ],
+            "workspace_state": {
+              "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+              "content_form": "rfc8785_tree_manifest",
+              "content_sha256": "e7dccbfa99991116dfa2e01148ce275726bf37a036488aed1caa43ff6c2388a8",
+              "cwd": {
+                "namespace": "workspace",
+                "path": "src"
+              },
+              "target_map": [
+                {
+                  "workspace_locator": "src/module/target.ts",
+                  "protected_locator": "src/module/target.ts"
+                }
+              ]
+            },
+            "environment": {
+              "canonical_form": "rfc8785_redacted_environment",
+              "map_sha256": "473de8b295144d60ed49f81f8423a7b8b704ab96c2de316259ae74a6803ca370",
+              "policy": {
+                "id": "closed-profile",
+                "sha256": "ff236b122fb950a6902e0446851b325cefe709185b572b8d403fcf56ed10c016"
+              }
+            },
+            "trusted_policy": {
+              "config_sha256": "a30050f78e8e5109d8d6a43a6cff84c163ce069f349e7d06168cadb73e9c0cd5",
+              "template_sha256": "d9f771e217fa849bd3ae553b20354765fec65b00dd4a6a5fc960463458ced959",
+              "qualification_sha256": "2d12db9c2ef16b24875fc2a9fcc096080aaafad7987a420785ea43fde1f672ca"
+            },
+            "stop": {
+              "timeout_seconds": 3600,
+              "deadline_action": "not_armed"
+            },
+            "grants": {
+              "filesystem_view_sha256": {
+                "canonical_form": "rfc8785",
+                "sha256": "7e6881e78f2a7af00dc6d7a714c0ad270e1edd2d4036b65443edb17ad47b8a44"
+              },
+              "descriptor_capabilities_sha256": {
+                "canonical_form": "rfc8785",
+                "sha256": "d2bf212936492616769f716de2cd7d2302222f9030ecb5162c2b9cb0337665a0"
+              },
+              "dependency_projection_sha256": {
+                "canonical_form": "raw_bytes",
+                "sha256": "c027904e10d797f28deaf3fb4f96c33fc1844ba011ba16e0053ed6f2e2249d66"
+              },
+              "supervisor_identity_sha256": {
+                "canonical_form": "raw_bytes",
+                "sha256": "a69f9085af729bce7729fcdf390f25c4c709ef1ea9c04def84d0ac1dd2bf97f6"
+              },
+              "egress_policy_sha256": {
+                "canonical_form": "raw_bytes",
+                "sha256": "20e089a14bbfd6659421058bfcf4c605dc7069b67707c148cd6f73e0120580e6"
+              }
+            }
+          },
+          "obligations": {
+            "definition_digests": [
+              "7327e7658f4b4a5b072b5e9543e5e5139abf685bd64fc85c1e99768ae3b93d98"
+            ]
+          },
+          "executable_dependencies": {
+            "declared": true,
+            "admitted_dependency_digest": "4394ff3564177ae0998d98e16e065024a77daef6c5d6d6edcd94cd70d97bb2b6"
+          },
+          "caller_context": {
+            "ticket": "opaque-123",
+            "nested": {
+              "k": [
+                1,
+                2
+              ]
+            }
+          },
+          "redaction_posture": "digests_and_repo_relative_locators_only"
+        },
+        "validator_context": {
+          "expected_assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "expected_snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+          "expected_crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d",
+          "timeout_max_seconds": 3600,
+          "qualified_routes": [
+            {
+              "tier": "post_write_audit_only",
+              "action": "review",
+              "transport_id": "batch",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "scratch-wrap",
+                  "sha256": "d7678b94b28485094ee7e7f2b3571904e615fafdafc8b904bfa4bcd9a0cb2889"
+                },
+                {
+                  "locator_kind": "repo_relative",
+                  "locator": "tools/run.sh",
+                  "sha256": "7f812349eb1017d2122230d2daf3592fc5952efee881ffc42585d876687a97ee"
+                },
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "d9f771e217fa849bd3ae553b20354765fec65b00dd4a6a5fc960463458ced959",
+              "qualification_sha256": "2d12db9c2ef16b24875fc2a9fcc096080aaafad7987a420785ea43fde1f672ca",
+              "grants": {
+                "filesystem_view_sha256": {
+                  "canonical_form": "rfc8785",
+                  "sha256": "7e6881e78f2a7af00dc6d7a714c0ad270e1edd2d4036b65443edb17ad47b8a44"
+                },
+                "descriptor_capabilities_sha256": {
+                  "canonical_form": "rfc8785",
+                  "sha256": "d2bf212936492616769f716de2cd7d2302222f9030ecb5162c2b9cb0337665a0"
+                },
+                "dependency_projection_sha256": {
+                  "canonical_form": "raw_bytes",
+                  "sha256": "c027904e10d797f28deaf3fb4f96c33fc1844ba011ba16e0053ed6f2e2249d66"
+                },
+                "supervisor_identity_sha256": {
+                  "canonical_form": "raw_bytes",
+                  "sha256": "a69f9085af729bce7729fcdf390f25c4c709ef1ea9c04def84d0ac1dd2bf97f6"
+                },
+                "egress_policy_sha256": {
+                  "canonical_form": "raw_bytes",
+                  "sha256": "20e089a14bbfd6659421058bfcf4c605dc7069b67707c148cd6f73e0120580e6"
+                }
+              },
+              "credential_sources": []
+            },
+            {
+              "tier": "post_write_audit_only",
+              "action": "review",
+              "transport_id": "cli",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "scratch-wrap",
+                  "sha256": "d7678b94b28485094ee7e7f2b3571904e615fafdafc8b904bfa4bcd9a0cb2889"
+                },
+                {
+                  "locator_kind": "repo_relative",
+                  "locator": "tools/run.sh",
+                  "sha256": "7f812349eb1017d2122230d2daf3592fc5952efee881ffc42585d876687a97ee"
+                },
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "d9f771e217fa849bd3ae553b20354765fec65b00dd4a6a5fc960463458ced959",
+              "qualification_sha256": "2d12db9c2ef16b24875fc2a9fcc096080aaafad7987a420785ea43fde1f672ca",
+              "grants": {
+                "filesystem_view_sha256": {
+                  "canonical_form": "rfc8785",
+                  "sha256": "7e6881e78f2a7af00dc6d7a714c0ad270e1edd2d4036b65443edb17ad47b8a44"
+                },
+                "descriptor_capabilities_sha256": {
+                  "canonical_form": "rfc8785",
+                  "sha256": "d2bf212936492616769f716de2cd7d2302222f9030ecb5162c2b9cb0337665a0"
+                },
+                "dependency_projection_sha256": {
+                  "canonical_form": "raw_bytes",
+                  "sha256": "c027904e10d797f28deaf3fb4f96c33fc1844ba011ba16e0053ed6f2e2249d66"
+                },
+                "supervisor_identity_sha256": {
+                  "canonical_form": "raw_bytes",
+                  "sha256": "a69f9085af729bce7729fcdf390f25c4c709ef1ea9c04def84d0ac1dd2bf97f6"
+                },
+                "egress_policy_sha256": {
+                  "canonical_form": "raw_bytes",
+                  "sha256": "20e089a14bbfd6659421058bfcf4c605dc7069b67707c148cd6f73e0120580e6"
+                }
+              },
+              "credential_sources": []
+            }
+          ]
+        },
+        "launch_material": {
+          "instructions": {
+            "source": {
+              "namespace": "workspace",
+              "path": "plans/deep/review-instructions.md"
+            },
+            "content": "Review the proposal against the obligation; report findings only.\n",
+            "within_root": true
+          },
+          "references": [
+            {
+              "role": "baseline",
+              "source": {
+                "namespace": "workspace",
+                "path": "src/module/target.ts"
+              },
+              "content": "export const target = 1;\n",
+              "within_root": true
+            },
+            {
+              "role": "config",
+              "source": {
+                "namespace": "workspace",
+                "path": "schemas/output.json"
+              },
+              "content": "{\"type\":\"object\",\"required\":[\"findings\"]}\n",
+              "within_root": true
+            }
+          ],
+          "stdin": {
+            "mode": "devnull",
+            "writes": []
+          },
+          "process": {
+            "spawn": {
+              "argv": [
+                "scratch-wrap",
+                "tools/run.sh",
+                "provider-cli",
+                "review",
+                "--output-schema=schemas/output.json",
+                "plans/deep/review-instructions.md"
+              ],
+              "env": {
+                "HOME": "scratch/home",
+                "LANG": "C.UTF-8",
+                "TERM": "dumb"
+              },
+              "cwd": {
+                "namespace": "workspace",
+                "path": "src"
+              }
+            },
+            "worker": {
+              "argv": [
+                "provider-cli",
+                "review",
+                "--output-schema=schemas/output.json",
+                "plans/deep/review-instructions.md"
+              ],
+              "env": {
+                "HOME": "scratch/home",
+                "LANG": "C.UTF-8",
+                "TERM": "dumb"
+              },
+              "cwd": {
+                "namespace": "workspace",
+                "path": "src"
+              }
+            },
+            "cwd_resolution": {
+              "within_root": true,
+              "discovered": []
+            },
+            "deadline": {
+              "origin": "first_chain_process",
+              "seconds": null,
+              "restarted_at_helper": false
+            },
+            "probes": [
+              {
+                "phase": "before_admission",
+                "mutated_captured": false,
+                "argv": [
+                  "provider-cli",
+                  "--version"
+                ]
+              }
+            ]
+          },
+          "executable_chain": [
+            {
+              "role": "wrapper",
+              "locator_kind": "declared",
+              "locator": "scratch-wrap",
+              "sha256": "d7678b94b28485094ee7e7f2b3571904e615fafdafc8b904bfa4bcd9a0cb2889"
+            },
+            {
+              "role": "wrapper",
+              "locator_kind": "repo_relative",
+              "locator": "tools/run.sh",
+              "sha256": "7f812349eb1017d2122230d2daf3592fc5952efee881ffc42585d876687a97ee"
+            },
+            {
+              "role": "executable",
+              "locator_kind": "declared",
+              "locator": "provider-cli",
+              "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+            }
+          ],
+          "workspace": {
+            "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+            "capture": [
+              {
+                "path": ".git",
+                "type": "dir"
+              },
+              {
+                "path": ".git/HEAD",
+                "type": "file",
+                "mode": 420,
+                "content": "ref: refs/heads/main\n"
+              },
+              {
+                "path": ".git/config",
+                "type": "file",
+                "mode": 420,
+                "content": "[core]\n"
+              },
+              {
+                "path": "schemas",
+                "type": "dir"
+              },
+              {
+                "path": "src",
+                "type": "dir"
+              },
+              {
+                "path": "src/module",
+                "type": "dir"
+              },
+              {
+                "path": "tools",
+                "type": "dir"
+              },
+              {
+                "path": "README.md",
+                "type": "file",
+                "mode": 420,
+                "content": "Example project.\n"
+              },
+              {
+                "path": "plans/deep/review-instructions.md",
+                "type": "file",
+                "mode": 420,
+                "content": "Review the proposal against the obligation; report findings only.\n"
+              },
+              {
+                "path": "schemas/output.json",
+                "type": "file",
+                "mode": 420,
+                "content": "{\"type\":\"object\",\"required\":[\"findings\"]}\n"
+              },
+              {
+                "path": "src/module/target.ts",
+                "type": "file",
+                "mode": 420,
+                "content": "export const target = 1;\n"
+              },
+              {
+                "path": "tools/run.sh",
+                "type": "file",
+                "mode": 493,
+                "content": "#!/bin/sh\nexec \"$@\"\n"
+              }
+            ],
+            "target_map": [
+              {
+                "workspace_locator": "src/module/target.ts",
+                "protected_locator": "src/module/target.ts"
+              }
+            ]
+          },
+          "environment": {
+            "policy_id": "closed-profile",
+            "policy": "{\"build\": \"scrub: drop provider self-markers and mutation credentials; relocate HOME and TMPDIR to scratch\", \"classification\": {\"HELPER_MODE\": \"non_secret\", \"HOME\": \"non_secret\", \"LANG\": \"non_secret\", \"PATH\": \"non_secret\", \"TERM\": \"non_secret\", \"TMPDIR\": \"non_secret\", \"WORKER_ROLE\": \"non_secret\"}}\n"
+          },
+          "policy": {
+            "config": "timeout_max_seconds = 3600\nheartbeat_seconds = 30\nquiet_seconds = 300\n",
+            "template": "{\"argv\": [\"scratch-wrap\", \"tools/run.sh\", \"provider-cli\", \"review\", \"--output-schema={schema}\", \"{instructions}\"], \"helpers\": [{\"argv_shift\": 1, \"chain_index\": 0}, {\"argv_shift\": 1, \"chain_index\": 1}], \"spawn_cwd\": {\"namespace\": \"workspace\", \"path\": \"src\"}}\n",
+            "qualification": "qualification: scratch-wrap 0.3.0, run.sh, provider-cli 1.4.2; review; audit; grants applied as bound\n",
+            "grants": {
+              "filesystem_view_sha256": {
+                "canonical_form": "rfc8785",
+                "value": {
+                  "roots": [
+                    {
+                      "id": "tree",
+                      "access": "read-write"
+                    }
+                  ],
+                  "resources": []
+                }
+              },
+              "descriptor_capabilities_sha256": {
+                "canonical_form": "rfc8785",
+                "value": {
+                  "descriptors": [
+                    {
+                      "id": "lease",
+                      "purpose": "lease",
+                      "access": "read"
+                    }
+                  ]
+                }
+              },
+              "dependency_projection_sha256": {
+                "canonical_form": "raw_bytes",
+                "text": "projection: admitted dependency closure, read-only\n"
+              },
+              "supervisor_identity_sha256": {
+                "canonical_form": "raw_bytes",
+                "text": "supervisor: lease supervisor, own process owner\n"
+              },
+              "egress_policy_sha256": {
+                "canonical_form": "raw_bytes",
+                "text": "egress v1\n1 allow provider-api:443\n2 deny *\n"
+              }
+            }
+          },
+          "unbound_inputs": []
+        }
+      },
+      "expected": [],
+      "expected_effect": {
+        "attempt": {
+          "state": "queued",
+          "worker_invocations": 0
+        }
+      }
+    },
+    {
       "id": "E2-multibyte-instructions",
       "kind": "admission",
       "role": "control",
@@ -13321,6 +13825,420 @@
       },
       "note": "plans is a file, yet plans/review-instructions.md is listed before it; tree and envelope digests are recomputed as a reader without the ancestor check would.",
       "finding": "R2-TREE-01"
+    },
+    {
+      "id": "S4-tree-deep-symlink-ancestor",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-deep-implicit",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/content_sha256",
+          "value": "80544d64056cb674b9c252be9fc47fa8594f7b5ca53c783a13e78fff9649b466"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture",
+          "value": [
+            {
+              "path": ".git",
+              "type": "dir"
+            },
+            {
+              "path": ".git/HEAD",
+              "type": "file",
+              "mode": 420,
+              "content": "ref: refs/heads/main\n"
+            },
+            {
+              "path": ".git/config",
+              "type": "file",
+              "mode": 420,
+              "content": "[core]\n"
+            },
+            {
+              "path": "schemas",
+              "type": "dir"
+            },
+            {
+              "path": "src",
+              "type": "dir"
+            },
+            {
+              "path": "src/module",
+              "type": "dir"
+            },
+            {
+              "path": "tools",
+              "type": "dir"
+            },
+            {
+              "path": "README.md",
+              "type": "file",
+              "mode": 420,
+              "content": "Example project.\n"
+            },
+            {
+              "path": "plans",
+              "type": "symlink",
+              "target_hex": "2e2e2f657363617065"
+            },
+            {
+              "path": "plans/deep/review-instructions.md",
+              "type": "file",
+              "mode": 420,
+              "content": "Review the proposal against the obligation; report findings only.\n"
+            },
+            {
+              "path": "schemas/output.json",
+              "type": "file",
+              "mode": 420,
+              "content": "{\"type\":\"object\",\"required\":[\"findings\"]}\n"
+            },
+            {
+              "path": "src/module/target.ts",
+              "type": "file",
+              "mode": 420,
+              "content": "export const target = 1;\n"
+            },
+            {
+              "path": "tools/run.sh",
+              "type": "file",
+              "mode": 493,
+              "content": "#!/bin/sh\nexec \"$@\"\n"
+            }
+          ]
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      },
+      "note": "plans is a symlink; plans/deep is implicit (no record); plans/deep/review-instructions.md is listed after plans. plans is a non-immediate ancestor; tree and envelope digests are recomputed as a reader without the ancestor check would.",
+      "finding": "R3-TREE-01"
+    },
+    {
+      "id": "S4-tree-deep-symlink-ancestor-listed-after",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-deep-implicit",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/content_sha256",
+          "value": "80544d64056cb674b9c252be9fc47fa8594f7b5ca53c783a13e78fff9649b466"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture",
+          "value": [
+            {
+              "path": ".git",
+              "type": "dir"
+            },
+            {
+              "path": ".git/HEAD",
+              "type": "file",
+              "mode": 420,
+              "content": "ref: refs/heads/main\n"
+            },
+            {
+              "path": ".git/config",
+              "type": "file",
+              "mode": 420,
+              "content": "[core]\n"
+            },
+            {
+              "path": "schemas",
+              "type": "dir"
+            },
+            {
+              "path": "src",
+              "type": "dir"
+            },
+            {
+              "path": "src/module",
+              "type": "dir"
+            },
+            {
+              "path": "tools",
+              "type": "dir"
+            },
+            {
+              "path": "README.md",
+              "type": "file",
+              "mode": 420,
+              "content": "Example project.\n"
+            },
+            {
+              "path": "plans/deep/review-instructions.md",
+              "type": "file",
+              "mode": 420,
+              "content": "Review the proposal against the obligation; report findings only.\n"
+            },
+            {
+              "path": "schemas/output.json",
+              "type": "file",
+              "mode": 420,
+              "content": "{\"type\":\"object\",\"required\":[\"findings\"]}\n"
+            },
+            {
+              "path": "src/module/target.ts",
+              "type": "file",
+              "mode": 420,
+              "content": "export const target = 1;\n"
+            },
+            {
+              "path": "tools/run.sh",
+              "type": "file",
+              "mode": 493,
+              "content": "#!/bin/sh\nexec \"$@\"\n"
+            },
+            {
+              "path": "plans",
+              "type": "symlink",
+              "target_hex": "2e2e2f657363617065"
+            }
+          ]
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      },
+      "note": "plans is a symlink; plans/deep is implicit (no record); plans/deep/review-instructions.md is listed before plans. plans is a non-immediate ancestor; tree and envelope digests are recomputed as a reader without the ancestor check would.",
+      "finding": "R3-TREE-01"
+    },
+    {
+      "id": "S4-tree-deep-file-ancestor",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-deep-implicit",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/content_sha256",
+          "value": "1a13e445a31d9e0f9504248baec2990b368c95d952b198853754f5f9d86ba9a1"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture",
+          "value": [
+            {
+              "path": ".git",
+              "type": "dir"
+            },
+            {
+              "path": ".git/HEAD",
+              "type": "file",
+              "mode": 420,
+              "content": "ref: refs/heads/main\n"
+            },
+            {
+              "path": ".git/config",
+              "type": "file",
+              "mode": 420,
+              "content": "[core]\n"
+            },
+            {
+              "path": "schemas",
+              "type": "dir"
+            },
+            {
+              "path": "src",
+              "type": "dir"
+            },
+            {
+              "path": "src/module",
+              "type": "dir"
+            },
+            {
+              "path": "tools",
+              "type": "dir"
+            },
+            {
+              "path": "README.md",
+              "type": "file",
+              "mode": 420,
+              "content": "Example project.\n"
+            },
+            {
+              "path": "plans",
+              "type": "file",
+              "mode": 420,
+              "content": "not a directory\n"
+            },
+            {
+              "path": "plans/deep/review-instructions.md",
+              "type": "file",
+              "mode": 420,
+              "content": "Review the proposal against the obligation; report findings only.\n"
+            },
+            {
+              "path": "schemas/output.json",
+              "type": "file",
+              "mode": 420,
+              "content": "{\"type\":\"object\",\"required\":[\"findings\"]}\n"
+            },
+            {
+              "path": "src/module/target.ts",
+              "type": "file",
+              "mode": 420,
+              "content": "export const target = 1;\n"
+            },
+            {
+              "path": "tools/run.sh",
+              "type": "file",
+              "mode": 493,
+              "content": "#!/bin/sh\nexec \"$@\"\n"
+            }
+          ]
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      },
+      "note": "plans is a file; plans/deep is implicit (no record); plans/deep/review-instructions.md is listed after plans. plans is a non-immediate ancestor; tree and envelope digests are recomputed as a reader without the ancestor check would.",
+      "finding": "R3-TREE-01"
+    },
+    {
+      "id": "S4-tree-deep-file-ancestor-listed-after",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-deep-implicit",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/content_sha256",
+          "value": "1a13e445a31d9e0f9504248baec2990b368c95d952b198853754f5f9d86ba9a1"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/capture",
+          "value": [
+            {
+              "path": ".git",
+              "type": "dir"
+            },
+            {
+              "path": ".git/HEAD",
+              "type": "file",
+              "mode": 420,
+              "content": "ref: refs/heads/main\n"
+            },
+            {
+              "path": ".git/config",
+              "type": "file",
+              "mode": 420,
+              "content": "[core]\n"
+            },
+            {
+              "path": "schemas",
+              "type": "dir"
+            },
+            {
+              "path": "src",
+              "type": "dir"
+            },
+            {
+              "path": "src/module",
+              "type": "dir"
+            },
+            {
+              "path": "tools",
+              "type": "dir"
+            },
+            {
+              "path": "README.md",
+              "type": "file",
+              "mode": 420,
+              "content": "Example project.\n"
+            },
+            {
+              "path": "plans/deep/review-instructions.md",
+              "type": "file",
+              "mode": 420,
+              "content": "Review the proposal against the obligation; report findings only.\n"
+            },
+            {
+              "path": "schemas/output.json",
+              "type": "file",
+              "mode": 420,
+              "content": "{\"type\":\"object\",\"required\":[\"findings\"]}\n"
+            },
+            {
+              "path": "src/module/target.ts",
+              "type": "file",
+              "mode": 420,
+              "content": "export const target = 1;\n"
+            },
+            {
+              "path": "tools/run.sh",
+              "type": "file",
+              "mode": 493,
+              "content": "#!/bin/sh\nexec \"$@\"\n"
+            },
+            {
+              "path": "plans",
+              "type": "file",
+              "mode": 420,
+              "content": "not a directory\n"
+            }
+          ]
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      },
+      "note": "plans is a file; plans/deep is implicit (no record); plans/deep/review-instructions.md is listed before plans. plans is a non-immediate ancestor; tree and envelope digests are recomputed as a reader without the ancestor check would.",
+      "finding": "R3-TREE-01"
     },
     {
       "id": "S3-instructions-length-char-count",

@@ -1,0 +1,4439 @@
+{
+  "contract": "admitted_launch_envelope.v2",
+  "status": "provisional",
+  "note": "Golden valid and negative conformance vectors for admitted_launch_envelope.v2. Each negative is a JSON Patch (RFC 6902 add/remove/replace) applied to its paired control's input; when rehash is true, envelope_digest is recomputed afterwards, so the envelope self-verifies. role negative: schema-valid, refused by the named semantic rule. role schema_negative: refused by JSON Schema (envelope_schema_invalid), with the exact set of failing (instance_path, keyword) pairs in expected_schema_errors. Expected diagnostics are exact sets, evaluated in the stages of x-evaluation-order. See conformance/README.v2.md.",
+  "cases": [
+    {
+      "id": "E2-execution",
+      "kind": "admission",
+      "role": "control",
+      "input": {
+        "envelope": {
+          "schema": "admitted_launch_envelope.v2",
+          "envelope_digest": "e196417c56118c46d3b90360e41bb77d82dbd6aab020e7d2f25d59a0137d548b",
+          "assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "units": {
+            "target_unit_ids": [
+              "unit:target"
+            ],
+            "readonly_neighbor_unit_ids": [
+              "unit:neighbor"
+            ],
+            "snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+            "crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d"
+          },
+          "workspace": {
+            "kind": "separate_clone",
+            "repo_relative_locators": [
+              "src/module"
+            ]
+          },
+          "enforcement": {
+            "tier": "provider_readonly_patch_return_audit",
+            "required_constraints": [
+              "write_scope"
+            ]
+          },
+          "launch": {
+            "action": "execution",
+            "transport_id": "cli",
+            "stdin": "input",
+            "instructions": {
+              "sha256": "a07043de7c6e651cc24d79e3a08c1f9b557779aff1bfcb11cd34c60517e34ab5",
+              "byte_length": 63,
+              "locator": null
+            },
+            "references": [
+              {
+                "role": "baseline",
+                "sha256": "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8",
+                "byte_length": 25,
+                "locator": "src/module/target.ts"
+              },
+              {
+                "role": "context",
+                "sha256": "028fca921564ffd58d7312f72627ef562a63c0e1067ac0c26dfeac570db003e7",
+                "byte_length": 47,
+                "locator": "docs/context.md"
+              }
+            ],
+            "argv": {
+              "canonical_form": "rfc8785_array_of_strings",
+              "sha256": "a4ca82d4d88b1c13bd66cdf1d06368b654c2f6f3bac535d6a19e932f9992a3e0",
+              "element_count": 5
+            },
+            "executable_chain": [
+              {
+                "role": "executable",
+                "locator_kind": "declared",
+                "locator": "provider-cli",
+                "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+              }
+            ],
+            "workspace_state": {
+              "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+              "content_form": "rfc8785_tree_manifest",
+              "content_sha256": "a22a2ce22e92343476310612bf3dff9179cb1f6fdda386a5492f8b80cac4ed39",
+              "cwd": ".",
+              "target_map": [
+                {
+                  "workspace_locator": "src/module/target.ts",
+                  "protected_locator": "src/module/target.ts"
+                }
+              ]
+            },
+            "environment": {
+              "map_sha256": "fc41f1456822e1842cd25998d4aa6f6a0803c243f236269020a7a92f82ef0a9c",
+              "policy": {
+                "id": "scrub-scratch",
+                "sha256": "dec0c690f59b5bb27e406446edea985b1c1401c6ae9c31ebe02f706909d1f201"
+              }
+            },
+            "trusted_policy": {
+              "config_sha256": "b1e1f1621d53d65c37d3c6626b171d3e0c34257d6eae4ae2410c86cfc1d5f461",
+              "template_sha256": "1601e252240c4a50e247efc9a3f2bcbc46059aae6d35bfe21dd54983c763830b",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6"
+            },
+            "stop": {
+              "timeout_seconds": 1800,
+              "deadline_action": "terminate_process_group"
+            }
+          },
+          "obligations": {
+            "definition_digests": [
+              "7327e7658f4b4a5b072b5e9543e5e5139abf685bd64fc85c1e99768ae3b93d98"
+            ]
+          },
+          "executable_dependencies": {
+            "declared": false,
+            "admitted_dependency_digest": null
+          },
+          "caller_context": {
+            "ticket": "opaque-123",
+            "nested": {
+              "k": [
+                1,
+                2
+              ]
+            }
+          },
+          "redaction_posture": "digests_and_repo_relative_locators_only"
+        },
+        "validator_context": {
+          "expected_assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "expected_snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+          "expected_crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d",
+          "timeout_max_seconds": 1800,
+          "qualified_routes": [
+            {
+              "tier": "provider_readonly_patch_return_audit",
+              "action": "execution",
+              "transport_id": "cli",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "1601e252240c4a50e247efc9a3f2bcbc46059aae6d35bfe21dd54983c763830b",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6",
+              "grants": {}
+            }
+          ]
+        },
+        "launch_material": {
+          "stdin": "Apply the obligation to the target unit and return a proposal.\n",
+          "instructions": "Apply the obligation to the target unit and return a proposal.\n",
+          "references": [
+            {
+              "role": "baseline",
+              "locator": "src/module/target.ts",
+              "content": "export const target = 1;\n"
+            },
+            {
+              "role": "context",
+              "locator": "docs/context.md",
+              "content": "Context: the target unit exports one constant.\n"
+            }
+          ],
+          "argv": [
+            "provider-cli",
+            "exec",
+            "--read-only",
+            "--label=café",
+            "-"
+          ],
+          "executable_chain": [
+            {
+              "role": "executable",
+              "locator_kind": "declared",
+              "locator": "provider-cli",
+              "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+            }
+          ],
+          "workspace": {
+            "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+            "cwd": ".",
+            "entries": [
+              [
+                "README.md",
+                "file",
+                "c5e5e5aaf7121e63dfe976e0c06d32f46f8bfd29b87f4f5a157bc8168b2a7505"
+              ],
+              [
+                "docs/context.md",
+                "file",
+                "028fca921564ffd58d7312f72627ef562a63c0e1067ac0c26dfeac570db003e7"
+              ],
+              [
+                "src/module/target.ts",
+                "file",
+                "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8"
+              ]
+            ],
+            "target_map": [
+              {
+                "workspace_locator": "src/module/target.ts",
+                "protected_locator": "src/module/target.ts"
+              }
+            ]
+          },
+          "environment": {
+            "map": {
+              "HOME": "scratch/home",
+              "LANG": "C.UTF-8",
+              "PATH": "usr/bin",
+              "TMPDIR": "scratch/tmp"
+            },
+            "policy_id": "scrub-scratch",
+            "policy": "scrub: drop provider self-markers and mutation credentials; relocate HOME and TMPDIR to scratch\n"
+          },
+          "policy": {
+            "config": "timeout_max_seconds = 1800\nheartbeat_seconds = 30\nquiet_seconds = 300\n",
+            "template": "[\"provider-cli\",\"exec\",\"--read-only\",\"--label={label}\",\"-\"]\n",
+            "qualification": "qualification: provider-cli 1.4.2 build; exec read-only; proposal return; audit\n",
+            "grants": {}
+          },
+          "deadline_seconds": 1800,
+          "unbound_inputs": []
+        }
+      },
+      "expected": [],
+      "expected_effect": {
+        "attempt": {
+          "state": "queued",
+          "worker_invocations": 0
+        }
+      }
+    },
+    {
+      "id": "E2-review-wrapped",
+      "kind": "admission",
+      "role": "control",
+      "input": {
+        "envelope": {
+          "schema": "admitted_launch_envelope.v2",
+          "envelope_digest": "9e3b04c12cf60cee5d4eff4d5bf1999e201b968fa3f30ca18f4a8c8ddd7cbc27",
+          "assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "units": {
+            "target_unit_ids": [
+              "unit:target"
+            ],
+            "readonly_neighbor_unit_ids": [
+              "unit:neighbor"
+            ],
+            "snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+            "crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d"
+          },
+          "workspace": {
+            "kind": "git_worktree_of_protected",
+            "repo_relative_locators": [
+              "src/module"
+            ]
+          },
+          "enforcement": {
+            "tier": "post_write_audit_only",
+            "required_constraints": []
+          },
+          "launch": {
+            "action": "review",
+            "transport_id": "cli",
+            "stdin": "devnull",
+            "instructions": {
+              "sha256": "ff97d3bd01fec235e8213b04ad5ef91e4bc65c61ba05534abcdee0ed7afa5756",
+              "byte_length": 66,
+              "locator": "plans/review-instructions.md"
+            },
+            "references": [
+              {
+                "role": "baseline",
+                "sha256": "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8",
+                "byte_length": 25,
+                "locator": "src/module/target.ts"
+              },
+              {
+                "role": "config",
+                "sha256": "4054102f002bf68b86674afea76cce6d1b0a590c7b88639c91f7d0e88cd2c8f9",
+                "byte_length": 42,
+                "locator": "schemas/output.json"
+              }
+            ],
+            "argv": {
+              "canonical_form": "rfc8785_array_of_strings",
+              "sha256": "409a4557a71709810b0e43943237ca39da902a4c27b50550d847a7ba61f9c45b",
+              "element_count": 6
+            },
+            "executable_chain": [
+              {
+                "role": "wrapper",
+                "locator_kind": "declared",
+                "locator": "scratch-wrap",
+                "sha256": "d7678b94b28485094ee7e7f2b3571904e615fafdafc8b904bfa4bcd9a0cb2889"
+              },
+              {
+                "role": "wrapper",
+                "locator_kind": "repo_relative",
+                "locator": "tools/run.sh",
+                "sha256": "7f812349eb1017d2122230d2daf3592fc5952efee881ffc42585d876687a97ee"
+              },
+              {
+                "role": "executable",
+                "locator_kind": "declared",
+                "locator": "provider-cli",
+                "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+              }
+            ],
+            "workspace_state": {
+              "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+              "content_form": "rfc8785_tree_manifest",
+              "content_sha256": "c26bf91836ade5ee1b3b89fbda850bdb0d87a66b2f5fbb94a11187b10fc06be2",
+              "cwd": "src",
+              "target_map": [
+                {
+                  "workspace_locator": "src/module/target.ts",
+                  "protected_locator": "src/module/target.ts"
+                }
+              ]
+            },
+            "environment": {
+              "map_sha256": "83145e82eda644abb41b32e333f1776049adb3bad7fa6c6a5574f8c73823c3d8",
+              "policy": {
+                "id": "closed-profile",
+                "sha256": "51a8a84a0b467c412279403adfe1019697c11ac3c967ea29cdc481adb2f70256"
+              }
+            },
+            "trusted_policy": {
+              "config_sha256": "a30050f78e8e5109d8d6a43a6cff84c163ce069f349e7d06168cadb73e9c0cd5",
+              "template_sha256": "23404cff6663618da005d91b49272e44f17e428daba2e74c1520724b847a0175",
+              "qualification_sha256": "2d12db9c2ef16b24875fc2a9fcc096080aaafad7987a420785ea43fde1f672ca"
+            },
+            "stop": {
+              "timeout_seconds": 3600,
+              "deadline_action": "not_armed"
+            },
+            "grants": {
+              "filesystem_view_sha256": "036971726c87bd351f16a5684e667d0562aaa1ed31253050046c39d3cac99472",
+              "descriptor_capabilities_sha256": "c36db18d794d94b802abdbc3fafa29eb1f18407a5c4ed1f7f96727b03f9039df",
+              "dependency_projection_sha256": "c027904e10d797f28deaf3fb4f96c33fc1844ba011ba16e0053ed6f2e2249d66",
+              "supervisor_identity_sha256": "a69f9085af729bce7729fcdf390f25c4c709ef1ea9c04def84d0ac1dd2bf97f6",
+              "egress_policy_sha256": "995ea1b71145c9f189bed8c9373336c62f81a5741bc555641287f79a312b2ab7"
+            }
+          },
+          "obligations": {
+            "definition_digests": [
+              "7327e7658f4b4a5b072b5e9543e5e5139abf685bd64fc85c1e99768ae3b93d98"
+            ]
+          },
+          "executable_dependencies": {
+            "declared": true,
+            "admitted_dependency_digest": "4394ff3564177ae0998d98e16e065024a77daef6c5d6d6edcd94cd70d97bb2b6"
+          },
+          "caller_context": {
+            "ticket": "opaque-123",
+            "nested": {
+              "k": [
+                1,
+                2
+              ]
+            }
+          },
+          "redaction_posture": "digests_and_repo_relative_locators_only"
+        },
+        "validator_context": {
+          "expected_assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "expected_snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+          "expected_crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d",
+          "timeout_max_seconds": 3600,
+          "qualified_routes": [
+            {
+              "tier": "post_write_audit_only",
+              "action": "review",
+              "transport_id": "cli",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "scratch-wrap",
+                  "sha256": "d7678b94b28485094ee7e7f2b3571904e615fafdafc8b904bfa4bcd9a0cb2889"
+                },
+                {
+                  "locator_kind": "repo_relative",
+                  "locator": "tools/run.sh",
+                  "sha256": "7f812349eb1017d2122230d2daf3592fc5952efee881ffc42585d876687a97ee"
+                },
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "23404cff6663618da005d91b49272e44f17e428daba2e74c1520724b847a0175",
+              "qualification_sha256": "2d12db9c2ef16b24875fc2a9fcc096080aaafad7987a420785ea43fde1f672ca",
+              "grants": {
+                "filesystem_view_sha256": "036971726c87bd351f16a5684e667d0562aaa1ed31253050046c39d3cac99472",
+                "descriptor_capabilities_sha256": "c36db18d794d94b802abdbc3fafa29eb1f18407a5c4ed1f7f96727b03f9039df",
+                "dependency_projection_sha256": "c027904e10d797f28deaf3fb4f96c33fc1844ba011ba16e0053ed6f2e2249d66",
+                "supervisor_identity_sha256": "a69f9085af729bce7729fcdf390f25c4c709ef1ea9c04def84d0ac1dd2bf97f6",
+                "egress_policy_sha256": "995ea1b71145c9f189bed8c9373336c62f81a5741bc555641287f79a312b2ab7"
+              }
+            }
+          ]
+        },
+        "launch_material": {
+          "stdin": null,
+          "instructions": "Review the proposal against the obligation; report findings only.\n",
+          "references": [
+            {
+              "role": "baseline",
+              "locator": "src/module/target.ts",
+              "content": "export const target = 1;\n"
+            },
+            {
+              "role": "config",
+              "locator": "schemas/output.json",
+              "content": "{\"type\":\"object\",\"required\":[\"findings\"]}\n"
+            }
+          ],
+          "argv": [
+            "scratch-wrap",
+            "tools/run.sh",
+            "provider-cli",
+            "review",
+            "--output-schema=schemas/output.json",
+            "plans/review-instructions.md"
+          ],
+          "executable_chain": [
+            {
+              "role": "wrapper",
+              "locator_kind": "declared",
+              "locator": "scratch-wrap",
+              "sha256": "d7678b94b28485094ee7e7f2b3571904e615fafdafc8b904bfa4bcd9a0cb2889"
+            },
+            {
+              "role": "wrapper",
+              "locator_kind": "repo_relative",
+              "locator": "tools/run.sh",
+              "sha256": "7f812349eb1017d2122230d2daf3592fc5952efee881ffc42585d876687a97ee"
+            },
+            {
+              "role": "executable",
+              "locator_kind": "declared",
+              "locator": "provider-cli",
+              "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+            }
+          ],
+          "workspace": {
+            "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+            "cwd": "src",
+            "entries": [
+              [
+                "README.md",
+                "file",
+                "c5e5e5aaf7121e63dfe976e0c06d32f46f8bfd29b87f4f5a157bc8168b2a7505"
+              ],
+              [
+                "plans/review-instructions.md",
+                "file",
+                "ff97d3bd01fec235e8213b04ad5ef91e4bc65c61ba05534abcdee0ed7afa5756"
+              ],
+              [
+                "schemas/output.json",
+                "file",
+                "4054102f002bf68b86674afea76cce6d1b0a590c7b88639c91f7d0e88cd2c8f9"
+              ],
+              [
+                "src/module/target.ts",
+                "file",
+                "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8"
+              ],
+              [
+                "tools/run.sh",
+                "executable_file",
+                "7f812349eb1017d2122230d2daf3592fc5952efee881ffc42585d876687a97ee"
+              ]
+            ],
+            "target_map": [
+              {
+                "workspace_locator": "src/module/target.ts",
+                "protected_locator": "src/module/target.ts"
+              }
+            ]
+          },
+          "environment": {
+            "map": {
+              "HOME": "scratch/home",
+              "LANG": "C.UTF-8",
+              "TERM": "dumb"
+            },
+            "policy_id": "closed-profile",
+            "policy": "construct: closed environment; locale, terminal and provider settings only\n"
+          },
+          "policy": {
+            "config": "timeout_max_seconds = 3600\nheartbeat_seconds = 30\nquiet_seconds = 300\n",
+            "template": "[\"scratch-wrap\",\"tools/run.sh\",\"provider-cli\",\"review\",\"--output-schema={schema}\",\"{instructions}\"]\n",
+            "qualification": "qualification: scratch-wrap 0.3.0, run.sh, provider-cli 1.4.2; review; audit; grants applied as bound\n",
+            "grants": {
+              "filesystem_view_sha256": "view: workspace read-write; protected repository absent\n",
+              "descriptor_capabilities_sha256": "descriptors: lease token (purpose: lease)\n",
+              "dependency_projection_sha256": "projection: admitted dependency closure, read-only\n",
+              "supervisor_identity_sha256": "supervisor: lease supervisor, own process owner\n",
+              "egress_policy_sha256": "egress: ordered rules\n1 allow provider-api:443\n2 deny all\n"
+            }
+          },
+          "deadline_seconds": null,
+          "unbound_inputs": []
+        }
+      },
+      "expected": [],
+      "expected_effect": {
+        "attempt": {
+          "state": "queued",
+          "worker_invocations": 0
+        }
+      }
+    },
+    {
+      "id": "E2-overlay-copy",
+      "kind": "admission",
+      "role": "control",
+      "input": {
+        "envelope": {
+          "schema": "admitted_launch_envelope.v2",
+          "envelope_digest": "3371a1c12b1c579700a15b54b4f1030652d2e7b43ee54a2c6b3c4d4fb8c3438e",
+          "assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "units": {
+            "target_unit_ids": [
+              "unit:target"
+            ],
+            "readonly_neighbor_unit_ids": [
+              "unit:neighbor"
+            ],
+            "snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+            "crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d"
+          },
+          "workspace": {
+            "kind": "separate_copy",
+            "repo_relative_locators": [
+              "src/module"
+            ]
+          },
+          "enforcement": {
+            "tier": "provider_readonly_patch_return_audit",
+            "required_constraints": [
+              "write_scope"
+            ]
+          },
+          "launch": {
+            "action": "execution",
+            "transport_id": "cli",
+            "stdin": "input",
+            "instructions": {
+              "sha256": "a07043de7c6e651cc24d79e3a08c1f9b557779aff1bfcb11cd34c60517e34ab5",
+              "byte_length": 63,
+              "locator": null
+            },
+            "references": [
+              {
+                "role": "baseline",
+                "sha256": "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8",
+                "byte_length": 25,
+                "locator": "src/module/target.ts"
+              }
+            ],
+            "argv": {
+              "canonical_form": "rfc8785_array_of_strings",
+              "sha256": "dcb16e9e7904f65a93cfe67edca4363cf9746963843c0f755a209ea9f63671cf",
+              "element_count": 4
+            },
+            "executable_chain": [
+              {
+                "role": "executable",
+                "locator_kind": "declared",
+                "locator": "provider-cli",
+                "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+              }
+            ],
+            "workspace_state": {
+              "base_commit": null,
+              "content_form": "rfc8785_tree_manifest",
+              "content_sha256": "abc88250cbbb17eca18f7bca3fc2640be97ab6c75665ab2e77049911ac031fee",
+              "cwd": ".",
+              "target_map": [
+                {
+                  "workspace_locator": "src/module/target.ts",
+                  "protected_locator": "src/module/target.ts"
+                },
+                {
+                  "workspace_locator": "src/module/added.ts",
+                  "protected_locator": "src/module/added.ts"
+                }
+              ]
+            },
+            "environment": {
+              "map_sha256": "135338297c839e1fa5f5a3de9ed67b0ed865d29219fcc46aa2c3c0512da1e59d",
+              "policy": {
+                "id": "scrub-scratch",
+                "sha256": "dec0c690f59b5bb27e406446edea985b1c1401c6ae9c31ebe02f706909d1f201"
+              }
+            },
+            "trusted_policy": {
+              "config_sha256": "08f6d774a236098c0783a583e7414db2cf9bbcada79e0467df14dfa54c763c92",
+              "template_sha256": "9ce3b22dce676ef40574171d6c929e25fbdaf70c52d4c10e71a3ed370cf9b6d6",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6"
+            },
+            "stop": {
+              "timeout_seconds": 1,
+              "deadline_action": "terminate_process_group"
+            }
+          },
+          "obligations": {
+            "definition_digests": [
+              "7327e7658f4b4a5b072b5e9543e5e5139abf685bd64fc85c1e99768ae3b93d98"
+            ]
+          },
+          "executable_dependencies": {
+            "declared": false,
+            "admitted_dependency_digest": null
+          },
+          "caller_context": {
+            "ticket": "opaque-123",
+            "nested": {
+              "k": [
+                1,
+                2
+              ]
+            }
+          },
+          "redaction_posture": "digests_and_repo_relative_locators_only"
+        },
+        "validator_context": {
+          "expected_assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "expected_snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+          "expected_crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d",
+          "timeout_max_seconds": 60,
+          "qualified_routes": [
+            {
+              "tier": "provider_readonly_patch_return_audit",
+              "action": "execution",
+              "transport_id": "cli",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "9ce3b22dce676ef40574171d6c929e25fbdaf70c52d4c10e71a3ed370cf9b6d6",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6",
+              "grants": {}
+            }
+          ]
+        },
+        "launch_material": {
+          "stdin": "Apply the obligation to the target unit and return a proposal.\n",
+          "instructions": "Apply the obligation to the target unit and return a proposal.\n",
+          "references": [
+            {
+              "role": "baseline",
+              "locator": "src/module/target.ts",
+              "content": "export const target = 1;\n"
+            }
+          ],
+          "argv": [
+            "provider-cli",
+            "exec",
+            "--read-only",
+            "-"
+          ],
+          "executable_chain": [
+            {
+              "role": "executable",
+              "locator_kind": "declared",
+              "locator": "provider-cli",
+              "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+            }
+          ],
+          "workspace": {
+            "base_commit": null,
+            "cwd": ".",
+            "entries": [
+              [
+                "README.md",
+                "file",
+                "c5e5e5aaf7121e63dfe976e0c06d32f46f8bfd29b87f4f5a157bc8168b2a7505"
+              ],
+              [
+                "src/module/added.ts",
+                "file",
+                "46d39bf58abe2229ef59897c229020daba1702450875a494cceb13cae0027393"
+              ],
+              [
+                "src/module/target.ts",
+                "file",
+                "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8"
+              ]
+            ],
+            "target_map": [
+              {
+                "workspace_locator": "src/module/target.ts",
+                "protected_locator": "src/module/target.ts"
+              },
+              {
+                "workspace_locator": "src/module/added.ts",
+                "protected_locator": "src/module/added.ts"
+              }
+            ]
+          },
+          "environment": {
+            "map": {
+              "HOME": "scratch/home",
+              "PATH": "usr/bin"
+            },
+            "policy_id": "scrub-scratch",
+            "policy": "scrub: drop provider self-markers and mutation credentials; relocate HOME and TMPDIR to scratch\n"
+          },
+          "policy": {
+            "config": "timeout_max_seconds = 60\nheartbeat_seconds = 30\nquiet_seconds = 300\n",
+            "template": "[\"provider-cli\",\"exec\",\"--read-only\",\"-\"]\n",
+            "qualification": "qualification: provider-cli 1.4.2 build; exec read-only; proposal return; audit\n",
+            "grants": {}
+          },
+          "deadline_seconds": 1,
+          "unbound_inputs": []
+        }
+      },
+      "expected": [],
+      "expected_effect": {
+        "attempt": {
+          "state": "queued",
+          "worker_invocations": 0
+        }
+      }
+    },
+    {
+      "id": "E2-echo",
+      "kind": "echo",
+      "role": "control",
+      "input": {
+        "envelope": {
+          "schema": "admitted_launch_envelope.v2",
+          "envelope_digest": "e196417c56118c46d3b90360e41bb77d82dbd6aab020e7d2f25d59a0137d548b",
+          "assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "units": {
+            "target_unit_ids": [
+              "unit:target"
+            ],
+            "readonly_neighbor_unit_ids": [
+              "unit:neighbor"
+            ],
+            "snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+            "crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d"
+          },
+          "workspace": {
+            "kind": "separate_clone",
+            "repo_relative_locators": [
+              "src/module"
+            ]
+          },
+          "enforcement": {
+            "tier": "provider_readonly_patch_return_audit",
+            "required_constraints": [
+              "write_scope"
+            ]
+          },
+          "launch": {
+            "action": "execution",
+            "transport_id": "cli",
+            "stdin": "input",
+            "instructions": {
+              "sha256": "a07043de7c6e651cc24d79e3a08c1f9b557779aff1bfcb11cd34c60517e34ab5",
+              "byte_length": 63,
+              "locator": null
+            },
+            "references": [
+              {
+                "role": "baseline",
+                "sha256": "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8",
+                "byte_length": 25,
+                "locator": "src/module/target.ts"
+              },
+              {
+                "role": "context",
+                "sha256": "028fca921564ffd58d7312f72627ef562a63c0e1067ac0c26dfeac570db003e7",
+                "byte_length": 47,
+                "locator": "docs/context.md"
+              }
+            ],
+            "argv": {
+              "canonical_form": "rfc8785_array_of_strings",
+              "sha256": "a4ca82d4d88b1c13bd66cdf1d06368b654c2f6f3bac535d6a19e932f9992a3e0",
+              "element_count": 5
+            },
+            "executable_chain": [
+              {
+                "role": "executable",
+                "locator_kind": "declared",
+                "locator": "provider-cli",
+                "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+              }
+            ],
+            "workspace_state": {
+              "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+              "content_form": "rfc8785_tree_manifest",
+              "content_sha256": "a22a2ce22e92343476310612bf3dff9179cb1f6fdda386a5492f8b80cac4ed39",
+              "cwd": ".",
+              "target_map": [
+                {
+                  "workspace_locator": "src/module/target.ts",
+                  "protected_locator": "src/module/target.ts"
+                }
+              ]
+            },
+            "environment": {
+              "map_sha256": "fc41f1456822e1842cd25998d4aa6f6a0803c243f236269020a7a92f82ef0a9c",
+              "policy": {
+                "id": "scrub-scratch",
+                "sha256": "dec0c690f59b5bb27e406446edea985b1c1401c6ae9c31ebe02f706909d1f201"
+              }
+            },
+            "trusted_policy": {
+              "config_sha256": "b1e1f1621d53d65c37d3c6626b171d3e0c34257d6eae4ae2410c86cfc1d5f461",
+              "template_sha256": "1601e252240c4a50e247efc9a3f2bcbc46059aae6d35bfe21dd54983c763830b",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6"
+            },
+            "stop": {
+              "timeout_seconds": 1800,
+              "deadline_action": "terminate_process_group"
+            }
+          },
+          "obligations": {
+            "definition_digests": [
+              "7327e7658f4b4a5b072b5e9543e5e5139abf685bd64fc85c1e99768ae3b93d98"
+            ]
+          },
+          "executable_dependencies": {
+            "declared": false,
+            "admitted_dependency_digest": null
+          },
+          "caller_context": {
+            "ticket": "opaque-123",
+            "nested": {
+              "k": [
+                1,
+                2
+              ]
+            }
+          },
+          "redaction_posture": "digests_and_repo_relative_locators_only"
+        },
+        "validator_context": {
+          "expected_assignment_digest": "4db77511ca854b659c5886fdb3638130b0fa0cb44ac8cde9d2dfdf119ba820ff",
+          "expected_snapshot_ref": "34e6443f11e4328e716685e41d0182403df44a76f53d9b94f6dba4fe158a6b44",
+          "expected_crosswalk_ref": "265f36f6c47cbcc46a314f2910feaa7704023198b384f3468b9cf3515efdf66d",
+          "timeout_max_seconds": 1800,
+          "qualified_routes": [
+            {
+              "tier": "provider_readonly_patch_return_audit",
+              "action": "execution",
+              "transport_id": "cli",
+              "executable_chain": [
+                {
+                  "locator_kind": "declared",
+                  "locator": "provider-cli",
+                  "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+                }
+              ],
+              "template_sha256": "1601e252240c4a50e247efc9a3f2bcbc46059aae6d35bfe21dd54983c763830b",
+              "qualification_sha256": "0d19214930b0e884d790327835de34abec467f4e0927a3c33e4ee37ef92151b6",
+              "grants": {}
+            }
+          ]
+        },
+        "launch_material": {
+          "stdin": "Apply the obligation to the target unit and return a proposal.\n",
+          "instructions": "Apply the obligation to the target unit and return a proposal.\n",
+          "references": [
+            {
+              "role": "baseline",
+              "locator": "src/module/target.ts",
+              "content": "export const target = 1;\n"
+            },
+            {
+              "role": "context",
+              "locator": "docs/context.md",
+              "content": "Context: the target unit exports one constant.\n"
+            }
+          ],
+          "argv": [
+            "provider-cli",
+            "exec",
+            "--read-only",
+            "--label=café",
+            "-"
+          ],
+          "executable_chain": [
+            {
+              "role": "executable",
+              "locator_kind": "declared",
+              "locator": "provider-cli",
+              "sha256": "4b70047af52679bb9d2955b7270a2f1941c6942ecbd8540f75229d7819f933a0"
+            }
+          ],
+          "workspace": {
+            "base_commit": "1f0c3a5e9b7d2c4a6e8f0b1d3c5e7a9b2d4f6a8c",
+            "cwd": ".",
+            "entries": [
+              [
+                "README.md",
+                "file",
+                "c5e5e5aaf7121e63dfe976e0c06d32f46f8bfd29b87f4f5a157bc8168b2a7505"
+              ],
+              [
+                "docs/context.md",
+                "file",
+                "028fca921564ffd58d7312f72627ef562a63c0e1067ac0c26dfeac570db003e7"
+              ],
+              [
+                "src/module/target.ts",
+                "file",
+                "6d5bcb9e072f969628728ccb231393349fddbdca6c41a4698e3da98e5d9dcaa8"
+              ]
+            ],
+            "target_map": [
+              {
+                "workspace_locator": "src/module/target.ts",
+                "protected_locator": "src/module/target.ts"
+              }
+            ]
+          },
+          "environment": {
+            "map": {
+              "HOME": "scratch/home",
+              "LANG": "C.UTF-8",
+              "PATH": "usr/bin",
+              "TMPDIR": "scratch/tmp"
+            },
+            "policy_id": "scrub-scratch",
+            "policy": "scrub: drop provider self-markers and mutation credentials; relocate HOME and TMPDIR to scratch\n"
+          },
+          "policy": {
+            "config": "timeout_max_seconds = 1800\nheartbeat_seconds = 30\nquiet_seconds = 300\n",
+            "template": "[\"provider-cli\",\"exec\",\"--read-only\",\"--label={label}\",\"-\"]\n",
+            "qualification": "qualification: provider-cli 1.4.2 build; exec read-only; proposal return; audit\n",
+            "grants": {}
+          },
+          "deadline_seconds": 1800,
+          "unbound_inputs": []
+        },
+        "echoed_caller_context": {
+          "ticket": "opaque-123",
+          "nested": {
+            "k": [
+              1,
+              2
+            ]
+          }
+        }
+      },
+      "expected": []
+    },
+    {
+      "id": "S2-digest-not-rehashed",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/stop/timeout_seconds",
+          "value": 1200
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/deadline_seconds",
+          "value": 1200
+        }
+      ],
+      "expected": [
+        "envelope_digest_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_digest_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-stale-rehashed",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/units/snapshot_ref",
+          "value": "0b2a09cd78659f97e9ed5a76f1863d0b48858ae9e9f1c2cb2f8c66fd5e217257"
+        }
+      ],
+      "expected": [
+        "authority_baseline_stale"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "authority_baseline_stale",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-foreign-assignment-rehashed",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/assignment_digest",
+          "value": "86149a7c91d471964f27fbe7201cefe4264463e61268eb86e7b3df2cfc6bce3e"
+        }
+      ],
+      "expected": [
+        "authority_foreign"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "authority_foreign",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-reference-absolute-locator",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/references/1/locator",
+          "value": "/docs/context.md"
+        }
+      ],
+      "expected": [
+        "locator_not_repo_relative"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "locator_not_repo_relative",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-cwd-parent",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/cwd",
+          "value": "../outside"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/cwd",
+          "value": "../outside"
+        }
+      ],
+      "expected": [
+        "locator_not_repo_relative"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "locator_not_repo_relative",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-chain-locator-backslash",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/executable_chain/1/locator",
+          "value": "tools\\run.sh"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/executable_chain/1/locator",
+          "value": "tools\\run.sh"
+        },
+        {
+          "op": "replace",
+          "path": "/validator_context/qualified_routes/0/executable_chain/1/locator",
+          "value": "tools\\run.sh"
+        }
+      ],
+      "expected": [
+        "locator_not_repo_relative"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "locator_not_repo_relative",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-target-map-absolute",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/target_map/0/workspace_locator",
+          "value": "/src/module/target.ts"
+        }
+      ],
+      "expected": [
+        "locator_not_repo_relative"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "locator_not_repo_relative",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-instructions-locator-empty",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/instructions/locator",
+          "value": ""
+        }
+      ],
+      "expected": [
+        "locator_not_repo_relative"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "locator_not_repo_relative",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-launch-raw-output",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/references/1/locator",
+          "value": "docs/context.md\nTraceback (most recent call last)"
+        }
+      ],
+      "expected": [
+        "raw_output_in_record"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "raw_output_in_record",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-dependency-without-digest",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/executable_dependencies/admitted_dependency_digest",
+          "value": null
+        }
+      ],
+      "expected": [
+        "dependency_digest_required"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "dependency_digest_required",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-clone-without-commit",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/base_commit",
+          "value": null
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/base_commit",
+          "value": null
+        }
+      ],
+      "expected": [
+        "workspace_source_inconsistent"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "workspace_source_inconsistent",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-chain-executable-not-last",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/executable_chain/2/role",
+          "value": "wrapper"
+        },
+        {
+          "op": "replace",
+          "path": "/envelope/launch/executable_chain/0/role",
+          "value": "executable"
+        }
+      ],
+      "expected": [
+        "executable_chain_invalid"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "executable_chain_invalid",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-chain-two-executables",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/executable_chain/1/role",
+          "value": "executable"
+        }
+      ],
+      "expected": [
+        "executable_chain_invalid"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "executable_chain_invalid",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-chain-declared-locator-path",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/executable_chain/0/locator",
+          "value": "bin/provider-cli"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/executable_chain/0/locator",
+          "value": "bin/provider-cli"
+        },
+        {
+          "op": "replace",
+          "path": "/validator_context/qualified_routes/0/executable_chain/0/locator",
+          "value": "bin/provider-cli"
+        }
+      ],
+      "expected": [
+        "executable_chain_invalid"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "executable_chain_invalid",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-no-baseline",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-overlay-copy",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/references/0/role",
+          "value": "context"
+        }
+      ],
+      "expected": [
+        "baseline_reference_required"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "baseline_reference_required",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-two-baselines",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/references/1/role",
+          "value": "baseline"
+        }
+      ],
+      "expected": [
+        "baseline_reference_required"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "baseline_reference_required",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-target-outside-scope",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/target_map/0/protected_locator",
+          "value": "src/other/target.ts"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/target_map/0/protected_locator",
+          "value": "src/other/target.ts"
+        }
+      ],
+      "expected": [
+        "target_map_outside_scope"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "target_map_outside_scope",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-os-enforced",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/enforcement/tier",
+          "value": "os_enforced"
+        }
+      ],
+      "expected": [
+        "tier_unqualified"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "tier_unqualified",
+            "constraint": null,
+            "tier": "os_enforced"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-route-no-records",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/validator_context/qualified_routes",
+          "value": []
+        }
+      ],
+      "expected": [
+        "route_not_qualified"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "route_not_qualified",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "A defined tier with no qualification evidence held for this installation."
+    },
+    {
+      "id": "S2-route-qualification-null",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/trusted_policy/qualification_sha256",
+          "value": null
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/policy/qualification",
+          "value": null
+        }
+      ],
+      "expected": [
+        "route_not_qualified"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "route_not_qualified",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "Audit-only or provider routes alike: no evidence is refused, and null is never an empty string."
+    },
+    {
+      "id": "S2-route-qualification-null-post-write",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/trusted_policy/qualification_sha256",
+          "value": null
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/policy/qualification",
+          "value": null
+        }
+      ],
+      "expected": [
+        "route_not_qualified"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "route_not_qualified",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-route-qualification-unknown",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/trusted_policy/qualification_sha256",
+          "value": "0cc0506e8cf3fdb9eeb10abde2ebf060240b60ed214db4d294738fa6dc0c81e5"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/policy/qualification",
+          "value": "qualification: provider-cli 1.4.2 build; exec read-only; second evidence run\n"
+        }
+      ],
+      "expected": [
+        "route_not_qualified"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "route_not_qualified",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-route-other-tier",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/enforcement/tier",
+          "value": "post_write_audit_only"
+        },
+        {
+          "op": "replace",
+          "path": "/envelope/enforcement/required_constraints",
+          "value": []
+        }
+      ],
+      "expected": [
+        "route_not_qualified"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "route_not_qualified",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-route-other-action",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/action",
+          "value": "review"
+        }
+      ],
+      "expected": [
+        "route_not_qualified"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "route_not_qualified",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-route-other-transport",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/transport_id",
+          "value": "daemon"
+        }
+      ],
+      "expected": [
+        "route_not_qualified"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "route_not_qualified",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-route-wrapper-added",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/launch/executable_chain/0",
+          "value": {
+            "role": "wrapper",
+            "locator_kind": "declared",
+            "locator": "scratch-wrap",
+            "sha256": "d7678b94b28485094ee7e7f2b3571904e615fafdafc8b904bfa4bcd9a0cb2889"
+          }
+        },
+        {
+          "op": "add",
+          "path": "/launch_material/executable_chain/0",
+          "value": {
+            "role": "wrapper",
+            "locator_kind": "declared",
+            "locator": "scratch-wrap",
+            "sha256": "d7678b94b28485094ee7e7f2b3571904e615fafdafc8b904bfa4bcd9a0cb2889"
+          }
+        },
+        {
+          "op": "replace",
+          "path": "/envelope/launch/argv/sha256",
+          "value": "b58e0eea017786aa272ad5b56fb75b698332c78b49630b0946be6ab1e1939701"
+        },
+        {
+          "op": "replace",
+          "path": "/envelope/launch/argv/element_count",
+          "value": 6
+        },
+        {
+          "op": "add",
+          "path": "/launch_material/argv/0",
+          "value": "scratch-wrap"
+        }
+      ],
+      "expected": [
+        "route_not_qualified"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "route_not_qualified",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-route-executable-upgraded",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/executable_chain/0/sha256",
+          "value": "d4e7d05470c31d7bfe3498e3a34d052f6f49edfc9416874a979931773d09b80d"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/executable_chain/0/sha256",
+          "value": "d4e7d05470c31d7bfe3498e3a34d052f6f49edfc9416874a979931773d09b80d"
+        }
+      ],
+      "expected": [
+        "route_not_qualified"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "route_not_qualified",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "Evidence for one build never carries over to another."
+    },
+    {
+      "id": "S2-route-template-other",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/trusted_policy/template_sha256",
+          "value": "24f9d45f27ce01db14eed16ead4383721848f94b5e6e1a9c6fef58f2d2e0dbba"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/policy/template",
+          "value": "[\"provider-cli\",\"exec\",\"--read-only\",\"--label={label}\",\"--extra\",\"-\"]\n"
+        }
+      ],
+      "expected": [
+        "route_not_qualified"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "route_not_qualified",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-network-required",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/enforcement/required_constraints/-",
+          "value": "network_denial"
+        }
+      ],
+      "expected": [
+        "constraint_unsupported"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "constraint_unsupported",
+            "constraint": "network_denial",
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-write-prevention-required",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/enforcement/required_constraints/-",
+          "value": "write_prevention"
+        }
+      ],
+      "expected": [
+        "constraint_unsupported"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "constraint_unsupported",
+            "constraint": "write_prevention",
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "write_scope is an apply-time check; prevention during the run is a separate constraint no defined tier provides."
+    },
+    {
+      "id": "S2-write-scope-under-post-write",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/enforcement/required_constraints",
+          "value": [
+            "write_scope"
+          ]
+        }
+      ],
+      "expected": [
+        "constraint_unsupported"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "constraint_unsupported",
+            "constraint": "write_scope",
+            "tier": "post_write_audit_only"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-network-required-with-egress-grant",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/enforcement/required_constraints",
+          "value": [
+            "network_denial"
+          ]
+        }
+      ],
+      "expected": [
+        "constraint_unsupported"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "constraint_unsupported",
+            "constraint": "network_denial",
+            "tier": "post_write_audit_only"
+          }
+        }
+      },
+      "note": "A bound egress grant is not enforcement: network_denial stays not_enforced."
+    },
+    {
+      "id": "S2-worktree-under-patch-return",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/workspace/kind",
+          "value": "git_worktree_of_protected"
+        }
+      ],
+      "expected": [
+        "workspace_not_separate_copy"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "workspace_not_separate_copy",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-grant-not-covered",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/grants/filesystem_view_sha256",
+          "value": "83586b60b0102c6f92ffdcf0e99b71d7c746521faf56b1cb70ba018800482799"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/policy/grants/filesystem_view_sha256",
+          "value": "view: workspace read-write; protected repository read-only\n"
+        }
+      ],
+      "expected": [
+        "grant_unqualified"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "grant_unqualified",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-grant-added-uncovered",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/launch/grants",
+          "value": {
+            "egress_policy_sha256": "995ea1b71145c9f189bed8c9373336c62f81a5741bc555641287f79a312b2ab7"
+          }
+        },
+        {
+          "op": "add",
+          "path": "/launch_material/policy/grants/egress_policy_sha256",
+          "value": "egress: ordered rules\n1 allow provider-api:443\n2 deny all\n"
+        }
+      ],
+      "expected": [
+        "grant_unqualified"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "grant_unqualified",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-dependency-projection-undeclared",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/executable_dependencies",
+          "value": {
+            "declared": false,
+            "admitted_dependency_digest": null
+          }
+        }
+      ],
+      "expected": [
+        "grant_unqualified"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "grant_unqualified",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-execution-without-deadline",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/stop/deadline_action",
+          "value": "not_armed"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/deadline_seconds",
+          "value": null
+        }
+      ],
+      "expected": [
+        "stop_policy_unbounded"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "stop_policy_unbounded",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-timeout-over-declared-max",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/stop/timeout_seconds",
+          "value": 3000
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/deadline_seconds",
+          "value": 3000
+        }
+      ],
+      "expected": [
+        "timeout_over_declared_max"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "timeout_over_declared_max",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-instructions-changed",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/instructions",
+          "value": "Apply the obligation to every unit and return a proposal.\n"
+        },
+        {
+          "op": "replace",
+          "path": "/launch_material/stdin",
+          "value": "Apply the obligation to every unit and return a proposal.\n"
+        }
+      ],
+      "expected": [
+        "launch_instructions_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_instructions_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-stdin-not-instructions",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/stdin",
+          "value": "Apply the obligation to the target unit and return a proposal.\nAlso delete the tests.\n"
+        }
+      ],
+      "expected": [
+        "launch_instructions_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_instructions_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-reference-changed",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/references/1/content",
+          "value": "Context: the target unit exports one constant.\nExtra line.\n"
+        }
+      ],
+      "expected": [
+        "launch_reference_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_reference_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-reference-order-swapped",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/references",
+          "value": [
+            {
+              "role": "context",
+              "locator": "docs/context.md",
+              "content": "Context: the target unit exports one constant.\n"
+            },
+            {
+              "role": "baseline",
+              "locator": "src/module/target.ts",
+              "content": "export const target = 1;\n"
+            }
+          ]
+        }
+      ],
+      "expected": [
+        "launch_reference_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_reference_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-argv-rewritten-after-admission",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/launch_material/argv/4",
+          "value": "--dangerously-skip-checks"
+        }
+      ],
+      "expected": [
+        "launch_argv_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_argv_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-argv-spaced-serialization",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/argv/sha256",
+          "value": "31ac49a6c8f0e56784e3522eb7dc984b5c37423b98402031137e1036215fba2d"
+        }
+      ],
+      "expected": [
+        "launch_argv_mismatch"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_argv_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "Digest over a serialization with whitespace, not RFC 8785."
+    },
+    {
+      "id": "S2-argv-ascii-escaped-serialization",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/argv/sha256",
+          "value": "6c6f131bab4c36d3a7608344400bbc4364813e8ff7cd907e18049b0e0e3703da"
+        }
+      ],
+      "expected": [
+        "launch_argv_mismatch"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_argv_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "Digest over a serialization with non-ASCII characters escaped, not RFC 8785."
+    },
+    {
+      "id": "S2-executable-replaced",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/executable_chain/0/sha256",
+          "value": "c139ca7e978617dffa8a26dcefb391b02071aa983e37ca6582b2d074bd281fb9"
+        }
+      ],
+      "expected": [
+        "launch_executable_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_executable_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-wrapper-injected",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/launch_material/executable_chain/0",
+          "value": {
+            "role": "wrapper",
+            "locator_kind": "declared",
+            "locator": "scratch-wrap",
+            "sha256": "d7678b94b28485094ee7e7f2b3571904e615fafdafc8b904bfa4bcd9a0cb2889"
+          }
+        }
+      ],
+      "expected": [
+        "launch_executable_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_executable_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-workspace-other-commit",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/base_commit",
+          "value": "2a1d4b6f8c0e3d5b7f9a1c3e5d7b9f2a4c6e8b0d"
+        }
+      ],
+      "expected": [
+        "launch_workspace_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_workspace_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-workspace-overlay-unbound",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/launch_material/workspace/entries/-",
+          "value": [
+            "src/module/untracked.ts",
+            "file",
+            "5a5eb4c337f1897afd8a15e81bb0578a7ad5d8d7c18a4736cebb8e1e982ac631"
+          ]
+        }
+      ],
+      "expected": [
+        "launch_workspace_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_workspace_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "A commit alone never binds the workspace: an overlay changes the tree digest."
+    },
+    {
+      "id": "S2-workspace-manifest-unsorted",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-overlay-copy",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/content_sha256",
+          "value": "c2a7a02f974de071d482abbbae8a562ac6f5f998b5dfdc7ea6c1d575d3f8e2f0"
+        }
+      ],
+      "expected": [
+        "launch_workspace_mismatch"
+      ],
+      "rehash": true,
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_workspace_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      },
+      "note": "Digest over entries not sorted by path."
+    },
+    {
+      "id": "S2-cwd-differs",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/workspace/cwd",
+          "value": "src"
+        }
+      ],
+      "expected": [
+        "launch_workspace_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_workspace_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-target-map-differs",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-overlay-copy",
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/launch_material/workspace/target_map/1"
+        }
+      ],
+      "expected": [
+        "launch_workspace_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_workspace_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-environment-value-changed",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/environment/map/PATH",
+          "value": "usr/local/bin:usr/bin"
+        }
+      ],
+      "expected": [
+        "launch_environment_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_environment_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-environment-policy-changed",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/environment/policy",
+          "value": "scrub: drop provider self-markers only\n"
+        }
+      ],
+      "expected": [
+        "launch_environment_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_environment_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-config-changed",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/policy/config",
+          "value": "timeout_max_seconds = 1800\nheartbeat_seconds = 30\nquiet_seconds = 300\nquiet_seconds = 0\n"
+        }
+      ],
+      "expected": [
+        "launch_policy_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_policy_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-grant-bytes-changed",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/policy/grants/descriptor_capabilities_sha256",
+          "value": "descriptors: lease token; broker socket\n"
+        }
+      ],
+      "expected": [
+        "launch_policy_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_policy_mismatch",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-timeout-armed-differently",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/deadline_seconds",
+          "value": 3600
+        }
+      ],
+      "expected": [
+        "launch_timeout_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_timeout_mismatch",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-deadline-armed-when-not",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/deadline_seconds",
+          "value": 3600
+        }
+      ],
+      "expected": [
+        "launch_timeout_mismatch"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_timeout_mismatch",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-stdin-under-devnull",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/launch_material/stdin",
+          "value": "y\n"
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "post_write_audit_only"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-caller-context-launch-input",
+      "kind": "admission",
+      "role": "negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/launch_material/unbound_inputs/-",
+          "value": {
+            "source": "caller_context",
+            "pointer": "/caller_context/ticket"
+          }
+        }
+      ],
+      "expected": [
+        "launch_input_unbound"
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "launch_input_unbound",
+            "constraint": null,
+            "tier": "provider_readonly_patch_return_audit"
+          }
+        }
+      }
+    },
+    {
+      "id": "S2-caller-context-interpreted",
+      "kind": "echo",
+      "role": "negative",
+      "control": "E2-echo",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/echoed_caller_context/nested",
+          "value": {
+            "k": [
+              1,
+              2
+            ],
+            "parsed_by_harness": true
+          }
+        }
+      ],
+      "expected": [
+        "caller_context_interpreted"
+      ]
+    },
+    {
+      "id": "X2-launch-missing",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/envelope/launch"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope",
+          "keyword": "required"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-launch-extra-field",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/launch/caller_inputs",
+          "value": {}
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch",
+          "keyword": "additionalProperties"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-schema-v1",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/schema",
+          "value": "admitted_launch_envelope.v1"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/schema",
+          "keyword": "const"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-unknown-constraint",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/enforcement/required_constraints/-",
+          "value": "sandbox"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/enforcement/required_constraints/1",
+          "keyword": "enum"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-action-unknown",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/action",
+          "value": "repair"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/action",
+          "keyword": "enum"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-transport-with-space",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/transport_id",
+          "value": "cli daemon"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/transport_id",
+          "keyword": "pattern"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-stdin-pipe",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/stdin",
+          "value": "pipe"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/stdin",
+          "keyword": "enum"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-instructions-digest-uppercase",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/instructions/sha256",
+          "value": "A07043DE7C6E651CC24D79E3A08C1F9B557779AFF1BFCB11CD34C60517E34AB5"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/instructions/sha256",
+          "keyword": "pattern"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-instructions-length-negative",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/instructions/byte_length",
+          "value": -1
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/instructions/byte_length",
+          "keyword": "minimum"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-instructions-locator-number",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/instructions/locator",
+          "value": 5
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/instructions/locator",
+          "keyword": "anyOf"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-references-missing",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/envelope/launch/references"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch",
+          "keyword": "required"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-reference-role-unknown",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/references/1/role",
+          "value": "notes"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/references/1/role",
+          "keyword": "enum"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-reference-digest-short",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/references/0/sha256",
+          "value": "abc123"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/references/0/sha256",
+          "keyword": "pattern"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-reference-length-string",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/references/0/byte_length",
+          "value": "25"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/references/0/byte_length",
+          "keyword": "type"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-reference-locator-null",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/references/0/locator",
+          "value": null
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/references/0/locator",
+          "keyword": "type"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-argv-form-other",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/argv/canonical_form",
+          "value": "json_lines"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/argv/canonical_form",
+          "keyword": "const"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-argv-digest-prefixed",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/argv/sha256",
+          "value": "sha256:a4ca82d4d88b1c13bd66cdf1d06368b654c2f6f3bac535d6a19e932f9992a3e0"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/argv/sha256",
+          "keyword": "pattern"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-argv-empty",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/argv/element_count",
+          "value": 0
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/argv/element_count",
+          "keyword": "minimum"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-chain-empty",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/executable_chain",
+          "value": []
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/executable_chain",
+          "keyword": "minItems"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-chain-role-unknown",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/executable_chain/0/role",
+          "value": "launcher"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/executable_chain/0/role",
+          "keyword": "enum"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-chain-locator-kind-absolute",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/executable_chain/0/locator_kind",
+          "value": "absolute"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/executable_chain/0/locator_kind",
+          "keyword": "enum"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-chain-locator-number",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/executable_chain/0/locator",
+          "value": 7
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/executable_chain/0/locator",
+          "keyword": "type"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-chain-digest-null",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/executable_chain/0/sha256",
+          "value": null
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/executable_chain/0/sha256",
+          "keyword": "type"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-chain-entry-version-field",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/launch/executable_chain/0/version",
+          "value": "1.4.2"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/executable_chain/0",
+          "keyword": "additionalProperties"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-base-commit-abbreviated",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/base_commit",
+          "value": "1f0c3a5"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/workspace_state/base_commit",
+          "keyword": "anyOf"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-content-form-other",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/content_form",
+          "value": "git_tree_oid"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/workspace_state/content_form",
+          "keyword": "const"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-content-digest-missing",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/envelope/launch/workspace_state/content_sha256"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/workspace_state",
+          "keyword": "required"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-cwd-number",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/cwd",
+          "value": 0
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/workspace_state/cwd",
+          "keyword": "type"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-target-map-extra-key",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/launch/workspace_state/target_map/0/mode",
+          "value": "rw"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/workspace_state/target_map/0",
+          "keyword": "additionalProperties"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-target-map-protected-missing",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/envelope/launch/workspace_state/target_map/0/protected_locator"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/workspace_state/target_map/0",
+          "keyword": "required"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-target-map-workspace-null",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/workspace_state/target_map/0/workspace_locator",
+          "value": null
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/workspace_state/target_map/0/workspace_locator",
+          "keyword": "type"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-environment-digest-uppercase",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/environment/map_sha256",
+          "value": "FC41F1456822E1842CD25998D4AA6F6A0803C243F236269020A7A92F82EF0A9C"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/environment/map_sha256",
+          "keyword": "pattern"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-environment-policy-id-path",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/environment/policy/id",
+          "value": "policies/scrub"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/environment/policy/id",
+          "keyword": "pattern"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-environment-policy-digest-missing",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/envelope/launch/environment/policy/sha256"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/environment/policy",
+          "keyword": "required"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-config-digest-short",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/trusted_policy/config_sha256",
+          "value": "00"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/trusted_policy/config_sha256",
+          "keyword": "pattern"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-template-digest-missing",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/envelope/launch/trusted_policy/template_sha256"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/trusted_policy",
+          "keyword": "required"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-qualification-empty-string",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/trusted_policy/qualification_sha256",
+          "value": ""
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/trusted_policy/qualification_sha256",
+          "keyword": "anyOf"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      },
+      "note": "An absent qualification is null, never an empty string."
+    },
+    {
+      "id": "X2-timeout-zero",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/stop/timeout_seconds",
+          "value": 0
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/stop/timeout_seconds",
+          "keyword": "minimum"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-timeout-over-cap",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/stop/timeout_seconds",
+          "value": 3601
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/stop/timeout_seconds",
+          "keyword": "maximum"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-timeout-milliseconds",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/stop/timeout_seconds",
+          "value": 1800000
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/stop/timeout_seconds",
+          "keyword": "maximum"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      },
+      "note": "A millisecond value is out of range: the unit is seconds."
+    },
+    {
+      "id": "X2-timeout-fractional",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/stop/timeout_seconds",
+          "value": 1800.5
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/stop/timeout_seconds",
+          "keyword": "type"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-timeout-string",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/stop/timeout_seconds",
+          "value": "1800"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/stop/timeout_seconds",
+          "keyword": "type"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-timeout-missing",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "remove",
+          "path": "/envelope/launch/stop/timeout_seconds"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/stop",
+          "keyword": "required"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-deadline-action-unknown",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/stop/deadline_action",
+          "value": "kill"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/stop/deadline_action",
+          "keyword": "enum"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-grants-empty",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-execution",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/launch/grants",
+          "value": {}
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/grants",
+          "keyword": "minProperties"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-grant-unknown-kind",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/envelope/launch/grants/mounts_sha256",
+          "value": "fc076b9fe90fc87992ea7bf47f1862bd631ec8dea122bdf5f01bef15a49afe57"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/grants",
+          "keyword": "additionalProperties"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-grant-egress-uppercase",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/grants/egress_policy_sha256",
+          "value": "995EA1B71145C9F189BED8C9373336C62F81A5741BC555641287F79A312B2AB7"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/grants/egress_policy_sha256",
+          "keyword": "pattern"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-grant-supervisor-null",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/grants/supervisor_identity_sha256",
+          "value": null
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/grants/supervisor_identity_sha256",
+          "keyword": "type"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-grant-dependency-number",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/grants/dependency_projection_sha256",
+          "value": 1
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/grants/dependency_projection_sha256",
+          "keyword": "type"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-grant-descriptor-short",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/grants/descriptor_capabilities_sha256",
+          "value": "ab"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/grants/descriptor_capabilities_sha256",
+          "keyword": "pattern"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    },
+    {
+      "id": "X2-grant-filesystem-prefixed",
+      "kind": "admission",
+      "role": "schema_negative",
+      "control": "E2-review-wrapped",
+      "patch": [
+        {
+          "op": "replace",
+          "path": "/envelope/launch/grants/filesystem_view_sha256",
+          "value": "sha256:036971726c87bd351f16a5684e667d0562aaa1ed31253050046c39d3cac99472"
+        }
+      ],
+      "expected": [
+        "envelope_schema_invalid"
+      ],
+      "rehash": true,
+      "expected_schema_errors": [
+        {
+          "instance_path": "/envelope/launch/grants/filesystem_view_sha256",
+          "keyword": "pattern"
+        }
+      ],
+      "expected_effect": {
+        "attempt": {
+          "state": "refused",
+          "worker_invocations": 0,
+          "refusal": {
+            "reason": "envelope_schema_invalid"
+          }
+        }
+      }
+    }
+  ]
+}

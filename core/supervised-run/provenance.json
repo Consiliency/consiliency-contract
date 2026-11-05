@@ -1,7 +1,11 @@
 {
   "schema": "consiliency.supervised_run_provenance.v1",
-  "$comment": "The admitted_launch_envelope.v1 and supervised_run_status.v1 schemas and their conformance vectors are DISTRIBUTED verbatim from the spec repo, where the contract was authored and reviewed. They are harness-neutral and language-neutral, and are shipped byte-for-byte so harnesses vendor one neutral copy. The per-file sha256 below pins the exact source bytes; because the copy is verbatim, source sha == shipped sha. conformance/SHA256SUMS is the contract's own manifest (paths relative to conformance/) and is shipped unchanged as verification metadata; its digest is pinned here. The contract test suites re-check every digest, so any payload byte change fails them.",
-  "contract_ids": ["admitted_launch_envelope.v1", "supervised_run_status.v1"],
+  "$comment": "The admitted_launch_envelope.v1 and supervised_run_status.v1 schemas and their conformance vectors are DISTRIBUTED verbatim from the spec repo, where the contract was authored and reviewed; they are frozen, and source sha == shipped sha (normative_source). admitted_launch_envelope.v2 is AUTHORED in this repository, alongside v1, and pinned in authored_here. conformance/SHA256SUMS is the contract's own manifest (paths relative to conformance/): its first five lines are the v1 source manifest byte for byte (distributed.manifest.v1_prefix), followed by one line per v2 file. The contract test suites re-check every digest, so any payload byte change fails them.",
+  "contract_ids": [
+    "admitted_launch_envelope.v1",
+    "supervised_run_status.v1",
+    "admitted_launch_envelope.v2"
+  ],
   "status": "provisional",
   "normative_source": {
     "repo": "spec",
@@ -18,6 +22,17 @@
       "sha256": "b9c2dad7ca32d32b9860e56c2e14141827955a50b52a54c8088760d9756e1285"
     }
   },
+  "authored_here": {
+    "$comment": "Authored and reviewed in this repository; not copied from another source. Harness-neutral and language-neutral, like v1.",
+    "contract_ids": [
+      "admitted_launch_envelope.v2"
+    ],
+    "files": {
+      "admitted-launch-envelope.v2.schema.json": "603ec71cc5e74e4024fb63c2780ec98e809cc331f62f8a490cac54383263b0cc",
+      "conformance/README.v2.md": "24288603922193559580013357e1e755c77b8ab3e5c21be868cfae6947df4dfe",
+      "conformance/envelope.v2.vectors.json": "f2e3ac4615aaae70d70c400296cebd5918b049870b3d398906062b44619c7beb"
+    }
+  },
   "distributed": {
     "root": "core/supervised-run",
     "files": {
@@ -25,11 +40,18 @@
       "run-status.schema.json": "5118c1ab8604e85990150d66bf6b8c1af979dcc404fc84ee5a3c4ba4fead9a30",
       "conformance/README.md": "2d5045245105af88f1f45f720aa8bc3f366efc95c25e25a9c50e402a175533ca",
       "conformance/envelope.vectors.json": "876d322c313b444e49d7a95ee8f7ca39eef13c45864c67a0b3877235e1db6d7f",
-      "conformance/run-status.vectors.json": "5bf9dfbf65805f7340290586d546038fc88659785e60e2f55532df4ac6696730"
+      "conformance/run-status.vectors.json": "5bf9dfbf65805f7340290586d546038fc88659785e60e2f55532df4ac6696730",
+      "admitted-launch-envelope.v2.schema.json": "603ec71cc5e74e4024fb63c2780ec98e809cc331f62f8a490cac54383263b0cc",
+      "conformance/README.v2.md": "24288603922193559580013357e1e755c77b8ab3e5c21be868cfae6947df4dfe",
+      "conformance/envelope.v2.vectors.json": "f2e3ac4615aaae70d70c400296cebd5918b049870b3d398906062b44619c7beb"
     },
     "manifest": {
       "path": "conformance/SHA256SUMS",
-      "sha256": "b9c2dad7ca32d32b9860e56c2e14141827955a50b52a54c8088760d9756e1285"
+      "sha256": "04e50191df748a2f41eac348e5eede9353cb9a7a6b0ab6b4458e5530e6b75df2",
+      "v1_prefix": {
+        "lines": 5,
+        "sha256": "b9c2dad7ca32d32b9860e56c2e14141827955a50b52a54c8088760d9756e1285"
+      }
     },
     "schemas": {
       "admitted_launch_envelope": {
@@ -39,18 +61,29 @@
       "supervised_run_status": {
         "path": "core/supervised-run/run-status.schema.json",
         "schema_id": "urn:contract:supervised_run_status.v1"
+      },
+      "admitted_launch_envelope_v2": {
+        "path": "core/supervised-run/admitted-launch-envelope.v2.schema.json",
+        "schema_id": "urn:contract:admitted_launch_envelope.v2"
       }
     },
     "vectors": {
       "admitted_launch_envelope": "core/supervised-run/conformance/envelope.vectors.json",
-      "supervised_run_status": "core/supervised-run/conformance/run-status.vectors.json"
+      "supervised_run_status": "core/supervised-run/conformance/run-status.vectors.json",
+      "admitted_launch_envelope_v2": "core/supervised-run/conformance/envelope.v2.vectors.json"
     }
   },
   "consumer_reconciliation": {
     "$comment": "Attestation recorded at relocation. The contract is provisional: any change needs reconciliation with every consumer before it ships.",
-    "provisional_rule_additions": ["attempt_evidence_copied"],
+    "provisional_rule_additions": [
+      "attempt_evidence_copied"
+    ],
     "rule_location": "run-status.schema.json#/x-semantic-rules/attempt_evidence_copied",
     "consumers_reconciled": true
+  },
+  "v2_consumer_reconciliation": {
+    "$comment": "v2 is additive and every v1 byte is unchanged, so existing v1 pins stay valid. Consumers reconcile v2 when they adopt it, against a published commit and per-file sha256.",
+    "status": "pending"
   },
   "verification_scope": {
     "$comment": "What this package checks without a reader implementation. Full semantic evaluation of every x-semantic-rules diagnostic needs a conforming reader, which consuming harnesses provide.",
@@ -60,10 +93,15 @@
       "every expected diagnostic is defined in the matching schema's x-semantic-rules",
       "every control and every patched negative is schema-valid",
       "envelope_digest self-verifies exactly where envelope_digest_mismatch is not expected",
-      "journal segment chains of the controls verify"
+      "journal segment chains of the controls verify",
+      "the v1 payload and the five-line v1 manifest prefix match digests pinned in the test suites independently of this file",
+      "v2: every control and semantic negative is schema-valid, and every schema_negative fails with exactly its expected (instance_path, keyword) set",
+      "v2: a test-local reading of x-semantic-rules and x-evaluation-order admits every control and refuses every negative with exactly its expected diagnostics and effect, including every launch digest recomputed from the case's launch material",
+      "v2: every new launch field and every semantic rule has a positive and a negative vector"
     ],
     "not_checked": [
-      "the remaining semantic diagnostics and expected_effect, which need a conforming reader"
+      "the remaining semantic diagnostics and expected_effect, which need a conforming reader",
+      "v2: a harness's own capture of launch material, qualification records and apply-time write_scope checking, which need a conforming harness"
     ]
   }
 }

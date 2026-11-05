@@ -11,7 +11,7 @@ test("npm package includes shared JSON data", () => {
   assert.ok(files.has("core/canonical-html/contract-v1.json"));
   assert.ok(files.has("conformance/vectors/manifest-valid-product.json"));
   assert.ok(files.has("src/index.js"));
-  for (const rel of ["provenance.json", "admitted-launch-envelope.schema.json", "run-status.schema.json", "conformance/README.md", "conformance/envelope.vectors.json", "conformance/run-status.vectors.json", "conformance/SHA256SUMS"]) {
+  for (const rel of ["provenance.json", "admitted-launch-envelope.schema.json", "run-status.schema.json", "conformance/README.md", "conformance/envelope.vectors.json", "conformance/run-status.vectors.json", "conformance/SHA256SUMS", "admitted-launch-envelope.v2.schema.json", "conformance/envelope.v2.vectors.json", "conformance/README.v2.md"]) {
     assert.ok(files.has(`core/supervised-run/${rel}`), rel);
   }
 });
@@ -30,9 +30,14 @@ test("wheel and sdist include shared JSON data", () => {
   assert.match(wheelFiles, /consiliency_contract\/_data\/core\/supervised-run\/conformance\/SHA256SUMS/);
   assert.match(wheelFiles, /consiliency_contract\/_data\/core\/supervised-run\/conformance\/README\.md/);
   assert.match(wheelFiles, /consiliency_contract\/_data\/core\/supervised-run\/run-status\.schema\.json/);
+  assert.match(wheelFiles, /consiliency_contract\/_data\/core\/supervised-run\/admitted-launch-envelope\.v2\.schema\.json/);
+  assert.match(wheelFiles, /consiliency_contract\/_data\/core\/supervised-run\/conformance\/envelope\.v2\.vectors\.json/);
+  assert.match(wheelFiles, /consiliency_contract\/_data\/core\/supervised-run\/conformance\/README\.v2\.md/);
 
   const sdistFiles = execFileSync("tar", ["-tf", `dist/${sdist}`], { encoding: "utf8" });
   assert.match(sdistFiles, /\/core\/contract\.json/);
   assert.match(sdistFiles, /\/conformance\/vectors\/manifest-valid-product\.json/);
   assert.match(sdistFiles, /\/core\/supervised-run\/conformance\/SHA256SUMS/);
+  assert.match(sdistFiles, /\/core\/supervised-run\/admitted-launch-envelope\.v2\.schema\.json/);
+  assert.match(sdistFiles, /\/core\/supervised-run\/conformance\/envelope\.v2\.vectors\.json/);
 });

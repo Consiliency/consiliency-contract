@@ -32,8 +32,8 @@ def _stable_jcs(value: object) -> str:
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.6.6")
-        self.assertEqual(load_contract()["contract_version"], "0.6.6")
+        self.assertEqual(CONTRACT_VERSION, "0.7.0")
+        self.assertEqual(load_contract()["contract_version"], "0.7.0")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")
@@ -802,7 +802,7 @@ class ContractReaderTest(unittest.TestCase):
 
 SUPERVISED_RUN_ROOT = Path("core/supervised-run")
 
-# Every JSON Schema keyword the two schemas may use (draft 2020-12 core,
+# Every JSON Schema keyword the supervised-run schemas may use (draft 2020-12 core,
 # applicator and validation vocabularies this package's validator implements,
 # plus annotations). Anything else fails, so a new keyword is never silently
 # ignored by the subset validator below.
@@ -810,8 +810,8 @@ _SR_KEYWORDS = {
     "$schema", "$id", "$ref", "$defs", "title", "description",
     "type", "const", "enum", "anyOf", "oneOf",
     "properties", "required", "additionalProperties",
-    "items", "minItems", "uniqueItems",
-    "minLength", "maxLength", "pattern", "minimum",
+    "items", "minItems", "uniqueItems", "minProperties",
+    "minLength", "maxLength", "pattern", "minimum", "maximum",
 }
 
 
@@ -870,6 +870,8 @@ def _sr_valid(schema: dict, value: object, root: dict) -> bool:
     if isinstance(value, int) and not isinstance(value, bool):
         if "minimum" in schema and value < schema["minimum"]:
             return False
+        if "maximum" in schema and value > schema["maximum"]:
+            return False
     if isinstance(value, list):
         if len(value) < schema.get("minItems", 0):
             return False
@@ -880,6 +882,8 @@ def _sr_valid(schema: dict, value: object, root: dict) -> bool:
     if isinstance(value, dict):
         props = schema.get("properties", {})
         if any(key not in value for key in schema.get("required", [])):
+            return False
+        if len(value) < schema.get("minProperties", 0):
             return False
         if schema.get("additionalProperties") is False and any(key not in props for key in value):
             return False
@@ -951,13 +955,25 @@ def _sr_chain_ok(journal: dict) -> bool:
     return True
 
 
+# The frozen v1 payload, pinned here independently of provenance.json so that
+# no provenance edit can bless a changed v1 byte (0.7.0 adds v2 alongside).
+SUPERVISED_RUN_V1_PINS = {
+    "admitted-launch-envelope.schema.json": "0273f7a5d80eab95ee84660cd657445e881431bca3b8f91cec61015a5d39d41d",
+    "run-status.schema.json": "5118c1ab8604e85990150d66bf6b8c1af979dcc404fc84ee5a3c4ba4fead9a30",
+    "conformance/README.md": "2d5045245105af88f1f45f720aa8bc3f366efc95c25e25a9c50e402a175533ca",
+    "conformance/envelope.vectors.json": "876d322c313b444e49d7a95ee8f7ca39eef13c45864c67a0b3877235e1db6d7f",
+    "conformance/run-status.vectors.json": "5bf9dfbf65805f7340290586d546038fc88659785e60e2f55532df4ac6696730",
+}
+# sha256 of the v1 manifest, which is kept verbatim as the first five lines of SHA256SUMS.
+SUPERVISED_RUN_V1_MANIFEST_SHA256 = "b9c2dad7ca32d32b9860e56c2e14141827955a50b52a54c8088760d9756e1285"
+
+
 class SupervisedRunContractTest(unittest.TestCase):
-    PAYLOAD = (
-        "admitted-launch-envelope.schema.json",
-        "run-status.schema.json",
-        "conformance/README.md",
-        "conformance/envelope.vectors.json",
-        "conformance/run-status.vectors.json",
+    PAYLOAD = tuple(SUPERVISED_RUN_V1_PINS)
+    V2_PAYLOAD = (
+        "admitted-launch-envelope.v2.schema.json",
+        "conformance/README.v2.md",
+        "conformance/envelope.v2.vectors.json",
     )
 
     @classmethod
@@ -1018,18 +1034,30 @@ class SupervisedRunContractTest(unittest.TestCase):
         self.assertEqual(CONTRACT["supervised_run"]["vectors"], self.prov["distributed"]["vectors"])
 
     def test_payload_bytes_match_pinned_digests(self) -> None:
-        # Any changed payload byte fails here: verbatim copy, source sha == shipped sha.
+        # Any changed payload byte fails here. v1: verbatim copy, source sha == shipped sha ==
+        # the independent pins above. v2: authored in this repository, pinned in provenance.
         self.assertRegex(self.prov["normative_source"]["spec_commit"], r"^[0-9a-f]{40}$")
-        self.assertEqual(sorted(self.prov["distributed"]["files"]), sorted(self.PAYLOAD))
-        self.assertEqual(self.prov["distributed"]["files"], self.prov["normative_source"]["files"])
-        for rel in self.PAYLOAD:
+        self.assertEqual(self.prov["normative_source"]["files"], SUPERVISED_RUN_V1_PINS)
+        self.assertEqual(sorted(self.prov["authored_here"]["files"]), sorted(self.V2_PAYLOAD))
+        self.assertEqual(self.prov["authored_here"]["contract_ids"], ["admitted_launch_envelope.v2"])
+        self.assertEqual(
+            self.prov["distributed"]["files"],
+            {**self.prov["normative_source"]["files"], **self.prov["authored_here"]["files"]},
+        )
+        for rel in self.PAYLOAD + self.V2_PAYLOAD:
             digest = hashlib.sha256((SUPERVISED_RUN_ROOT / rel).read_bytes()).hexdigest()
             self.assertEqual(digest, self.prov["distributed"]["files"][rel], rel)
+        for rel, pin in SUPERVISED_RUN_V1_PINS.items():
+            self.assertEqual(hashlib.sha256((SUPERVISED_RUN_ROOT / rel).read_bytes()).hexdigest(), pin, f"v1 frozen: {rel}")
         manifest = self.prov["distributed"]["manifest"]
-        self.assertEqual(manifest, self.prov["normative_source"]["manifest"])
+        self.assertEqual(manifest["path"], self.prov["normative_source"]["manifest"]["path"])
+        self.assertEqual(self.prov["normative_source"]["manifest"]["sha256"], SUPERVISED_RUN_V1_MANIFEST_SHA256)
+        self.assertEqual(manifest["v1_prefix"], {"lines": 5, "sha256": SUPERVISED_RUN_V1_MANIFEST_SHA256})
         self.assertEqual(f"{SUPERVISED_RUN_ROOT}/{manifest['path']}", CONTRACT["supervised_run"]["manifest"])
-        digest = hashlib.sha256((SUPERVISED_RUN_ROOT / manifest["path"]).read_bytes()).hexdigest()
-        self.assertEqual(digest, manifest["sha256"])
+        data = (SUPERVISED_RUN_ROOT / manifest["path"]).read_bytes()
+        self.assertEqual(hashlib.sha256(data).hexdigest(), manifest["sha256"])
+        prefix = b"".join(data.splitlines(keepends=True)[:5])
+        self.assertEqual(hashlib.sha256(prefix).hexdigest(), SUPERVISED_RUN_V1_MANIFEST_SHA256, "v1 manifest lines moved")
 
     def test_manifest_lists_exactly_the_payload_and_verifies(self) -> None:
         conformance = SUPERVISED_RUN_ROOT / "conformance"
@@ -1037,7 +1065,7 @@ class SupervisedRunContractTest(unittest.TestCase):
         for line in (conformance / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
             digest, rel = re.fullmatch(r"([0-9a-f]{64})  (\S+)", line).groups()  # type: ignore[union-attr]
             listed[rel] = digest
-        self.assertEqual(len(listed), len(self.PAYLOAD))
+        self.assertEqual(len(listed), len(self.PAYLOAD) + len(self.V2_PAYLOAD))
         for rel, digest in listed.items():
             path = (conformance / rel).resolve()
             self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest, rel)
@@ -1045,7 +1073,11 @@ class SupervisedRunContractTest(unittest.TestCase):
             self.assertEqual(self.prov["distributed"]["files"][shipped], digest, rel)
 
     def test_schemas_are_well_formed(self) -> None:
-        for name, schema in (("admitted_launch_envelope", self.envelope_schema), ("supervised_run_status", self.run_schema)):
+        for name, schema in (
+            ("admitted_launch_envelope", self.envelope_schema),
+            ("supervised_run_status", self.run_schema),
+            ("admitted_launch_envelope_v2", load_schema("admitted_launch_envelope_v2")),
+        ):
             self.assertEqual(schema["$schema"], "https://json-schema.org/draft/2020-12/schema", name)
             self.assertTrue(schema["x-semantic-rules"], name)
             for code, text in schema["x-semantic-rules"].items():
@@ -1159,6 +1191,447 @@ class SupervisedRunContractTest(unittest.TestCase):
         # Non-vacuity: rewriting a sealed segment in place breaks the next header's link.
         replaced = next(value for case, value in cases if case["id"] == "N04a-replaced-in-place")
         self.assertFalse(_sr_chain_ok(replaced["journal"]))
+
+
+# --- admitted_launch_envelope.v2 (0.7.0) ---
+#
+# v2 is authored in this repository, alongside the frozen v1. Its vectors add a
+# third role, schema_negative: refused by JSON Schema (envelope_schema_invalid)
+# with the exact failing (instance_path, keyword) pairs. The helpers below are a
+# test-local reading of the v2 schema and its x-semantic-rules, used only to prove
+# that every vector is internally consistent (each control is admitted, each
+# negative is refused with exactly its expected diagnostics in the staged order).
+# They are not part of the package API and not a conforming harness.
+
+_SR2_TREE_KINDS = {"file", "executable_file", "symlink"}
+
+
+def _sr2_sha(data: object) -> str:
+    raw = data.encode("utf-8") if isinstance(data, str) else data
+    return hashlib.sha256(raw).hexdigest()  # type: ignore[arg-type]
+
+
+def _sr2_jcs_sha(value: object) -> str:
+    return _sr2_sha(_sr_jcs(value))
+
+
+def _sr2_errors(schema: dict, value: object, root: dict, path: str = "") -> set[tuple[str, str]]:
+    # JSON Schema errors as (instance_path, keyword). A type failure masks the node's other keywords;
+    # anyOf / oneOf report themselves, not their branches.
+    errors: set[tuple[str, str]] = set()
+    if "$ref" in schema:
+        errors |= _sr2_errors(_sr_resolve(root, schema["$ref"]), value, root, path)
+    if "type" in schema:
+        names = schema["type"] if isinstance(schema["type"], list) else [schema["type"]]
+        if not any(_sr_type_ok(name, value) for name in names):
+            errors.add((path, "type"))
+            return errors
+    if "const" in schema and not _sr_same(value, schema["const"]):
+        errors.add((path, "const"))
+    if "enum" in schema and not any(_sr_same(value, entry) for entry in schema["enum"]):
+        errors.add((path, "enum"))
+    if "anyOf" in schema and not any(not _sr2_errors(sub, value, root, path) for sub in schema["anyOf"]):
+        errors.add((path, "anyOf"))
+    if "oneOf" in schema and sum(not _sr2_errors(sub, value, root, path) for sub in schema["oneOf"]) != 1:
+        errors.add((path, "oneOf"))
+    if isinstance(value, str):
+        if len(value) < schema.get("minLength", 0):
+            errors.add((path, "minLength"))
+        if "maxLength" in schema and len(value) > schema["maxLength"]:
+            errors.add((path, "maxLength"))
+        if "pattern" in schema and not re.search(schema["pattern"], value):
+            errors.add((path, "pattern"))
+    if isinstance(value, int) and not isinstance(value, bool):
+        if "minimum" in schema and value < schema["minimum"]:
+            errors.add((path, "minimum"))
+        if "maximum" in schema and value > schema["maximum"]:
+            errors.add((path, "maximum"))
+    if isinstance(value, list):
+        if len(value) < schema.get("minItems", 0):
+            errors.add((path, "minItems"))
+        if schema.get("uniqueItems") and len({_sr_jcs(item) for item in value}) != len(value):
+            errors.add((path, "uniqueItems"))
+        if "items" in schema:
+            for index, item in enumerate(value):
+                errors |= _sr2_errors(schema["items"], item, root, f"{path}/{index}")
+    if isinstance(value, dict):
+        props = schema.get("properties", {})
+        if any(key not in value for key in schema.get("required", [])):
+            errors.add((path, "required"))
+        if len(value) < schema.get("minProperties", 0):
+            errors.add((path, "minProperties"))
+        if schema.get("additionalProperties") is False and any(key not in props for key in value):
+            errors.add((path, "additionalProperties"))
+        for key, entry in value.items():
+            if key in props:
+                errors |= _sr2_errors(props[key], entry, root, f"{path}/{key}")
+    return errors
+
+
+def _sr2_tree_sha(entries: list) -> str:
+    return _sr2_jcs_sha(sorted(entries, key=lambda entry: entry[0].encode("utf-8")))
+
+
+def _sr2_bad_locator(locator: str) -> bool:
+    return locator == "" or locator.startswith("/") or "\\" in locator or ".." in locator.split("/")
+
+
+def _sr2_raw_strings(node: object) -> bool:
+    if isinstance(node, str):
+        return len(node) > 512 or any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in node)
+    if isinstance(node, list):
+        return any(_sr2_raw_strings(item) for item in node)
+    if isinstance(node, dict):
+        return any(_sr2_raw_strings(item) for item in node.values())
+    return False
+
+
+def _sr2_route_key(record: dict) -> tuple:
+    chain = tuple((entry["locator_kind"], entry["locator"], entry["sha256"]) for entry in record["executable_chain"])
+    return (record["tier"], record["action"], record["transport_id"], chain, record["template_sha256"], record["qualification_sha256"])
+
+
+def _sr2_evaluate(schema: dict, value: dict, *, staged: bool = True) -> tuple[list[str], dict]:
+    """Diagnostics of the first reporting stage of x-evaluation-order, and the admission effect."""
+    env = value["envelope"]
+    order = schema["x-evaluation-order"]["stages"]
+    if _sr2_errors(schema, env, schema, "/envelope"):
+        return ["envelope_schema_invalid"], {"attempt": {"state": "refused", "worker_invocations": 0, "refusal": {"reason": "envelope_schema_invalid"}}}
+    ctx, mat, launch = value["validator_context"], value["launch_material"], env["launch"]
+    tier = env["enforcement"]["tier"]
+    tiers = schema["x-enforcement-tiers"]
+    constraint: list[str] = []
+    record_box: list[dict] = []
+
+    def digest() -> set[str]:
+        body = {key: item for key, item in env.items() if key != "envelope_digest"}
+        return {"envelope_digest_mismatch"} if _sr2_jcs_sha(body) != env["envelope_digest"] else set()
+
+    def authority() -> set[str]:
+        if env["assignment_digest"] != ctx["expected_assignment_digest"] or env["units"]["crosswalk_ref"] != ctx["expected_crosswalk_ref"]:
+            return {"authority_foreign"}
+        return {"authority_baseline_stale"} if env["units"]["snapshot_ref"] != ctx["expected_snapshot_ref"] else set()
+
+    def shape() -> set[str]:
+        out = set()
+        state = launch["workspace_state"]
+        locators = list(env["workspace"]["repo_relative_locators"])
+        locators += [launch["instructions"]["locator"]] if launch["instructions"]["locator"] is not None else []
+        locators += [ref["locator"] for ref in launch["references"]]
+        locators += [entry["locator"] for entry in launch["executable_chain"] if entry["locator_kind"] == "repo_relative"]
+        locators += [loc for pair in state["target_map"] for loc in (pair["workspace_locator"], pair["protected_locator"])]
+        locators += [state["cwd"]] if state["cwd"] != "." else []
+        if any(_sr2_bad_locator(loc) for loc in locators):
+            out.add("locator_not_repo_relative")
+        if _sr2_raw_strings({key: item for key, item in env.items() if key != "caller_context"}):
+            out.add("raw_output_in_record")
+        deps = env["executable_dependencies"]
+        if deps["declared"] and deps["admitted_dependency_digest"] is None:
+            out.add("dependency_digest_required")
+        if env["workspace"]["kind"] in ("separate_clone", "git_worktree_of_protected") and state["base_commit"] is None:
+            out.add("workspace_source_inconsistent")
+        chain = launch["executable_chain"]
+        identifier = schema["$defs"]["identifier"]["pattern"]
+        if (
+            chain[-1]["role"] != "executable"
+            or any(entry["role"] != "wrapper" for entry in chain[:-1])
+            or any(entry["locator_kind"] == "declared" and not re.search(identifier, entry["locator"]) for entry in chain)
+        ):
+            out.add("executable_chain_invalid")
+        if sum(ref["role"] == "baseline" for ref in launch["references"]) != 1:
+            out.add("baseline_reference_required")
+        scope = env["workspace"]["repo_relative_locators"]
+        if any(not any(p["protected_locator"] == s or p["protected_locator"].startswith(s + "/") for s in scope) for p in state["target_map"]):
+            out.add("target_map_outside_scope")
+        return out
+
+    def tier_stage() -> set[str]:
+        return {"tier_unqualified"} if tiers[tier]["status"] == "reserved" else set()
+
+    def route() -> set[str]:
+        if launch["trusted_policy"]["qualification_sha256"] is None:
+            return {"route_not_qualified"}
+        key = _sr2_route_key({
+            "tier": tier, "action": launch["action"], "transport_id": launch["transport_id"],
+            "executable_chain": launch["executable_chain"],
+            "template_sha256": launch["trusted_policy"]["template_sha256"],
+            "qualification_sha256": launch["trusted_policy"]["qualification_sha256"],
+        })
+        matches = [record for record in ctx["qualified_routes"] if _sr2_route_key(record) == key]
+        record_box[:] = matches[:1]
+        return set() if matches else {"route_not_qualified"}
+
+    def capability() -> set[str]:
+        out = set()
+        info = tiers[tier]
+        unsupported = [c for c in env["enforcement"]["required_constraints"] if info["constraints"][c] == "not_enforced"]
+        if unsupported:
+            out.add("constraint_unsupported")
+            constraint.append(unsupported[0])
+        if env["workspace"]["kind"] not in info["workspace_kinds"]:
+            out.add("workspace_not_separate_copy")
+        covered = record_box[0]["grants"] if record_box else {}
+        grants = launch.get("grants", {})
+        if any(kind not in info["grant_kinds"] or covered.get(kind) != sha for kind, sha in grants.items()):
+            out.add("grant_unqualified")
+        if "dependency_projection_sha256" in grants and not env["executable_dependencies"]["declared"]:
+            out.add("grant_unqualified")
+        if launch["action"] == "execution" and launch["stop"]["deadline_action"] == "not_armed":
+            out.add("stop_policy_unbounded")
+        if launch["stop"]["timeout_seconds"] > ctx["timeout_max_seconds"]:
+            out.add("timeout_over_declared_max")
+        return out
+
+    def material() -> set[str]:
+        out = set()
+        instr = launch["instructions"]
+        if _sr2_sha(mat["instructions"]) != instr["sha256"] or len(mat["instructions"].encode("utf-8")) != instr["byte_length"]:
+            out.add("launch_instructions_mismatch")
+        if launch["stdin"] == "input" and mat["stdin"] != mat["instructions"]:
+            out.add("launch_instructions_mismatch")
+        bound_refs = [(r["locator"], r["sha256"], r["byte_length"]) for r in launch["references"]]
+        used_refs = [(r["locator"], _sr2_sha(r["content"]), len(r["content"].encode("utf-8"))) for r in mat["references"]]
+        if bound_refs != used_refs:
+            out.add("launch_reference_mismatch")
+        if _sr2_jcs_sha(mat["argv"]) != launch["argv"]["sha256"] or len(mat["argv"]) != launch["argv"]["element_count"]:
+            out.add("launch_argv_mismatch")
+        fields = ("role", "locator_kind", "locator", "sha256")
+        if [tuple(e[f] for f in fields) for e in launch["executable_chain"]] != [tuple(e[f] for f in fields) for e in mat["executable_chain"]]:
+            out.add("launch_executable_mismatch")
+        state, used = launch["workspace_state"], mat["workspace"]
+        if (
+            used["base_commit"] != state["base_commit"] or used["cwd"] != state["cwd"]
+            or used["target_map"] != state["target_map"] or _sr2_tree_sha(used["entries"]) != state["content_sha256"]
+        ):
+            out.add("launch_workspace_mismatch")
+        environment = launch["environment"]
+        if (
+            _sr2_jcs_sha(mat["environment"]["map"]) != environment["map_sha256"]
+            or mat["environment"]["policy_id"] != environment["policy"]["id"]
+            or _sr2_sha(mat["environment"]["policy"]) != environment["policy"]["sha256"]
+        ):
+            out.add("launch_environment_mismatch")
+        policy, trusted = mat["policy"], launch["trusted_policy"]
+        qualification = None if policy["qualification"] is None else _sr2_sha(policy["qualification"])
+        if (
+            _sr2_sha(policy["config"]) != trusted["config_sha256"] or _sr2_sha(policy["template"]) != trusted["template_sha256"]
+            or qualification != trusted["qualification_sha256"]
+            or {kind: _sr2_sha(text) for kind, text in policy["grants"].items()} != launch.get("grants", {})
+        ):
+            out.add("launch_policy_mismatch")
+        stop = launch["stop"]
+        armed = stop["timeout_seconds"] if stop["deadline_action"] == "terminate_process_group" else None
+        if mat["deadline_seconds"] != armed:
+            out.add("launch_timeout_mismatch")
+        if (
+            (launch["stdin"] == "devnull" and mat["stdin"] is not None) or mat["unbound_inputs"]
+            or any("\x00" in arg for arg in mat["argv"]) or any(entry[1] not in _SR2_TREE_KINDS for entry in used["entries"])
+        ):
+            out.add("launch_input_unbound")
+        return out
+
+    reported: set[str] = set()
+    for stage in (digest, authority, shape, tier_stage, route, capability, material):
+        reported |= stage()
+        if reported and staged:
+            break
+    flat = [code for group in order for code in group]
+    codes = sorted(reported, key=flat.index)
+    if not codes:
+        return [], {"attempt": {"state": "queued", "worker_invocations": 0}}
+    refusal = {"reason": codes[0], "constraint": constraint[0] if codes[0] == "constraint_unsupported" else None, "tier": tier}
+    return codes, {"attempt": {"state": "refused", "worker_invocations": 0, "refusal": refusal}}
+
+
+def _sr2_subset(expected: object, actual: object) -> bool:
+    if isinstance(expected, dict):
+        return isinstance(actual, dict) and all(k in actual and _sr2_subset(v, actual[k]) for k, v in expected.items())
+    return _sr_same(expected, actual)
+
+
+def _sr2_leaves(schema: dict, node: dict, prefix: str) -> set[str]:
+    if "$ref" in node:
+        node = _sr_resolve(schema, node["$ref"])
+    if "properties" in node:
+        out = set()
+        for key, sub in node["properties"].items():
+            out |= _sr2_leaves(schema, sub, f"{prefix}/{key}")
+        return out
+    if "items" in node:
+        return _sr2_leaves(schema, node["items"], f"{prefix}/*")
+    return {prefix}
+
+
+class SupervisedRunEnvelopeV2Test(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.schema = load_schema("admitted_launch_envelope_v2")
+        cls.v1_schema = load_schema("admitted_launch_envelope")
+        cls.vectors = json.loads(Path(CONTRACT["supervised_run"]["vectors"]["admitted_launch_envelope_v2"]).read_text(encoding="utf-8"))
+        controls = {case["id"]: case for case in cls.vectors["cases"] if case["role"] == "control"}
+        cls.cases = []
+        for case in cls.vectors["cases"]:
+            if case["role"] == "control":
+                cls.cases.append((case, case["input"]))
+                continue
+            patched = _sr_apply_patch(controls[case["control"]]["input"], case["patch"])
+            if case.get("rehash"):
+                patched["envelope"]["envelope_digest"] = _sr_envelope_digest(patched["envelope"])
+            cls.cases.append((case, patched))
+
+    def stages(self) -> list[str]:
+        return [code for stage in self.schema["x-evaluation-order"]["stages"] for code in stage]
+
+    def test_registered_alongside_frozen_v1(self) -> None:
+        self.assertEqual(self.schema["$id"], "urn:contract:admitted_launch_envelope.v2")
+        self.assertEqual(self.schema["properties"]["schema"]["const"], "admitted_launch_envelope.v2")
+        self.assertEqual(CONTRACT["schemas"]["admitted_launch_envelope_v2"], "core/supervised-run/admitted-launch-envelope.v2.schema.json")
+        self.assertEqual(self.vectors["contract"], "admitted_launch_envelope.v2")
+        self.assertEqual(self.vectors["status"], "provisional")
+        # v2 keeps every v1 field, closed, and every v1 rule; launch is the only new top-level field.
+        self.assertEqual(set(self.schema["required"]) - set(self.v1_schema["required"]), {"launch"})
+        self.assertEqual(set(self.v1_schema["x-semantic-rules"]) - set(self.schema["x-semantic-rules"]), set())
+        for key in self.v1_schema["properties"]:
+            if key not in ("schema", "enforcement", "envelope_digest", "caller_context", "workspace"):
+                self.assertEqual(self.schema["properties"][key], self.v1_schema["properties"][key], key)
+        self.assertEqual(self.schema["properties"]["enforcement"]["properties"]["tier"], self.v1_schema["properties"]["enforcement"]["properties"]["tier"])
+        self.assertIs(self.schema["properties"]["launch"]["additionalProperties"], False)
+        self.assertNotIn("caller_context", json.dumps(self.schema["properties"]["launch"]))
+
+    def test_semantic_rules_and_evaluation_order_agree(self) -> None:
+        flat = self.stages()
+        self.assertEqual(len(flat), len(set(flat)))
+        self.assertEqual(set(flat) | {"caller_context_interpreted", "refusal_zero_invocations"}, set(self.schema["x-semantic-rules"]))
+
+    def test_tiers_describe_semantics_not_qualification(self) -> None:
+        tiers = self.schema["x-enforcement-tiers"]
+        self.assertEqual(sorted(tiers), sorted(self.schema["properties"]["enforcement"]["properties"]["tier"]["enum"]))
+        constraints = self.schema["properties"]["enforcement"]["properties"]["required_constraints"]["items"]["enum"]
+        grants = sorted(self.schema["properties"]["launch"]["properties"]["grants"]["properties"])
+        kinds = self.schema["properties"]["workspace"]["properties"]["kind"]["enum"]
+        for name, info in tiers.items():
+            self.assertNotIn("qualified", info, name)
+            self.assertEqual(sorted(info["constraints"]), sorted(constraints), name)
+            self.assertTrue(set(info["constraints"].values()) <= {"checked_before_apply", "not_enforced"}, name)
+            self.assertTrue(set(info["grant_kinds"]) <= set(grants), name)
+            self.assertTrue(set(info["workspace_kinds"]) <= set(kinds), name)
+            self.assertTrue(info["semantics"] and info["limits"], name)
+            expected = ("required", "defined") if info["status"] == "defined" else ("not_admissible", "reserved")
+            self.assertEqual((info["qualification"], info["status"]), expected, name)
+            self.assertEqual(info["constraints"]["write_prevention"], "not_enforced", name)
+        self.assertEqual(tiers["os_enforced"]["status"], "reserved")
+        self.assertEqual(sorted(self.schema["x-constraint-semantics"]), sorted(constraints))
+        self.assertIn("unqualified means refused", self.schema["x-route-qualification"]["rule"])
+
+    def test_cases_are_well_formed(self) -> None:
+        rules = set(self.schema["x-semantic-rules"])
+        ids = [case["id"] for case, _ in self.cases]
+        self.assertEqual(len(ids), len(set(ids)))
+        controls = {case["id"]: case for case, _ in self.cases if case["role"] == "control"}
+        for case, _ in self.cases:
+            self.assertIn(case["role"], ("control", "negative", "schema_negative"), case["id"])
+            self.assertTrue(set(case["expected"]) <= rules, case["id"])
+            if case["role"] == "control":
+                self.assertEqual(case["expected"], [], case["id"])
+                continue
+            self.assertEqual(controls[case["control"]]["kind"], case["kind"], case["id"])
+            self.assertTrue(case["expected"], case["id"])
+            if case["role"] == "schema_negative":
+                self.assertEqual(case["expected"], ["envelope_schema_invalid"], case["id"])
+                self.assertTrue(case["expected_schema_errors"], case["id"])
+            else:
+                self.assertNotIn("envelope_schema_invalid", case["expected"], case["id"])
+                self.assertNotIn("expected_schema_errors", case, case["id"])
+        roles = [case["role"] for case, _ in self.cases]
+        self.assertEqual((roles.count("control"), roles.count("negative"), roles.count("schema_negative")), (4, 61, 51))
+
+    def test_schema_validity_and_exact_schema_errors(self) -> None:
+        for case, value in self.cases:
+            errors = _sr2_errors(self.schema, value["envelope"], self.schema, "/envelope")
+            valid = _sr_valid(self.schema, value["envelope"], self.schema)
+            self.assertEqual(valid, not errors, case["id"])  # two independent readings agree
+            if case["role"] == "schema_negative":
+                expected = {(e["instance_path"], e["keyword"]) for e in case["expected_schema_errors"]}
+                self.assertEqual(errors, expected, case["id"])
+            else:
+                self.assertEqual(errors, set(), case["id"])
+
+    def test_envelope_digest_self_verifies_unless_mismatch_is_expected(self) -> None:
+        mismatches = []
+        for case, value in self.cases:
+            ok = _sr_envelope_digest(value["envelope"]) == value["envelope"]["envelope_digest"]
+            self.assertEqual(ok, "envelope_digest_mismatch" not in case["expected"], case["id"])
+            if not ok:
+                mismatches.append(case["id"])
+        self.assertEqual(mismatches, ["S2-digest-not-rehashed"])
+
+    def test_every_vector_matches_the_staged_rules(self) -> None:
+        for case, value in self.cases:
+            if case["kind"] == "echo":
+                echoed = _sr_jcs(value["echoed_caller_context"]) == _sr_jcs(value["envelope"]["caller_context"])
+                self.assertEqual([] if echoed else ["caller_context_interpreted"], case["expected"], case["id"])
+                continue
+            codes, effect = _sr2_evaluate(self.schema, value)
+            self.assertEqual(codes, case["expected"], case["id"])
+            self.assertTrue(_sr2_subset(case["expected_effect"], effect), f"{case['id']}: {effect}")
+
+    def test_staging_is_load_bearing(self) -> None:
+        # Without the first-reporting-stage stop, refusals collect diagnostics from later stages.
+        widened = []
+        for case, value in self.cases:
+            if case["kind"] == "admission" and case["role"] == "negative":
+                if _sr2_evaluate(self.schema, value, staged=False)[0] != case["expected"]:
+                    widened.append(case["id"])
+        self.assertIn("S2-os-enforced", widened)
+        self.assertIn("S2-chain-executable-not-last", widened)
+
+    def test_controls_bind_their_launch_material(self) -> None:
+        # Non-vacuity: the digests are of RFC 8785 forms; the control argv is not ASCII, so an
+        # ASCII-escaping or whitespace serializer gives a different digest.
+        control = next(value for case, value in self.cases if case["id"] == "E2-execution")
+        argv = control["launch_material"]["argv"]
+        self.assertTrue(any(ord(ch) > 127 for arg in argv for ch in arg))
+        self.assertEqual(control["envelope"]["launch"]["argv"]["sha256"], _sr2_sha(_sr_jcs(argv)))
+        self.assertNotEqual(_sr2_sha(json.dumps(argv, separators=(",", ":"))), _sr2_sha(_sr_jcs(argv)))
+        entries = control["launch_material"]["workspace"]["entries"]
+        self.assertEqual(control["envelope"]["launch"]["workspace_state"]["content_sha256"], _sr2_tree_sha(entries))
+
+    def test_every_new_field_and_rule_has_a_positive_and_a_negative(self) -> None:
+        launch = self.schema["properties"]["launch"]
+        leaves = _sr2_leaves(self.schema, launch, "/envelope/launch")
+        controls = [value for case, value in self.cases if case["role"] == "control"]
+        touched = set()
+        for case, _ in self.cases:
+            for op in case.get("patch", []):
+                touched.add(re.sub(r"/\d+(?=/|$)", "/*", op["path"]))
+                if isinstance(op.get("value"), dict) and op["path"].startswith("/envelope/launch"):
+                    touched |= {re.sub(r"/\d+(?=/|$)", "/*", op["path"]) + "/" + key for key in op["value"]}
+
+        def present(value: object, parts: list[str]) -> bool:
+            if not parts:
+                return True
+            if parts[0] == "*":
+                return isinstance(value, list) and any(present(item, parts[1:]) for item in value)
+            return isinstance(value, dict) and parts[0] in value and present(value[parts[0]], parts[1:])
+
+        for leaf in sorted(leaves):
+            parts = leaf.split("/")[2:]
+            self.assertTrue(any(present(value["envelope"], parts) for value in controls), f"no positive: {leaf}")
+            self.assertTrue(any(path == leaf or path.startswith(leaf + "/") for path in touched), f"no negative: {leaf}")
+        self.assertIn("/envelope/launch", touched)  # missing launch
+        values = [op.get("value") for case, _ in self.cases for op in case.get("patch", [])]
+        self.assertIn("write_prevention", values)
+        negatives = {code for case, _ in self.cases for code in case["expected"]}
+        self.assertEqual(negatives, set(self.schema["x-semantic-rules"]) - {"refusal_zero_invocations"})
+        self.assertEqual(len(controls), 4)
+
+    def test_v1_and_v2_envelopes_do_not_cross_validate(self) -> None:
+        v1_vectors = json.loads(Path(CONTRACT["supervised_run"]["vectors"]["admitted_launch_envelope"]).read_text(encoding="utf-8"))
+        v1_envelope = next(case for case in v1_vectors["cases"] if case["id"] == "E-admitted")["input"]["envelope"]
+        v2_envelope = next(value for case, value in self.cases if case["id"] == "E2-execution")["envelope"]
+        self.assertTrue(_sr_valid(self.v1_schema, v1_envelope, self.v1_schema))
+        self.assertEqual(_sr2_errors(self.schema, v1_envelope, self.schema, "/envelope"), {("/envelope", "required"), ("/envelope/schema", "const")})
+        self.assertFalse(_sr_valid(self.v1_schema, v2_envelope, self.v1_schema))
 
 
 if __name__ == "__main__":

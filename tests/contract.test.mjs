@@ -52,7 +52,7 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.6.6");
+  assert.equal(CONTRACT_VERSION, "0.7.0");
   assert.equal(loadContract().contract_version, CONTRACT_VERSION);
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
@@ -868,12 +868,20 @@ test("the protected_source_category schema accepts a valid descriptor and reject
 // the envelope_digest rule. Mirrors the Python suite.
 
 const SR_ROOT = "core/supervised-run";
-const SR_PAYLOAD = [
-  "admitted-launch-envelope.schema.json",
-  "run-status.schema.json",
-  "conformance/README.md",
-  "conformance/envelope.vectors.json",
-  "conformance/run-status.vectors.json",
+// The frozen v1 payload, pinned here independently of provenance.json (0.7.0 adds v2 alongside).
+const SR_V1_PINS = {
+  "admitted-launch-envelope.schema.json": "0273f7a5d80eab95ee84660cd657445e881431bca3b8f91cec61015a5d39d41d",
+  "run-status.schema.json": "5118c1ab8604e85990150d66bf6b8c1af979dcc404fc84ee5a3c4ba4fead9a30",
+  "conformance/README.md": "2d5045245105af88f1f45f720aa8bc3f366efc95c25e25a9c50e402a175533ca",
+  "conformance/envelope.vectors.json": "876d322c313b444e49d7a95ee8f7ca39eef13c45864c67a0b3877235e1db6d7f",
+  "conformance/run-status.vectors.json": "5bf9dfbf65805f7340290586d546038fc88659785e60e2f55532df4ac6696730",
+};
+const SR_V1_MANIFEST_SHA256 = "b9c2dad7ca32d32b9860e56c2e14141827955a50b52a54c8088760d9756e1285";
+const SR_PAYLOAD = Object.keys(SR_V1_PINS);
+const SR_V2_PAYLOAD = [
+  "admitted-launch-envelope.v2.schema.json",
+  "conformance/README.v2.md",
+  "conformance/envelope.v2.vectors.json",
 ];
 
 function srResolve(root, ref) {
@@ -910,6 +918,7 @@ function srValid(schema, value, root) {
     if (schema.pattern !== undefined && !new RegExp(schema.pattern, "u").test(value)) return false;
   }
   if (Number.isInteger(value) && schema.minimum !== undefined && value < schema.minimum) return false;
+  if (Number.isInteger(value) && schema.maximum !== undefined && value > schema.maximum) return false;
   if (Array.isArray(value)) {
     if (schema.minItems !== undefined && value.length < schema.minItems) return false;
     if (schema.uniqueItems && new Set(value.map(canonical)).size !== value.length) return false;
@@ -918,6 +927,7 @@ function srValid(schema, value, root) {
   if (srTypeOk("object", value)) {
     const props = schema.properties ?? {};
     if ((schema.required ?? []).some((key) => !(key in value))) return false;
+    if (schema.minProperties !== undefined && Object.keys(value).length < schema.minProperties) return false;
     if (schema.additionalProperties === false && Object.keys(value).some((key) => !(key in props))) return false;
     if (!Object.entries(value).every(([key, entry]) => !(key in props) || srValid(props[key], entry, root))) return false;
   }
@@ -978,17 +988,25 @@ test("supervised-run payload is registered and byte-identical to its pinned dige
   const prov = JSON.parse(readFileSync(`${SR_ROOT}/provenance.json`, "utf8"));
   assert.equal(prov.schema, "consiliency.supervised_run_provenance.v1");
   assert.match(prov.normative_source.spec_commit, /^[0-9a-f]{40}$/);
-  assert.deepEqual(Object.keys(prov.distributed.files).sort(), [...SR_PAYLOAD].sort());
-  assert.deepEqual(prov.distributed.files, prov.normative_source.files);
-  for (const rel of SR_PAYLOAD) {
+  assert.deepEqual(prov.normative_source.files, SR_V1_PINS);
+  assert.deepEqual(Object.keys(prov.authored_here.files).sort(), [...SR_V2_PAYLOAD].sort());
+  assert.deepEqual(prov.distributed.files, { ...prov.normative_source.files, ...prov.authored_here.files });
+  for (const rel of [...SR_PAYLOAD, ...SR_V2_PAYLOAD]) {
     const digest = createHash("sha256").update(readFileSync(`${SR_ROOT}/${rel}`)).digest("hex");
     assert.equal(digest, prov.distributed.files[rel], `${rel}: shipped bytes must match the pinned sha256`);
   }
-  assert.deepEqual(prov.distributed.manifest, prov.normative_source.manifest);
+  for (const [rel, pin] of Object.entries(SR_V1_PINS)) {
+    assert.equal(createHash("sha256").update(readFileSync(`${SR_ROOT}/${rel}`)).digest("hex"), pin, `v1 frozen: ${rel}`);
+  }
+  assert.equal(prov.distributed.manifest.path, prov.normative_source.manifest.path);
+  assert.equal(prov.normative_source.manifest.sha256, SR_V1_MANIFEST_SHA256);
+  assert.deepEqual(prov.distributed.manifest.v1_prefix, { lines: 5, sha256: SR_V1_MANIFEST_SHA256 });
   const manifestBytes = readFileSync(`${SR_ROOT}/${prov.distributed.manifest.path}`);
   assert.equal(createHash("sha256").update(manifestBytes).digest("hex"), prov.distributed.manifest.sha256);
+  const prefix = manifestBytes.toString("utf8").split("\n").slice(0, 5).join("\n") + "\n";
+  assert.equal(createHash("sha256").update(prefix, "utf8").digest("hex"), SR_V1_MANIFEST_SHA256, "v1 manifest lines moved");
   const lines = manifestBytes.toString("utf8").split("\n").filter(Boolean);
-  assert.equal(lines.length, SR_PAYLOAD.length);
+  assert.equal(lines.length, SR_PAYLOAD.length + SR_V2_PAYLOAD.length);
   for (const line of lines) {
     const [, digest, rel] = line.match(/^([0-9a-f]{64}) {2}(\S+)$/);
     const shipped = join("conformance", rel).replaceAll("\\", "/");
@@ -1064,4 +1082,274 @@ test("every supervised-run control and patched negative is schema-valid; envelop
   assert.ok(srValid(runSchema, line, runSchema), "root $ref is journal_line");
   assert.ok(!srValid(defs.journal_line, { ...line, line_kind: "note" }, runSchema));
   assert.ok(!srValid(defs.journal_line, { ...line, seq: -1 }, runSchema));
+});
+
+// --- admitted_launch_envelope.v2 (0.7.0) ---
+//
+// Mirrors the Python suite: exact JSON Schema error sets for schema_negative
+// cases, envelope_digest self-verification, and a test-local reading of the
+// staged x-semantic-rules that admits every control and refuses every negative
+// with exactly its expected diagnostics (every launch digest recomputed from the
+// case's launch material). Test-only; not part of the package API.
+
+const SR2_TREE_KINDS = new Set(["file", "executable_file", "symlink"]);
+
+function sr2Sha(data) {
+  return createHash("sha256").update(data, typeof data === "string" ? "utf8" : undefined).digest("hex");
+}
+
+function sr2JcsSha(value) {
+  return sr2Sha(canonical(value));
+}
+
+function sr2Errors(schema, value, root, path = "", out = new Set()) {
+  if (schema.$ref !== undefined) sr2Errors(srResolve(root, schema.$ref), value, root, path, out);
+  if (schema.type !== undefined) {
+    const names = Array.isArray(schema.type) ? schema.type : [schema.type];
+    if (!names.some((name) => srTypeOk(name, value))) {
+      out.add(`${path} type`);
+      return out;
+    }
+  }
+  if ("const" in schema && canonical(value) !== canonical(schema.const)) out.add(`${path} const`);
+  if (schema.enum !== undefined && !schema.enum.some((entry) => canonical(entry) === canonical(value))) out.add(`${path} enum`);
+  if (schema.anyOf !== undefined && !schema.anyOf.some((sub) => sr2Errors(sub, value, root, path).size === 0)) out.add(`${path} anyOf`);
+  if (schema.oneOf !== undefined && schema.oneOf.filter((sub) => sr2Errors(sub, value, root, path).size === 0).length !== 1) out.add(`${path} oneOf`);
+  if (typeof value === "string") {
+    const length = [...value].length;
+    if (schema.minLength !== undefined && length < schema.minLength) out.add(`${path} minLength`);
+    if (schema.maxLength !== undefined && length > schema.maxLength) out.add(`${path} maxLength`);
+    if (schema.pattern !== undefined && !new RegExp(schema.pattern, "u").test(value)) out.add(`${path} pattern`);
+  }
+  if (Number.isInteger(value)) {
+    if (schema.minimum !== undefined && value < schema.minimum) out.add(`${path} minimum`);
+    if (schema.maximum !== undefined && value > schema.maximum) out.add(`${path} maximum`);
+  }
+  if (Array.isArray(value)) {
+    if (schema.minItems !== undefined && value.length < schema.minItems) out.add(`${path} minItems`);
+    if (schema.uniqueItems && new Set(value.map(canonical)).size !== value.length) out.add(`${path} uniqueItems`);
+    if (schema.items !== undefined) value.forEach((item, index) => sr2Errors(schema.items, item, root, `${path}/${index}`, out));
+  }
+  if (srTypeOk("object", value)) {
+    const props = schema.properties ?? {};
+    if ((schema.required ?? []).some((key) => !(key in value))) out.add(`${path} required`);
+    if (schema.minProperties !== undefined && Object.keys(value).length < schema.minProperties) out.add(`${path} minProperties`);
+    if (schema.additionalProperties === false && Object.keys(value).some((key) => !(key in props))) out.add(`${path} additionalProperties`);
+    for (const [key, entry] of Object.entries(value)) {
+      if (key in props) sr2Errors(props[key], entry, root, `${path}/${key}`, out);
+    }
+  }
+  return out;
+}
+
+function sr2TreeSha(entries) {
+  return sr2JcsSha([...entries].sort((a, b) => Buffer.compare(Buffer.from(a[0], "utf8"), Buffer.from(b[0], "utf8"))));
+}
+
+function sr2BadLocator(locator) {
+  return locator === "" || locator.startsWith("/") || locator.includes("\\") || locator.split("/").includes("..");
+}
+
+function sr2Raw(node) {
+  if (typeof node === "string") return [...node].length > 512 || /[\u0000-\u001f\u007f]/u.test(node);
+  if (Array.isArray(node)) return node.some(sr2Raw);
+  if (node && typeof node === "object") return Object.values(node).some(sr2Raw);
+  return false;
+}
+
+function sr2RouteKey(r) {
+  return canonical([r.tier, r.action, r.transport_id, r.executable_chain.map((e) => [e.locator_kind, e.locator, e.sha256]), r.template_sha256, r.qualification_sha256]);
+}
+
+function sr2Evaluate(schema, value, staged = true) {
+  const env = value.envelope;
+  if (sr2Errors(schema, env, schema, "/envelope").size > 0) {
+    return [["envelope_schema_invalid"], { attempt: { state: "refused", worker_invocations: 0, refusal: { reason: "envelope_schema_invalid" } } }];
+  }
+  const ctx = value.validator_context;
+  const mat = value.launch_material;
+  const launch = env.launch;
+  const tier = env.enforcement.tier;
+  const info = schema["x-enforcement-tiers"][tier];
+  let constraint = null;
+  let record = null;
+  const stages = [
+    () => {
+      const { envelope_digest: _omit, ...body } = env;
+      return sr2JcsSha(body) !== env.envelope_digest ? ["envelope_digest_mismatch"] : [];
+    },
+    () => {
+      if (env.assignment_digest !== ctx.expected_assignment_digest || env.units.crosswalk_ref !== ctx.expected_crosswalk_ref) return ["authority_foreign"];
+      return env.units.snapshot_ref !== ctx.expected_snapshot_ref ? ["authority_baseline_stale"] : [];
+    },
+    () => {
+      const out = [];
+      const state = launch.workspace_state;
+      const locators = [
+        ...env.workspace.repo_relative_locators,
+        ...(launch.instructions.locator === null ? [] : [launch.instructions.locator]),
+        ...launch.references.map((ref) => ref.locator),
+        ...launch.executable_chain.filter((e) => e.locator_kind === "repo_relative").map((e) => e.locator),
+        ...state.target_map.flatMap((p) => [p.workspace_locator, p.protected_locator]),
+        ...(state.cwd === "." ? [] : [state.cwd]),
+      ];
+      if (locators.some(sr2BadLocator)) out.push("locator_not_repo_relative");
+      const { caller_context: _cc, ...rest } = env;
+      if (sr2Raw(rest)) out.push("raw_output_in_record");
+      if (env.executable_dependencies.declared && env.executable_dependencies.admitted_dependency_digest === null) out.push("dependency_digest_required");
+      if (["separate_clone", "git_worktree_of_protected"].includes(env.workspace.kind) && state.base_commit === null) out.push("workspace_source_inconsistent");
+      const chain = launch.executable_chain;
+      const identifier = new RegExp(schema.$defs.identifier.pattern, "u");
+      if (
+        chain.at(-1).role !== "executable" ||
+        chain.slice(0, -1).some((e) => e.role !== "wrapper") ||
+        chain.some((e) => e.locator_kind === "declared" && !identifier.test(e.locator))
+      ) out.push("executable_chain_invalid");
+      if (launch.references.filter((ref) => ref.role === "baseline").length !== 1) out.push("baseline_reference_required");
+      const scope = env.workspace.repo_relative_locators;
+      if (state.target_map.some((p) => !scope.some((s) => p.protected_locator === s || p.protected_locator.startsWith(`${s}/`)))) out.push("target_map_outside_scope");
+      return out;
+    },
+    () => (info.status === "reserved" ? ["tier_unqualified"] : []),
+    () => {
+      if (launch.trusted_policy.qualification_sha256 === null) return ["route_not_qualified"];
+      const key = sr2RouteKey({ tier, action: launch.action, transport_id: launch.transport_id, executable_chain: launch.executable_chain, ...launch.trusted_policy });
+      record = ctx.qualified_routes.find((r) => sr2RouteKey(r) === key) ?? null;
+      return record ? [] : ["route_not_qualified"];
+    },
+    () => {
+      const out = [];
+      const unsupported = env.enforcement.required_constraints.filter((c) => info.constraints[c] === "not_enforced");
+      if (unsupported.length) {
+        out.push("constraint_unsupported");
+        constraint = unsupported[0];
+      }
+      if (!info.workspace_kinds.includes(env.workspace.kind)) out.push("workspace_not_separate_copy");
+      const grants = launch.grants ?? {};
+      const covered = record?.grants ?? {};
+      if (
+        Object.entries(grants).some(([kind, sha]) => !info.grant_kinds.includes(kind) || covered[kind] !== sha) ||
+        ("dependency_projection_sha256" in grants && !env.executable_dependencies.declared)
+      ) out.push("grant_unqualified");
+      if (launch.action === "execution" && launch.stop.deadline_action === "not_armed") out.push("stop_policy_unbounded");
+      if (launch.stop.timeout_seconds > ctx.timeout_max_seconds) out.push("timeout_over_declared_max");
+      return out;
+    },
+    () => {
+      const out = [];
+      const bytes = (text) => Buffer.byteLength(text, "utf8");
+      if (sr2Sha(mat.instructions) !== launch.instructions.sha256 || bytes(mat.instructions) !== launch.instructions.byte_length) out.push("launch_instructions_mismatch");
+      else if (launch.stdin === "input" && mat.stdin !== mat.instructions) out.push("launch_instructions_mismatch");
+      const bound = canonical(launch.references.map((r) => [r.locator, r.sha256, r.byte_length]));
+      const used = canonical(mat.references.map((r) => [r.locator, sr2Sha(r.content), bytes(r.content)]));
+      if (bound !== used) out.push("launch_reference_mismatch");
+      if (sr2JcsSha(mat.argv) !== launch.argv.sha256 || mat.argv.length !== launch.argv.element_count) out.push("launch_argv_mismatch");
+      const chainKey = (chain) => canonical(chain.map((e) => [e.role, e.locator_kind, e.locator, e.sha256]));
+      if (chainKey(launch.executable_chain) !== chainKey(mat.executable_chain)) out.push("launch_executable_mismatch");
+      const state = launch.workspace_state;
+      const ws = mat.workspace;
+      if (
+        ws.base_commit !== state.base_commit || ws.cwd !== state.cwd ||
+        canonical(ws.target_map) !== canonical(state.target_map) || sr2TreeSha(ws.entries) !== state.content_sha256
+      ) out.push("launch_workspace_mismatch");
+      const environment = launch.environment;
+      if (
+        sr2JcsSha(mat.environment.map) !== environment.map_sha256 ||
+        mat.environment.policy_id !== environment.policy.id || sr2Sha(mat.environment.policy) !== environment.policy.sha256
+      ) out.push("launch_environment_mismatch");
+      const policy = mat.policy;
+      const trusted = launch.trusted_policy;
+      const qualification = policy.qualification === null ? null : sr2Sha(policy.qualification);
+      const grantDigests = Object.fromEntries(Object.entries(policy.grants).map(([kind, text]) => [kind, sr2Sha(text)]));
+      if (
+        sr2Sha(policy.config) !== trusted.config_sha256 || sr2Sha(policy.template) !== trusted.template_sha256 ||
+        qualification !== trusted.qualification_sha256 || canonical(grantDigests) !== canonical(launch.grants ?? {})
+      ) out.push("launch_policy_mismatch");
+      const armed = launch.stop.deadline_action === "terminate_process_group" ? launch.stop.timeout_seconds : null;
+      if (mat.deadline_seconds !== armed) out.push("launch_timeout_mismatch");
+      if (
+        (launch.stdin === "devnull" && mat.stdin !== null) || mat.unbound_inputs.length > 0 ||
+        mat.argv.some((arg) => arg.includes("\u0000")) || ws.entries.some((e) => !SR2_TREE_KINDS.has(e[1]))
+      ) out.push("launch_input_unbound");
+      return out;
+    },
+  ];
+  const reported = new Set();
+  for (const stage of stages) {
+    for (const code of stage()) reported.add(code);
+    if (reported.size && staged) break;
+  }
+  const flat = schema["x-evaluation-order"].stages.flat();
+  const codes = [...reported].sort((a, b) => flat.indexOf(a) - flat.indexOf(b));
+  if (!codes.length) return [[], { attempt: { state: "queued", worker_invocations: 0 } }];
+  const refusal = { reason: codes[0], constraint: codes[0] === "constraint_unsupported" ? constraint : null, tier };
+  return [codes, { attempt: { state: "refused", worker_invocations: 0, refusal } }];
+}
+
+function sr2Subset(expected, actual) {
+  if (expected && typeof expected === "object" && !Array.isArray(expected)) {
+    return actual !== null && typeof actual === "object" && Object.entries(expected).every(([k, v]) => k in actual && sr2Subset(v, actual[k]));
+  }
+  return canonical(expected) === canonical(actual);
+}
+
+function sr2Cases() {
+  const schema = loadSchema("admitted_launch_envelope_v2");
+  const vectors = JSON.parse(readFileSync(CONTRACT.supervised_run.vectors.admitted_launch_envelope_v2, "utf8"));
+  const controls = Object.fromEntries(vectors.cases.filter((c) => c.role === "control").map((c) => [c.id, c]));
+  const cases = vectors.cases.map((c) => {
+    if (c.role === "control") return [c, c.input];
+    const patched = srApplyPatch(controls[c.control].input, c.patch);
+    if (c.rehash) patched.envelope.envelope_digest = srEnvelopeDigest(patched.envelope);
+    return [c, patched];
+  });
+  return { schema, vectors, cases };
+}
+
+test("admitted_launch_envelope.v2 is registered alongside the frozen v1 and its rules and tiers are consistent", () => {
+  const { schema, vectors } = sr2Cases();
+  const v1 = loadSchema("admitted_launch_envelope");
+  assert.equal(schema.$id, "urn:contract:admitted_launch_envelope.v2");
+  assert.equal(vectors.contract, "admitted_launch_envelope.v2");
+  assert.deepEqual(schema.required.filter((k) => !v1.required.includes(k)), ["launch"]);
+  for (const rule of Object.keys(v1["x-semantic-rules"])) assert.ok(rule in schema["x-semantic-rules"], rule);
+  const flat = schema["x-evaluation-order"].stages.flat();
+  assert.equal(new Set(flat).size, flat.length);
+  assert.deepEqual([...flat, "caller_context_interpreted", "refusal_zero_invocations"].sort(), Object.keys(schema["x-semantic-rules"]).sort());
+  const constraints = schema.properties.enforcement.properties.required_constraints.items.enum;
+  for (const [name, info] of Object.entries(schema["x-enforcement-tiers"])) {
+    assert.ok(!("qualified" in info), name);
+    assert.deepEqual(Object.keys(info.constraints).sort(), [...constraints].sort(), name);
+    assert.equal(info.constraints.write_prevention, "not_enforced", name);
+    assert.equal(info.qualification, info.status === "defined" ? "required" : "not_admissible", name);
+  }
+});
+
+test("every v2 vector: exact schema errors, envelope digest, and the staged rules agree with expected", () => {
+  const { schema, cases } = sr2Cases();
+  const counts = { control: 0, negative: 0, schema_negative: 0 };
+  const mismatches = [];
+  const widened = [];
+  for (const [c, value] of cases) {
+    counts[c.role] += 1;
+    const errors = sr2Errors(schema, value.envelope, schema, "/envelope");
+    assert.equal(srValid(schema, value.envelope, schema), errors.size === 0, c.id);
+    const expectedErrors = new Set((c.expected_schema_errors ?? []).map((e) => `${e.instance_path} ${e.keyword}`));
+    assert.deepEqual([...errors].sort(), [...expectedErrors].sort(), c.id);
+    if (srEnvelopeDigest(value.envelope) !== value.envelope.envelope_digest) mismatches.push(c.id);
+    if (c.kind === "echo") {
+      const echoed = canonical(value.echoed_caller_context) === canonical(value.envelope.caller_context);
+      assert.deepEqual(echoed ? [] : ["caller_context_interpreted"], c.expected, c.id);
+      continue;
+    }
+    const [codes, effect] = sr2Evaluate(schema, value);
+    assert.deepEqual(codes, c.expected, c.id);
+    assert.ok(sr2Subset(c.expected_effect, effect), `${c.id}: ${JSON.stringify(effect)}`);
+    if (c.role === "negative" && canonical(sr2Evaluate(schema, value, false)[0]) !== canonical(c.expected)) widened.push(c.id);
+  }
+  assert.deepEqual(counts, { control: 4, negative: 61, schema_negative: 51 });
+  assert.deepEqual(mismatches, ["S2-digest-not-rehashed"]);
+  assert.ok(widened.includes("S2-os-enforced"), "staging must be load-bearing");
+  const argv = cases.find(([c]) => c.id === "E2-execution")[1].launch_material.argv;
+  assert.ok(argv.some((arg) => /[^\u0000-\u007f]/u.test(arg)), "control argv must exercise non-ASCII JCS");
 });

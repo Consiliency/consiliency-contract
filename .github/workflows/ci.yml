@@ -1,0 +1,27 @@
+name: ci
+# PR-triggered governed gate for the rulebook repo. Runs the same verify battery as
+# publish.yml (conformance vectors + dual-impl parity + the real Ed25519 authority
+# tests), so every PR — including external fork PRs — is gated. ubuntu-latest, no
+# secrets → runs identically on forks.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # The authority-event verify tests exercise a REAL Ed25519 signature — install
+      # cryptography so the crypto proof actually runs and is never silently skipped.
+      - run: python -m pip install cryptography
+      - run: npm test
+      - run: python -m unittest discover -s tests -p 'test_*.py'
+      - run: npm run pack:check

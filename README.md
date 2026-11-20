@@ -21,7 +21,37 @@ The Consiliency cross-repo **contract package** — the single, neutral rulebook
 
 Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/@consiliency/contract) + **PyPI** [`consiliency-contract`](https://pypi.org/project/consiliency-contract/), from shared JSON data + conformance vectors so the two language readers stay byte-identical.
 
-> **Status — `0.7.1` retires the deterministic conformance fixture key from the
+> **Status — `0.7.2`: the verifier refuses registries marked `test_only`.
+> `verify_authority_event` / `verifyAuthorityEvent` now return
+> `{ok: false, reason: "test_registry_refused"}` for any registry whose
+> top-level `test_only` is present with a value other than `false`, before the
+> event is examined, unless the caller passes the explicit opt-in
+> `allow_test_registry=True` / `{ allowTestRegistry: true }` (exactly `true`;
+> in JS an own data property of the options object).
+> Only conformance/test replay passes the opt-in; production callers never do.
+> A registry that is not JSON-shaped data is rejected first as
+> `malformed_registry`. Python accepts an exact `dict` whose `keys`, when
+> present, is an exact `list` of exact `dict` entries (no subclasses or other
+> mappings). JS accepts a non-Proxy object with prototype `Object.prototype`
+> or `null` (frozen is fine) whose `keys`, when present, is a non-Proxy array
+> of such objects; the fields the verifier reads must be own data properties,
+> never accessors. A `null` registry (or, in JS, an omitted one) is also
+> `malformed_registry`, where it used to be `unknown_key_id`. The shipped
+> loaders always produce accepted shapes.
+> Once a signature string is present (otherwise `missing_signature`), both
+> verifiers decode the registry public key and the signature only from a
+> string of exactly 64 / 128 hex digits, so they decode exactly the same
+> inputs; anything else is `bad_signature`. The Python canonicalizer and
+> timestamp check now match the JS reader too: a trailing newline or a
+> non-ASCII digit is rejected.
+> Consumers that replay the authority vectors against the test-only registry add
+> the opt-in to those calls, and should assert each vector's `reason` as well as
+> `ok`: a replay without the opt-in now yields `test_registry_refused` for every
+> vector, which a negative vector checked on `ok` alone would hide. Python
+> consumers that pass `allow_test_registry` need `consiliency-contract>=0.7.2`
+> (earlier verifiers reject the unknown keyword argument). Loaders, registries
+> and vectors are unchanged; the version-skew window stays `>=0.7.0 <0.8.0`.
+> `0.7.1` retires the deterministic conformance fixture key from the
 > production trust registry. `portal-authority-ed25519-v1` (and the other
 > fixture key_ids) are now `revoked: true` in
 > `core/registries/authority-key-registry.json`; the production signer
@@ -144,7 +174,13 @@ from consiliency_contract.authority import (
 
 ## Verification
 
+Both suites exercise real Ed25519 signatures. `npm test` also runs the Python
+reference through `python3` (for the cross-language checks), so install
+`cryptography` (the `authority` extra) into that interpreter first, along with
+`build` for the packaging test:
+
 ```sh
+python3 -m pip install cryptography build
 npm test
 python -m unittest discover -s tests -p 'test_*.py'
 python -m build

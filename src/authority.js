@@ -1,9 +1,9 @@
 // Authority-event contract: canonical signed-core bytes + Ed25519 verification.
 //
 // This is the ROOT OF TRUST reference implementation for the JS side. It is
-// dependency-free (Node >=18 `node:crypto` only) so the governed-pipeline (gp)
-// gate can verify an authority event without ICU/Unicode-16 canon or any npm
-// dependency.
+// dependency-free (Node >=18 built-ins only: `node:crypto`, `node:util`) so the
+// governed-pipeline (gp) gate can verify an authority event without
+// ICU/Unicode-16 canon or any npm dependency.
 //
 // CANON OWNERSHIP: the signed-core bytes ARE spec canon-core v2
 // `canonical_bytes(core)` (NOT a new/4th canon). `canonicalizeCore` here is a
@@ -17,6 +17,7 @@
 
 import { Buffer } from "node:buffer";
 import { createPublicKey, verify as cryptoVerify } from "node:crypto";
+import { types as utilTypes } from "node:util";
 
 // A signed-core object key: ASCII snake_case identifier. Keeps the sort order
 // (code-unit == code-point for ASCII) identical between JS and Python.
@@ -34,6 +35,12 @@ const VALUE_RE = /^[\x21\x23-\x5B\x5D-\x7E]+$/;
 const TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
 const SUPPORTED_SCHEME = "ed25519";
+
+// Hex text the verifier decodes: a string of exactly 64 (public key) or 128
+// (signature) hex digits. Anything else (arrays, buffers, whitespace, other
+// lengths) never decodes, so JS and Python accept exactly the same inputs.
+const PUBLIC_KEY_HEX_RE = /^[0-9a-fA-F]{64}$/;
+const SIGNATURE_HEX_RE = /^[0-9a-fA-F]{128}$/;
 
 // Domain separation (XG-4 decision): the Ed25519 signature covers the
 // canon-core v2 AUTHORITY-PROFILE digest preimage — the `spec-canon:v2:authority`
@@ -106,12 +113,98 @@ function withinWindow(now, validity) {
   return validity.not_before <= now && now < validity.not_after;
 }
 
-function findKey(registry, keyId) {
-  const keys = (registry && registry.keys) || [];
+// A JSON-shaped record: a plain object (prototype Object.prototype or null),
+// not an array and not a Proxy. The Proxy test runs first: Array.isArray throws
+// on a revoked Proxy.
+function isPlainRecord(value) {
+  if (value === null || typeof value !== "object" || utilTypes.isProxy(value) || Array.isArray(value)) {
+    return false;
+  }
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+class MalformedRegistry extends Error {}
+const ABSENT = Symbol("absent");
+
+// True for a data descriptor. Checked with Object.hasOwn, never `in`: a
+// descriptor object inherits from Object.prototype, so `in` would let an
+// inherited `value` disguise an accessor.
+function isDataDescriptor(desc) {
+  return Object.hasOwn(desc, "value");
+}
+
+// An OWN DATA property, or ABSENT. Inherited values are ignored; an accessor
+// (getter/setter) is never invoked and makes the registry malformed.
+function ownData(record, name) {
+  const desc = Object.getOwnPropertyDescriptor(record, name);
+  if (desc === undefined) return ABSENT;
+  if (!isDataDescriptor(desc)) throw new MalformedRegistry();
+  return desc.value;
+}
+
+const KEY_ENTRY_FIELDS = ["key_id", "scheme", "public_key", "approver", "validity", "revoked"];
+const VALIDITY_FIELDS = ["not_before", "not_after"];
+
+function snapshotFields(record, fields) {
+  const out = Object.create(null);
+  for (const field of fields) {
+    const value = ownData(record, field);
+    if (value !== ABSENT) out[field] = value;
+  }
+  return out;
+}
+
+// One validated snapshot of the registry: { markedTestOnly, keys }, or null
+// (`malformed_registry`) unless the registry is JSON-shaped data: a plain record
+// whose `keys`, when present, is a (non-Proxy) array of plain-record entries,
+// all read through own data properties. The `test_only` marker and the key
+// entries both come from this one snapshot, so the refusal check and the key
+// lookup always see the same registry. The marker counts when present with any
+// value other than exactly `false` (fail-closed: true, null, undefined,
+// strings, numbers and containers all count).
+function readRegistry(registry) {
+  try {
+    if (!isPlainRecord(registry)) return null;
+    const marker = ownData(registry, "test_only");
+    const markedTestOnly = marker !== ABSENT && marker !== false;
+    const rawKeys = ownData(registry, "keys");
+    const keys = [];
+    if (rawKeys !== ABSENT) {
+      if (utilTypes.isProxy(rawKeys) || !Array.isArray(rawKeys)) return null;
+      for (let index = 0; index < rawKeys.length; index += 1) {
+        const entry = ownData(rawKeys, String(index));
+        if (!isPlainRecord(entry)) return null;
+        const snapshot = snapshotFields(entry, KEY_ENTRY_FIELDS);
+        if ("validity" in snapshot) {
+          snapshot.validity = isPlainRecord(snapshot.validity) ? snapshotFields(snapshot.validity, VALIDITY_FIELDS) : null;
+        }
+        keys.push(snapshot);
+      }
+    }
+    return { markedTestOnly, keys };
+  } catch (error) {
+    if (error instanceof MalformedRegistry) return null;
+    throw error;
+  }
+}
+
+// The caller's opt-in counts only as an OWN DATA property, exactly `true`, of a
+// non-Proxy options object; an inherited or accessor-supplied value never opts
+// in, and no trap or getter is invoked to decide.
+function optedIntoTestRegistry(options) {
+  if (options === null || typeof options !== "object" || utilTypes.isProxy(options)) return false;
+  const desc = Object.getOwnPropertyDescriptor(options, "allowTestRegistry");
+  return desc !== undefined && isDataDescriptor(desc) && desc.value === true;
+}
+
+function findKey(keys, keyId) {
   return keys.find((entry) => entry.key_id === keyId) || null;
 }
 
 function ed25519Verify(publicKeyHex, signatureHex, message) {
+  if (typeof publicKeyHex !== "string" || !PUBLIC_KEY_HEX_RE.test(publicKeyHex)) return false;
+  if (typeof signatureHex !== "string" || !SIGNATURE_HEX_RE.test(signatureHex)) return false;
   let keyObject;
   try {
     const raw = Buffer.from(publicKeyHex, "hex");
@@ -143,8 +236,21 @@ function ed25519Verify(publicKeyHex, signatureHex, message) {
 // supplied by the caller (the cert being ratified, the evaluation time) so the
 // binding and window checks are deterministic.
 //
+// REGISTRY CHECKS run before the event is examined: a registry that is not
+// JSON-shaped data is `malformed_registry` (see readRegistry); a registry whose
+// top-level `test_only` is present with any value other than `false` is refused
+// (`test_registry_refused`). Only conformance/test replay passes
+// `allowTestRegistry: true` (an own property, exactly `true`); production
+// callers never do.
+//
 // Returns { ok: boolean, reason: string }.
-export function verifyAuthorityEvent(event, registry, { now, expectedCertDigest } = {}) {
+export function verifyAuthorityEvent(event, registry, options = {}) {
+  const snapshot = readRegistry(registry);
+  if (snapshot === null) return { ok: false, reason: "malformed_registry" };
+  if (snapshot.markedTestOnly && !optedIntoTestRegistry(options)) {
+    return { ok: false, reason: "test_registry_refused" };
+  }
+  const { now, expectedCertDigest } = options !== null && typeof options === "object" ? options : {};
   if (!event || typeof event !== "object" || !event.core || typeof event.core !== "object") {
     return { ok: false, reason: "malformed_event" };
   }
@@ -164,7 +270,7 @@ export function verifyAuthorityEvent(event, registry, { now, expectedCertDigest 
     return { ok: false, reason: "malformed_event" };
   }
 
-  const key = findKey(registry, core.key_id);
+  const key = findKey(snapshot.keys, core.key_id);
   if (!key) return { ok: false, reason: "unknown_key_id" };
 
   // Registry is authoritative for scheme; a mismatched self-declared scheme is

@@ -24,18 +24,29 @@ import re
 from typing import Any, Optional
 
 # ASCII snake_case identifier — keeps JS/Python key sort order identical.
-KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$", re.ASCII)
 
 # Metadata-safe ASCII for every signed-core STRING field: printable ASCII
 # 0x21..0x7E EXCLUDING double-quote (0x22) and backslash (0x5C). Nothing in this
 # set requires JSON escaping and nothing is non-ASCII, so the JS and Python
 # serializers provably cannot diverge.
-VALUE_RE = re.compile(r"^[\x21\x23-\x5b\x5d-\x7e]+$")
+VALUE_RE = re.compile(r"^[\x21\x23-\x5b\x5d-\x7e]+$", re.ASCII)
 
 # RFC3339 UTC, fixed width, "Z" only — sorts lexicographically == chronologically.
-TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", re.ASCII)
+
+# Every pattern here is matched with ``fullmatch`` and compiled ``re.ASCII``:
+# Python's ``$`` also matches before a trailing newline and ``\d`` matches
+# non-ASCII digits, neither of which the JS reader accepts.
 
 SUPPORTED_SCHEME = "ed25519"
+
+# Hex text the verifier decodes: a str of exactly 64 (public key) or 128
+# (signature) hex digits. Anything else (bytes, lists, whitespace, other
+# lengths) never decodes, so Python and JS accept exactly the same inputs.
+# Matched with ``fullmatch`` (``$`` alone would also match before a trailing newline).
+PUBLIC_KEY_HEX_RE = re.compile(r"[0-9a-fA-F]{64}")
+SIGNATURE_HEX_RE = re.compile(r"[0-9a-fA-F]{128}")
 _SAFE_INT_MAX = 2 ** 53 - 1
 
 # Domain separation (XG-4 decision): the Ed25519 signature covers the canon-core
@@ -65,7 +76,7 @@ def canonicalize_core(value: Any) -> str:
     if value is False:
         return "false"
     if isinstance(value, str):
-        if not VALUE_RE.match(value):
+        if not VALUE_RE.fullmatch(value):
             raise AuthorityCanonicalError(f"non-metadata-safe string: {value!r}")
         return '"' + value + '"'
     if isinstance(value, int):
@@ -78,7 +89,7 @@ def canonicalize_core(value: Any) -> str:
         return "[" + ",".join(canonicalize_core(item) for item in value) + "]"
     if isinstance(value, dict):
         for key in value:
-            if not isinstance(key, str) or not KEY_RE.match(key):
+            if not isinstance(key, str) or not KEY_RE.fullmatch(key):
                 raise AuthorityCanonicalError(f"illegal object key: {key!r}")
         keys = sorted(value)
         return "{" + ",".join('"' + key + '":' + canonicalize_core(value[key]) for key in keys) + "}"
@@ -100,7 +111,7 @@ def authority_signing_preimage(core: Any) -> bytes:
 
 
 def _is_timestamp(value: Any) -> bool:
-    return isinstance(value, str) and bool(TIMESTAMP_RE.match(value))
+    return isinstance(value, str) and bool(TIMESTAMP_RE.fullmatch(value))
 
 
 def _within_window(now: Any, validity: Any) -> bool:
@@ -113,24 +124,63 @@ def _within_window(now: Any, validity: Any) -> bool:
     return not_before <= now < not_after
 
 
-def _find_key(registry: Any, key_id: Any) -> Optional[dict]:
-    for entry in (registry or {}).get("keys", []):
+_KEY_ENTRY_FIELDS = ("key_id", "scheme", "public_key", "approver", "validity", "revoked")
+_VALIDITY_FIELDS = ("not_before", "not_after")
+
+
+def _read_registry(registry: Any) -> Optional[tuple[bool, list[dict]]]:
+    """One validated snapshot of the registry: ``(marked_test_only, keys)``.
+
+    Returns ``None`` (``malformed_registry``) unless the registry is JSON-shaped
+    data: an exact ``dict`` (no subclass or other mapping) whose ``keys``, when
+    present, is an exact ``list`` of exact ``dict`` entries. The ``test_only``
+    marker and the key entries are both read from this one snapshot, so the
+    refusal check and the key lookup always see the same registry. The marker
+    counts when present with any value other than exactly ``false``
+    (fail-closed: ``true``, ``null``, strings, numbers and containers all count).
+    Callers keep the registry unchanged while a verification runs.
+    """
+    if type(registry) is not dict:
+        return None
+    registry = registry.copy()  # one atomic top-level copy; every read below uses it
+    marked = "test_only" in registry and registry["test_only"] is not False
+    raw_keys = registry.get("keys", [])
+    if type(raw_keys) is not list:
+        return None
+    keys: list[dict] = []
+    for entry in raw_keys:
+        if type(entry) is not dict:
+            return None
+        entry = entry.copy()
+        snapshot = {field: entry[field] for field in _KEY_ENTRY_FIELDS if field in entry}
+        if "validity" in snapshot:
+            validity = snapshot["validity"]
+            if type(validity) is dict:
+                validity = validity.copy()
+                snapshot["validity"] = {field: validity[field] for field in _VALIDITY_FIELDS if field in validity}
+            else:
+                snapshot["validity"] = None
+        keys.append(snapshot)
+    return marked, keys
+
+
+def _find_key(keys: list[dict], key_id: Any) -> Optional[dict]:
+    for entry in keys:
         if entry.get("key_id") == key_id:
             return entry
     return None
 
 
-def _ed25519_verify(public_key_hex: str, signature_hex: str, message: bytes) -> bool:
+def _ed25519_verify(public_key_hex: Any, signature_hex: Any, message: bytes) -> bool:
     from cryptography.exceptions import InvalidSignature
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-    try:
-        raw = bytes.fromhex(public_key_hex)
-        signature = bytes.fromhex(signature_hex)
-    except ValueError:
+    if not (isinstance(public_key_hex, str) and PUBLIC_KEY_HEX_RE.fullmatch(public_key_hex)):
         return False
-    if len(raw) != 32 or len(signature) != 64:
+    if not (isinstance(signature_hex, str) and SIGNATURE_HEX_RE.fullmatch(signature_hex)):
         return False
+    raw = bytes.fromhex(public_key_hex)
+    signature = bytes.fromhex(signature_hex)
     try:
         Ed25519PublicKey.from_public_bytes(raw).verify(signature, message)
         return True
@@ -144,6 +194,7 @@ def verify_authority_event(
     *,
     now: str,
     expected_cert_digest: str,
+    allow_test_registry: bool = False,
 ) -> dict[str, Any]:
     """Verify an authority event against the pinned key registry.
 
@@ -152,8 +203,21 @@ def verify_authority_event(
     ``signature.scheme``/``signature.key_id``. ``expected_cert_digest`` and
     ``now`` are supplied by the caller so binding/window checks are deterministic.
 
+    REGISTRY CHECKS run before the event is examined: a registry that is not
+    JSON-shaped data is ``malformed_registry`` (see :func:`_read_registry`); a
+    registry whose top-level ``test_only`` is present with any value other than
+    ``false`` is refused (``test_registry_refused``). Only conformance/test
+    replay passes ``allow_test_registry=True`` (exactly ``True``); production
+    callers never do.
+
     Returns ``{"ok": bool, "reason": str}``.
     """
+    snapshot = _read_registry(registry)
+    if snapshot is None:
+        return {"ok": False, "reason": "malformed_registry"}
+    marked_test_only, keys = snapshot
+    if marked_test_only and allow_test_registry is not True:
+        return {"ok": False, "reason": "test_registry_refused"}
     if not isinstance(event, dict) or not isinstance(event.get("core"), dict):
         return {"ok": False, "reason": "malformed_event"}
     core = event["core"]
@@ -166,7 +230,7 @@ def verify_authority_event(
     except AuthorityCanonicalError:
         return {"ok": False, "reason": "malformed_event"}
 
-    key = _find_key(registry, core.get("key_id"))
+    key = _find_key(keys, core.get("key_id"))
     if key is None:
         return {"ok": False, "reason": "unknown_key_id"}
 
@@ -185,6 +249,6 @@ def verify_authority_event(
     if not _within_window(now, core.get("validity")):
         return {"ok": False, "reason": "core_validity_expired"}
 
-    if not _ed25519_verify(key["public_key"], signature["signature"], message):
+    if not _ed25519_verify(key.get("public_key"), signature["signature"], message):
         return {"ok": False, "reason": "bad_signature"}
     return {"ok": True, "reason": "verified"}

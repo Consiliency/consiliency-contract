@@ -525,14 +525,44 @@ class ContractReaderTest(unittest.TestCase):
             self.assertEqual(self._verify_vector("authority-valid", prod, **opt_in)["reason"], "key_revoked")
 
     def test_authority_verify_dump_matches_direct_calls(self) -> None:
-        # scripts/authority_verify_dump.py feeds the JS parity test; it must report
-        # exactly what the Python verifier returns.
+        # scripts/authority_verify_dump.py feeds the JS parity test; every entry it
+        # emits must equal a direct verify_authority_event call on the case it names.
+        import importlib.util
+
         root = Path(__file__).resolve().parent.parent
         proc = subprocess.run([sys.executable, "scripts/authority_verify_dump.py"], cwd=root,
                               capture_output=True, text=True, check=True)
         dump = json.loads(proc.stdout)
+        spec = importlib.util.spec_from_file_location("_authority_verify_dump_under_test",
+                                                      root / "scripts" / "authority_verify_dump.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        registries = module.registry_variants()
+        events = module.event_cases()
         names = self._authority_vector_names()
-        self.assertEqual(len(dump), (len(names) + 2) * 17 * 5)
+        self.assertEqual(sorted(events), sorted(names + ["__malformed_empty__", "__malformed_null__"]))
+        # the case names (mirrored by the JS suite) and the opt-in forms are pinned
+        # here, independently of the script; JSON comparison keeps True and 1 apart.
+        self.assertEqual(sorted(registries), sorted([
+            "test", "prod", "prod_marked_test", "test_marker_absent", "test_marker_false",
+            "test_marker_null", "test_marker_true_string", "test_marker_false_string",
+            "test_marker_one", "test_marker_zero", "registry_null", "registry_list", "keys_null",
+            "keys_object", "entry_not_record", "validity_not_record", "public_key_number",
+        ]))
+        self.assertEqual(json.dumps(module.OPT_IN_VARIANTS, sort_keys=True), json.dumps({
+            "omitted": {},
+            "false": {"allow_test_registry": False},
+            "true": {"allow_test_registry": True},
+            "one": {"allow_test_registry": 1},
+            "true_string": {"allow_test_registry": "true"},
+        }, sort_keys=True))
+        self.assertEqual(len(dump), len(events) * len(registries) * len(module.OPT_IN_VARIANTS))
+        for event_name, (event, now, digest) in events.items():
+            for reg_name, registry in registries.items():
+                for opt_name, kwargs in module.OPT_IN_VARIANTS.items():
+                    want = verify_authority_event(event, registry, now=now, expected_cert_digest=digest, **kwargs)
+                    self.assertEqual(dump[f"{event_name}|{reg_name}|{opt_name}"], want,
+                                     f"{event_name}|{reg_name}|{opt_name}")
         reasons = {v["reason"] for v in dump.values()}
         for reason in ("test_registry_refused", "malformed_registry", "verified", "key_expired", "bad_signature"):
             self.assertIn(reason, reasons)

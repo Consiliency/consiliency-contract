@@ -33,7 +33,11 @@ Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/
 > present, is an array of plain objects) is rejected first as
 > `malformed_registry`.
 > Consumers that replay the authority vectors against the test-only registry add
-> the opt-in to those calls. Loaders, registries and vectors are unchanged; the
+> the opt-in to those calls, and should assert each vector's `reason` as well as
+> `ok`: a replay without the opt-in now yields `test_registry_refused` for every
+> vector, which a negative vector checked on `ok` alone would hide. Python
+> consumers that pass `allow_test_registry` need `consiliency-contract>=0.7.2`
+> (earlier verifiers reject the unknown keyword argument). Loaders, registries and vectors are unchanged; the
 > version-skew window stays `>=0.7.0 <0.8.0`.
 > `0.7.1` retires the deterministic conformance fixture key from the
 > production trust registry. `portal-authority-ed25519-v1` (and the other

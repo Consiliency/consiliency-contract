@@ -133,8 +133,9 @@ cross-language divergence. `not_before <= t < not_after`.
 
 ## Verification (authoritative sources)
 
-`verify_authority_event(event, registry, now, expected_cert_digest)` returns
-`{ ok, reason }`. Checks run in this fail-closed order; the registry is
+`verify_authority_event(event, registry, *, now, expected_cert_digest,
+allow_test_registry=False)` (JS: `verifyAuthorityEvent(event, registry,
+{ now, expectedCertDigest, allowTestRegistry })`) returns `{ ok, reason }`. Checks run in this fail-closed order; the registry is
 authoritative for scheme and public key, never the event's self-declared fields:
 
 | # | check | reject reason |
@@ -195,7 +196,8 @@ testing. Since `0.7.1` they verify against a separate, test-only registry,
   object), and it changes nothing for an unmarked registry. Production callers
   never pass it. The marker and the keys are read from one validated snapshot
   of the registry (check 0a), so the refusal and the key lookup always see the
-  same data.
+  same data. Replays should assert each vector's `reason`, not only `ok`.
+  Python callers that pass `allow_test_registry` need `>=0.7.2`.
 - Tests in both readers assert that no conformance vector verifies against the
   production registry and pin the trusted production keys to an explicit
   allowlist; the Python test also asserts that no trusted production key

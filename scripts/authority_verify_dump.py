@@ -56,6 +56,12 @@ def registry_variants() -> dict[str, object]:
         # well-formed but odd entry values, judged by the ordinary checks
         "validity_not_record": dict(test, keys=[dict(k, validity="x") for k in test["keys"]]),
         "public_key_number": dict(test, keys=[dict(k, public_key=7) for k in test["keys"]]),
+        "public_key_upper": dict(test, keys=[dict(k, public_key=k["public_key"].upper()) for k in test["keys"]]),
+        "public_key_spaced": dict(test, keys=[dict(k, public_key=k["public_key"][:2] + " " + k["public_key"][2:])
+                                              for k in test["keys"]]),
+        "public_key_newline": dict(test, keys=[dict(k, public_key=k["public_key"] + "\n") for k in test["keys"]]),
+        "public_key_byte_list": dict(test, keys=[dict(k, public_key=list(bytes.fromhex(k["public_key"])))
+                                                 for k in test["keys"]]),
     }
 
 

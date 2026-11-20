@@ -152,7 +152,7 @@ authoritative for scheme and public key, never the event's self-declared fields:
 | 8 | `core.approver` == the key's registered approver | `signer_approver_mismatch` |
 | 9 | `core.cert_digest` == caller's `expected_cert_digest` | `cert_digest_mismatch` |
 | 10 | `now` within `core.validity` | `core_validity_expired` |
-| 11 | Ed25519 verify over `authoritySigningPreimage(core)` (prefix ‖ canonical bytes) | `bad_signature` |
+| 11 | registry `public_key` is a string of exactly 64 hex digits, `signature.signature` exactly 128, and Ed25519 verifies over `authoritySigningPreimage(core)` (prefix ‖ canonical bytes) | `bad_signature` |
 | — | all pass | `ok: true`, `verified` |
 
 `expected_cert_digest` (the digest of the cert being ratified) and `now` are
@@ -196,7 +196,8 @@ testing. Since `0.7.1` they verify against a separate, test-only registry,
   object), and it changes nothing for an unmarked registry. Production callers
   never pass it. The marker and the keys are read from one validated snapshot
   of the registry (check 0a), so the refusal and the key lookup always see the
-  same data. Replays should assert each vector's `reason`, not only `ok`.
+  same data (callers keep the registry unchanged while a verification runs).
+  Replays should assert each vector's `reason`, not only `ok`.
   Python callers that pass `allow_test_registry` need `>=0.7.2`.
 - Tests in both readers assert that no conformance vector verifies against the
   production registry and pin the trusted production keys to an explicit

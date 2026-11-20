@@ -36,6 +36,12 @@ const TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
 const SUPPORTED_SCHEME = "ed25519";
 
+// Hex text the verifier decodes: a string of exactly 64 (public key) or 128
+// (signature) hex digits. Anything else (arrays, buffers, whitespace, other
+// lengths) never decodes, so JS and Python accept exactly the same inputs.
+const PUBLIC_KEY_HEX_RE = /^[0-9a-fA-F]{64}$/;
+const SIGNATURE_HEX_RE = /^[0-9a-fA-F]{128}$/;
+
 // Domain separation (XG-4 decision): the Ed25519 signature covers the
 // canon-core v2 AUTHORITY-PROFILE digest preimage — the `spec-canon:v2:authority`
 // domain prefix concatenated with `canonical_bytes(core)` — NOT the bare bytes.
@@ -108,9 +114,10 @@ function withinWindow(now, validity) {
 }
 
 // A JSON-shaped record: a plain object (prototype Object.prototype or null),
-// not an array and not a Proxy.
+// not an array and not a Proxy. The Proxy test runs first: Array.isArray throws
+// on a revoked Proxy.
 function isPlainRecord(value) {
-  if (value === null || typeof value !== "object" || Array.isArray(value) || utilTypes.isProxy(value)) {
+  if (value === null || typeof value !== "object" || utilTypes.isProxy(value) || Array.isArray(value)) {
     return false;
   }
   const proto = Object.getPrototypeOf(value);
@@ -120,12 +127,19 @@ function isPlainRecord(value) {
 class MalformedRegistry extends Error {}
 const ABSENT = Symbol("absent");
 
+// True for a data descriptor. Checked with Object.hasOwn, never `in`: a
+// descriptor object inherits from Object.prototype, so `in` would let an
+// inherited `value` disguise an accessor.
+function isDataDescriptor(desc) {
+  return Object.hasOwn(desc, "value");
+}
+
 // An OWN DATA property, or ABSENT. Inherited values are ignored; an accessor
 // (getter/setter) is never invoked and makes the registry malformed.
 function ownData(record, name) {
   const desc = Object.getOwnPropertyDescriptor(record, name);
   if (desc === undefined) return ABSENT;
-  if (!("value" in desc)) throw new MalformedRegistry();
+  if (!isDataDescriptor(desc)) throw new MalformedRegistry();
   return desc.value;
 }
 
@@ -157,7 +171,7 @@ function readRegistry(registry) {
     const rawKeys = ownData(registry, "keys");
     const keys = [];
     if (rawKeys !== ABSENT) {
-      if (!Array.isArray(rawKeys) || utilTypes.isProxy(rawKeys)) return null;
+      if (utilTypes.isProxy(rawKeys) || !Array.isArray(rawKeys)) return null;
       for (let index = 0; index < rawKeys.length; index += 1) {
         const entry = ownData(rawKeys, String(index));
         if (!isPlainRecord(entry)) return null;
@@ -175,12 +189,13 @@ function readRegistry(registry) {
   }
 }
 
-// The caller's opt-in counts only as an OWN DATA property whose value is exactly
-// `true`; an inherited or accessor-supplied value never opts in.
+// The caller's opt-in counts only as an OWN DATA property, exactly `true`, of a
+// non-Proxy options object; an inherited or accessor-supplied value never opts
+// in, and no trap or getter is invoked to decide.
 function optedIntoTestRegistry(options) {
-  if (options === null || typeof options !== "object") return false;
+  if (options === null || typeof options !== "object" || utilTypes.isProxy(options)) return false;
   const desc = Object.getOwnPropertyDescriptor(options, "allowTestRegistry");
-  return desc !== undefined && "value" in desc && desc.value === true;
+  return desc !== undefined && isDataDescriptor(desc) && desc.value === true;
 }
 
 function findKey(keys, keyId) {
@@ -188,6 +203,8 @@ function findKey(keys, keyId) {
 }
 
 function ed25519Verify(publicKeyHex, signatureHex, message) {
+  if (typeof publicKeyHex !== "string" || !PUBLIC_KEY_HEX_RE.test(publicKeyHex)) return false;
+  if (typeof signatureHex !== "string" || !SIGNATURE_HEX_RE.test(signatureHex)) return false;
   let keyObject;
   try {
     const raw = Buffer.from(publicKeyHex, "hex");

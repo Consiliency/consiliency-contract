@@ -548,7 +548,17 @@ class ContractReaderTest(unittest.TestCase):
             "test_marker_null", "test_marker_true_string", "test_marker_false_string",
             "test_marker_one", "test_marker_zero", "registry_null", "registry_list", "keys_null",
             "keys_object", "entry_not_record", "validity_not_record", "public_key_number",
+            "public_key_upper", "public_key_spaced", "public_key_newline", "public_key_byte_list",
         ]))
+        # each marker fixture carries exactly the marker its name says
+        absent = "<absent>"
+        markers = {name: registries[name].get("test_only", absent)
+                   for name in registries if name.startswith(("test", "prod"))}
+        self.assertEqual(json.dumps(markers, sort_keys=True), json.dumps({
+            "test": True, "prod": absent, "prod_marked_test": True, "test_marker_absent": absent,
+            "test_marker_false": False, "test_marker_null": None, "test_marker_true_string": "true",
+            "test_marker_false_string": "false", "test_marker_one": 1, "test_marker_zero": 0,
+        }, sort_keys=True))
         self.assertEqual(json.dumps(module.OPT_IN_VARIANTS, sort_keys=True), json.dumps({
             "omitted": {},
             "false": {"allow_test_registry": False},
@@ -619,6 +629,32 @@ class ContractReaderTest(unittest.TestCase):
                          "malformed_registry")
         with self.assertRaisesRegex(AssertionError, "event read"):
             verify_authority_event(BoobyEvent(), test_reg, allow_test_registry=True, **kwargs)
+
+    def test_key_and_signature_hex_must_be_exact_length_hex_strings(self) -> None:
+        test_reg = load_conformance_registry("authority_key_registry_test")
+
+        def map_keys(fn):
+            return dict(test_reg, keys=[dict(k, public_key=fn(k["public_key"])) for k in test_reg["keys"]])
+
+        self.assertEqual(self._verify_vector("authority-valid", map_keys(str.upper), allow_test_registry=True)["reason"],
+                         "verified")
+        for label, fn in {
+            "bytes": lambda h: h.encode("ascii"),
+            "bytearray": lambda h: bytearray(bytes.fromhex(h)),
+            "byte_list": lambda h: list(bytes.fromhex(h)),
+            "spaced": lambda h: h[:2] + " " + h[2:],
+            "newline": lambda h: h + "\n",
+            "longer": lambda h: h + "00",
+        }.items():
+            self.assertEqual(self._verify_vector("authority-valid", map_keys(fn), allow_test_registry=True)["reason"],
+                             "bad_signature", label)
+        inp = load_vector("authority-valid")["input"]
+        sig = inp["event"]["signature"]["signature"]
+        for candidate, want in ((sig.upper(), "verified"), (sig + "\n", "bad_signature"), (sig[:2] + " " + sig[2:], "bad_signature")):
+            event = dict(inp["event"], signature=dict(inp["event"]["signature"], signature=candidate))
+            res = verify_authority_event(event, test_reg, now=inp["now"], expected_cert_digest=inp["expected_cert_digest"],
+                                         allow_test_registry=True)
+            self.assertEqual(res["reason"], want, repr(candidate))
 
     def test_odd_entry_values_reach_a_verdict(self) -> None:
         test_reg = load_conformance_registry("authority_key_registry_test")

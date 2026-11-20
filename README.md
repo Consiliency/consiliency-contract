@@ -31,7 +31,9 @@ Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/
 > Only conformance/test replay passes the opt-in; production callers never do.
 > A registry that is not JSON-shaped data (a plain object whose `keys`, when
 > present, is an array of plain objects) is rejected first as
-> `malformed_registry`.
+> `malformed_registry`. Both verifiers decode a public key or signature only
+> from a string of exactly 64 / 128 hex digits (anything else is
+> `bad_signature`), so the two readers accept exactly the same inputs.
 > Consumers that replay the authority vectors against the test-only registry add
 > the opt-in to those calls, and should assert each vector's `reason` as well as
 > `ok`: a replay without the opt-in now yields `test_registry_refused` for every

@@ -36,6 +36,13 @@ VALUE_RE = re.compile(r"^[\x21\x23-\x5b\x5d-\x7e]+$")
 TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
 SUPPORTED_SCHEME = "ed25519"
+
+# Hex text the verifier decodes: a str of exactly 64 (public key) or 128
+# (signature) hex digits. Anything else (bytes, lists, whitespace, other
+# lengths) never decodes, so Python and JS accept exactly the same inputs.
+# Matched with ``fullmatch`` (``$`` alone would also match before a trailing newline).
+PUBLIC_KEY_HEX_RE = re.compile(r"[0-9a-fA-F]{64}")
+SIGNATURE_HEX_RE = re.compile(r"[0-9a-fA-F]{128}")
 _SAFE_INT_MAX = 2 ** 53 - 1
 
 # Domain separation (XG-4 decision): the Ed25519 signature covers the canon-core
@@ -127,9 +134,11 @@ def _read_registry(registry: Any) -> Optional[tuple[bool, list[dict]]]:
     refusal check and the key lookup always see the same registry. The marker
     counts when present with any value other than exactly ``false``
     (fail-closed: ``true``, ``null``, strings, numbers and containers all count).
+    Callers keep the registry unchanged while a verification runs.
     """
     if type(registry) is not dict:
         return None
+    registry = registry.copy()  # one atomic top-level copy; every read below uses it
     marked = "test_only" in registry and registry["test_only"] is not False
     raw_keys = registry.get("keys", [])
     if type(raw_keys) is not list:
@@ -138,14 +147,15 @@ def _read_registry(registry: Any) -> Optional[tuple[bool, list[dict]]]:
     for entry in raw_keys:
         if type(entry) is not dict:
             return None
+        entry = entry.copy()
         snapshot = {field: entry[field] for field in _KEY_ENTRY_FIELDS if field in entry}
         if "validity" in snapshot:
             validity = snapshot["validity"]
-            snapshot["validity"] = (
-                {field: validity[field] for field in _VALIDITY_FIELDS if field in validity}
-                if type(validity) is dict
-                else None
-            )
+            if type(validity) is dict:
+                validity = validity.copy()
+                snapshot["validity"] = {field: validity[field] for field in _VALIDITY_FIELDS if field in validity}
+            else:
+                snapshot["validity"] = None
         keys.append(snapshot)
     return marked, keys
 
@@ -157,17 +167,16 @@ def _find_key(keys: list[dict], key_id: Any) -> Optional[dict]:
     return None
 
 
-def _ed25519_verify(public_key_hex: str, signature_hex: str, message: bytes) -> bool:
+def _ed25519_verify(public_key_hex: Any, signature_hex: Any, message: bytes) -> bool:
     from cryptography.exceptions import InvalidSignature
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-    try:
-        raw = bytes.fromhex(public_key_hex)
-        signature = bytes.fromhex(signature_hex)
-    except (TypeError, ValueError):
+    if not (isinstance(public_key_hex, str) and PUBLIC_KEY_HEX_RE.fullmatch(public_key_hex)):
         return False
-    if len(raw) != 32 or len(signature) != 64:
+    if not (isinstance(signature_hex, str) and SIGNATURE_HEX_RE.fullmatch(signature_hex)):
         return False
+    raw = bytes.fromhex(public_key_hex)
+    signature = bytes.fromhex(signature_hex)
     try:
         Ed25519PublicKey.from_public_bytes(raw).verify(signature, message)
         return True

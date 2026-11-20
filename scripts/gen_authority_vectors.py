@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Deterministically generate the authority-key registries + conformance vectors.
 
-This script is the ONLY place a private Ed25519 key exists, and it is NOT part
-of the published package (package.json `files` and the pyproject wheel/sdist
-force-includes cover core/, conformance/, src/ — never scripts/). Private keys
-are regenerated on demand from the documented SEED_LABELS below (SHA-256 of a
-stable label), so nothing secret is committed: the repo carries only the PUBLIC
-keys (in the registries) and the signed vectors.
+The conformance fixture keys exist only inside this script, which the npm
+package and the wheel do not ship (they carry core/, conformance/ and src/; the
+sdist is a source snapshot and does include scripts/). The fixture keys are
+regenerated on demand, so no key file is committed: the repo carries only the
+PUBLIC keys (in the registries) and the signed vectors. Fixture keys are for
+conformance testing only and are never trusted by the production registry.
 
 Two registries are written:
 
@@ -564,8 +564,10 @@ def main(argv=None) -> int:
     if args.check:
         mismatched = []
         for path, data in outputs.items():
-            want = _dump(path, data)
-            have = path.read_text(encoding="utf-8") if path.exists() else None
+            # Compare raw bytes (no newline translation): downstream repos pin
+            # these files by SHA-256, so any byte difference is drift.
+            want = _dump(path, data).encode("utf-8")
+            have = path.read_bytes() if path.exists() else None
             if have != want:
                 mismatched.append(str(path.relative_to(ROOT)))
         if mismatched:
@@ -578,7 +580,7 @@ def main(argv=None) -> int:
 
     for path, data in outputs.items():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(_dump(path, data), encoding="utf-8")
+        path.write_bytes(_dump(path, data).encode("utf-8"))
     extra = "" if provenance is None else " + canon provenance"
     print(f"wrote registries + {len([k for k in outputs if k != CANON_PROVENANCE_PATH and k not in registry_paths])} vectors{extra}")
     if provenance is None:

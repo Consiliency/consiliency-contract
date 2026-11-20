@@ -31,7 +31,9 @@ Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/
 > `loadConformanceRegistry` / `load_conformance_registry`, never a root of
 > trust), and each vector's `input.registry` names `authority_key_registry_test`.
 > Consumers that vendor the registry re-vendor it; consumers that replay the
-> authority vectors verify them against the test-only registry. No schema or
+> authority vectors verify them against the test-only registry. Replaying the
+> vectors against the production registry now rejects the valid vector
+> (`key_revoked`). No schema or
 > verifier change; the version-skew window stays `>=0.7.0 <0.8.0`.
 > `0.7.0` adds the provisional `admitted_launch_envelope.v2`
 > (`core/supervised-run/admitted-launch-envelope.v2.schema.json`, with

@@ -585,9 +585,15 @@ test("the production registry retires every conformance fixture key (0.7.1)", ()
     // every fixture key_id stays reserved in production as a revoked tombstone
     assert.equal(prod.get(key.key_id)?.revoked, true, `${key.key_id}: must be revoked in production`);
   }
+  // Trusted production keys are pinned to an explicit allowlist (the Python
+  // suite additionally checks every key the vector generator can produce).
+  const trustedAllowlist = new Map([
+    ["portal-authority-ed25519-prod-v1", "27499adc83381305359e7950b6ea9f1f7fa93480c9fe647b9fc8d4a64d6a467a"],
+  ]);
   for (const key of prodKeys) {
     if (key.revoked !== true) {
       assert.ok(!fixtureMaterial.has(key.public_key), `${key.key_id}: trusted key carries fixture key material`);
+      assert.equal(trustedAllowlist.get(key.key_id), key.public_key, `${key.key_id}: trusted key is not allowlisted`);
     }
   }
   const prodSigner = prod.get("portal-authority-ed25519-prod-v1");

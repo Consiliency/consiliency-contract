@@ -184,17 +184,19 @@ testing. Since `0.7.1` they verify against a separate, test-only registry,
   `load_conformance_registry`. `loadRegistry` / `load_registry` cannot reach
   it. No production verifier may load it.
 - Each vector's `input.registry` names `authority_key_registry_test`.
-- Tests assert that no conformance vector verifies against the production
-  registry, and that no trusted production key carries key material the
-  vector generator produces.
+- Tests in both readers assert that no conformance vector verifies against the
+  production registry and pin the trusted production keys to an explicit
+  allowlist; the Python test also asserts that no trusted production key
+  carries key material the vector generator produces.
 
 ## Regenerating the fixtures
 
 The fixture public keys (in both registries) and all signed vectors are generated deterministically
-by [`scripts/gen_authority_vectors.py`](../../scripts/gen_authority_vectors.py)
-from stable seed labels (SHA-256 of a documented string → the Ed25519 private
-seed). That script is the ONLY place a private key exists and is NOT part of the
-published package (npm `files` / the wheel force-includes cover `core/`,
-`conformance/`, `src/` only). Ed25519 signatures are deterministic (RFC 8032), so
+by [`scripts/gen_authority_vectors.py`](../../scripts/gen_authority_vectors.py).
+The fixture keys are for conformance testing only and are never trusted by the
+production registry. The npm package and the wheel do not ship the script (they
+carry `core/`, `conformance/` and `src/`); the sdist is a source snapshot and
+does include `scripts/`. Ed25519 signatures are deterministic (RFC 8032), so
 `python3 scripts/gen_authority_vectors.py --check` proves the committed bytes
-match a fresh run (enforced by `test_authority_regenerates_deterministically`).
+match a fresh run byte for byte (enforced by
+`test_authority_regenerates_deterministically`).

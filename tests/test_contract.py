@@ -532,13 +532,75 @@ class ContractReaderTest(unittest.TestCase):
                               capture_output=True, text=True, check=True)
         dump = json.loads(proc.stdout)
         names = self._authority_vector_names()
-        self.assertEqual(len(dump), (len(names) + 2) * 10 * 5)
+        self.assertEqual(len(dump), (len(names) + 2) * 17 * 5)
         reasons = {v["reason"] for v in dump.values()}
-        self.assertIn("test_registry_refused", reasons)
-        self.assertIn("verified", reasons)
+        for reason in ("test_registry_refused", "malformed_registry", "verified", "key_expired", "bad_signature"):
+            self.assertIn(reason, reasons)
         for name in names:
             self.assertEqual(dump[f"{name}|test|omitted"], {"ok": False, "reason": "test_registry_refused"})
             self.assertEqual(dump[f"{name}|test|true"]["reason"], load_vector(name)["expected"]["reason"])
+
+    def test_registry_that_is_not_json_shaped_data_is_malformed(self) -> None:
+        # One shape policy feeds both the marker check and the key lookup: only an
+        # exact dict with an exact list of exact-dict entries is a registry.
+        from types import MappingProxyType
+
+        test_reg = load_conformance_registry("authority_key_registry_test")
+
+        class RegistryDict(dict):
+            def __contains__(self, key):  # hides the marker from a naive check
+                return False if key == "test_only" else super().__contains__(key)
+
+        class EntryDict(dict):
+            pass
+
+        cases = {
+            "none": None,
+            "list": [],
+            "string": "registry",
+            "mapping_proxy": MappingProxyType(test_reg),
+            "dict_subclass": RegistryDict(test_reg),
+            "keys_none": dict(test_reg, keys=None),
+            "keys_dict": dict(test_reg, keys={}),
+            "keys_tuple": dict(test_reg, keys=tuple(test_reg["keys"])),
+            "entry_int": dict(test_reg, keys=[1]),
+            "entry_mapping_proxy": dict(test_reg, keys=[MappingProxyType(test_reg["keys"][0])]),
+            "entry_dict_subclass": dict(test_reg, keys=[EntryDict(test_reg["keys"][0])]),
+        }
+        for label, reg in cases.items():
+            for opt_in in ({}, {"allow_test_registry": True}):
+                self.assertEqual(self._verify_vector("authority-valid", reg, **opt_in),
+                                 {"ok": False, "reason": "malformed_registry"}, label)
+
+    def test_registry_checks_never_touch_the_event(self) -> None:
+        test_reg = load_conformance_registry("authority_key_registry_test")
+        valid = load_vector("authority-valid")["input"]
+
+        class BoobyEvent(dict):
+            def get(self, *args, **kwargs):
+                raise AssertionError("event read")
+
+            def __getitem__(self, key):
+                raise AssertionError("event read")
+
+        kwargs = dict(now=valid["now"], expected_cert_digest=valid["expected_cert_digest"])
+        self.assertEqual(verify_authority_event(BoobyEvent(), test_reg, **kwargs)["reason"], "test_registry_refused")
+        self.assertEqual(verify_authority_event(BoobyEvent(), [], allow_test_registry=True, **kwargs)["reason"],
+                         "malformed_registry")
+        with self.assertRaisesRegex(AssertionError, "event read"):
+            verify_authority_event(BoobyEvent(), test_reg, allow_test_registry=True, **kwargs)
+
+    def test_odd_entry_values_reach_a_verdict(self) -> None:
+        test_reg = load_conformance_registry("authority_key_registry_test")
+        bad_key = dict(test_reg, keys=[dict(k, public_key=7) for k in test_reg["keys"]])
+        self.assertEqual(self._verify_vector("authority-valid", bad_key, allow_test_registry=True)["reason"],
+                         "bad_signature")
+        no_key = dict(test_reg, keys=[{k: v for k, v in e.items() if k != "public_key"} for e in test_reg["keys"]])
+        self.assertEqual(self._verify_vector("authority-valid", no_key, allow_test_registry=True)["reason"],
+                         "bad_signature")
+        odd_validity = dict(test_reg, keys=[dict(k, validity="x") for k in test_reg["keys"]])
+        self.assertEqual(self._verify_vector("authority-valid", odd_validity, allow_test_registry=True)["reason"],
+                         "key_expired")
 
     # --- production registry vs the test-only conformance registry (0.7.1) ---
 

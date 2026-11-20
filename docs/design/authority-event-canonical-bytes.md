@@ -139,7 +139,8 @@ authoritative for scheme and public key, never the event's self-declared fields:
 
 | # | check | reject reason |
 |---|-------|---------------|
-| 0 | registry is not marked `test_only`, unless the caller opted in (see below) | `test_registry_refused` |
+| 0a | registry is JSON-shaped data: a plain object (Python: exact `dict`; JS: plain, non-Proxy object read through own data properties) whose `keys`, when present, is an array of plain objects | `malformed_registry` |
+| 0b | registry is not marked `test_only`, unless the caller opted in (see below) | `test_registry_refused` |
 | 1 | event has a `core` object | `malformed_event` |
 | 2 | `signature.signature` present | `missing_signature` |
 | 3 | `core` canonicalizes | `malformed_event` |
@@ -185,13 +186,16 @@ testing. Since `0.7.1` they verify against a separate, test-only registry,
   `load_conformance_registry`. `loadRegistry` / `load_registry` cannot reach
   it. No production verifier may load it.
 - Each vector's `input.registry` names `authority_key_registry_test`.
-- Since `0.7.2` the verifier refuses registries marked `test_only` (check 0
+- Since `0.7.2` the verifier refuses registries marked `test_only` (check 0b
   above): a registry whose top-level `test_only` is present with any value
   other than `false` returns `test_registry_refused` before the event is
   examined. Conformance/test replay opts in explicitly with
   `allow_test_registry=True` (Python) / `{ allowTestRegistry: true }` (JS); the
-  opt-in must be exactly `true`, and it changes nothing for an unmarked
-  registry. Production callers never pass it.
+  opt-in must be exactly `true` (in JS, an own data property of the options
+  object), and it changes nothing for an unmarked registry. Production callers
+  never pass it. The marker and the keys are read from one validated snapshot
+  of the registry (check 0a), so the refusal and the key lookup always see the
+  same data.
 - Tests in both readers assert that no conformance vector verifies against the
   production registry and pin the trusted production keys to an explicit
   allowlist; the Python test also asserts that no trusted production key

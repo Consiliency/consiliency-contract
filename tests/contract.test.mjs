@@ -660,6 +660,13 @@ test("JS and Python verifiers agree on every test-registry matrix case", () => {
     test_marker_false_string: withMarker(test, "false"),
     test_marker_one: withMarker(test, 1),
     test_marker_zero: withMarker(test, 0),
+    registry_null: null,
+    registry_list: [],
+    keys_null: { ...test, keys: null },
+    keys_object: { ...test, keys: {} },
+    entry_not_record: { ...test, keys: [1] },
+    validity_not_record: { ...test, keys: test.keys.map((k) => ({ ...k, validity: "x" })) },
+    public_key_number: { ...test, keys: test.keys.map((k) => ({ ...k, public_key: 7 })) },
   };
   const optIns = {
     omitted: {},
@@ -688,7 +695,80 @@ test("JS and Python verifiers agree on every test-registry matrix case", () => {
   assert.deepEqual(Object.keys(js).sort(), Object.keys(py).sort(), "both sides must build the same case set");
   for (const key of Object.keys(js)) assert.deepEqual(js[key], py[key], key);
   const reasons = new Set(Object.values(js).map((v) => v.reason));
-  assert.ok(reasons.has("test_registry_refused") && reasons.has("verified"));
+  for (const reason of ["test_registry_refused", "malformed_registry", "verified", "key_expired", "bad_signature"]) {
+    assert.ok(reasons.has(reason), reason);
+  }
+});
+
+test("the opt-in counts only as an own data property that is exactly true", () => {
+  const reg = loadConformanceRegistry("authority_key_registry_test");
+  const { event, now, expected_cert_digest: expectedCertDigest } = loadVector("authority-valid").input;
+  const inherited = Object.assign(Object.create({ allowTestRegistry: true }), { now, expectedCertDigest });
+  assert.equal(verifyAuthorityEvent(event, reg, inherited).reason, "test_registry_refused", "inherited opt-in");
+  const accessor = { now, expectedCertDigest };
+  Object.defineProperty(accessor, "allowTestRegistry", { get: () => true, enumerable: true });
+  assert.equal(verifyAuthorityEvent(event, reg, accessor).reason, "test_registry_refused", "accessor opt-in");
+  assert.equal(verifyAuthorityEvent(event, reg, null).reason, "test_registry_refused", "null options");
+  const own = Object.assign(Object.create(null), { now, expectedCertDigest, allowTestRegistry: true });
+  assert.equal(verifyAuthorityEvent(event, reg, own).reason, "verified", "own opt-in on a null-prototype bag");
+});
+
+test("an own test_only: undefined is still a marker", () => {
+  const reg = { ...loadConformanceRegistry("authority_key_registry_test"), test_only: undefined };
+  assert.ok(Object.hasOwn(reg, "test_only"));
+  assert.equal(verifyVector("authority-valid", reg).reason, "test_registry_refused");
+  assert.equal(verifyVector("authority-valid", reg, { allowTestRegistry: true }).reason, "verified");
+});
+
+test("a registry that is not JSON-shaped data is malformed_registry, never a throw", () => {
+  const test = loadConformanceRegistry("authority_key_registry_test");
+  const throwingGetter = (obj, name) => {
+    Object.defineProperty(obj, name, { get: () => { throw new Error("getter ran"); }, enumerable: true });
+    return obj;
+  };
+  const markedArray = Object.assign([], { test_only: true, keys: test.keys });
+  const markedFunction = Object.assign(() => {}, { test_only: true, keys: test.keys });
+  class RegistryClass {
+    constructor() { Object.assign(this, test); }
+  }
+  const cases = {
+    undefined,
+    null: null,
+    string: "registry",
+    number: 1,
+    markedArray,
+    markedFunction,
+    proxy: new Proxy({ ...test }, {}),
+    proxyHidingMarker: new Proxy({ ...test }, { getOwnPropertyDescriptor: () => undefined, has: () => false }),
+    classInstance: new RegistryClass(),
+    inheritsTestRegistry: Object.create(test),
+    getterMarker: throwingGetter({ keys: test.keys }, "test_only"),
+    getterKeys: throwingGetter({ test_only: true }, "keys"),
+    proxyKeys: { ...test, keys: new Proxy([...test.keys], {}) },
+    holeyKeys: { ...test, keys: [, ...test.keys] }, // eslint-disable-line no-sparse-arrays
+    getterEntryField: { ...test, keys: [throwingGetter({ ...test.keys[0] }, "key_id")] },
+    getterValidityField: { ...test, keys: [{ ...test.keys[0], validity: throwingGetter({}, "not_after") }] },
+  };
+  for (const [name, reg] of Object.entries(cases)) {
+    for (const extra of [{}, { allowTestRegistry: true }]) {
+      assert.deepEqual(verifyVector("authority-valid", reg, extra), { ok: false, reason: "malformed_registry" }, name);
+    }
+  }
+  // A null-prototype record is JSON-shaped: judged normally.
+  const nullProto = Object.assign(Object.create(null), test);
+  assert.equal(verifyVector("authority-valid", nullProto).reason, "test_registry_refused");
+  assert.equal(verifyVector("authority-valid", nullProto, { allowTestRegistry: true }).reason, "verified");
+});
+
+test("the registry checks never touch the event", () => {
+  const test = loadConformanceRegistry("authority_key_registry_test");
+  const valid = loadVector("authority-valid").input;
+  const opts = { now: valid.now, expectedCertDigest: valid.expected_cert_digest };
+  const booby = {};
+  Object.defineProperty(booby, "core", { get: () => { throw new Error("event read"); }, enumerable: true });
+  assert.equal(verifyAuthorityEvent(booby, test, opts).reason, "test_registry_refused");
+  assert.equal(verifyAuthorityEvent(booby, [], { ...opts, allowTestRegistry: true }).reason, "malformed_registry");
+  assert.throws(() => verifyAuthorityEvent(booby, test, { ...opts, allowTestRegistry: true }), /event read/);
 });
 
 test("the production registry retires every conformance fixture key (0.7.1)", () => {

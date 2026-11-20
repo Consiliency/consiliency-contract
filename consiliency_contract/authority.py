@@ -113,14 +113,45 @@ def _within_window(now: Any, validity: Any) -> bool:
     return not_before <= now < not_after
 
 
-def _is_test_registry(registry: Any) -> bool:
-    """True when the registry carries a top-level ``test_only`` marker that is not
-    exactly ``false`` (fail-closed: ``true``, ``null``, strings, numbers all count)."""
-    return isinstance(registry, dict) and "test_only" in registry and registry["test_only"] is not False
+_KEY_ENTRY_FIELDS = ("key_id", "scheme", "public_key", "approver", "validity", "revoked")
+_VALIDITY_FIELDS = ("not_before", "not_after")
 
 
-def _find_key(registry: Any, key_id: Any) -> Optional[dict]:
-    for entry in (registry or {}).get("keys", []):
+def _read_registry(registry: Any) -> Optional[tuple[bool, list[dict]]]:
+    """One validated snapshot of the registry: ``(marked_test_only, keys)``.
+
+    Returns ``None`` (``malformed_registry``) unless the registry is JSON-shaped
+    data: an exact ``dict`` (no subclass or other mapping) whose ``keys``, when
+    present, is an exact ``list`` of exact ``dict`` entries. The ``test_only``
+    marker and the key entries are both read from this one snapshot, so the
+    refusal check and the key lookup always see the same registry. The marker
+    counts when present with any value other than exactly ``false``
+    (fail-closed: ``true``, ``null``, strings, numbers and containers all count).
+    """
+    if type(registry) is not dict:
+        return None
+    marked = "test_only" in registry and registry["test_only"] is not False
+    raw_keys = registry.get("keys", [])
+    if type(raw_keys) is not list:
+        return None
+    keys: list[dict] = []
+    for entry in raw_keys:
+        if type(entry) is not dict:
+            return None
+        snapshot = {field: entry[field] for field in _KEY_ENTRY_FIELDS if field in entry}
+        if "validity" in snapshot:
+            validity = snapshot["validity"]
+            snapshot["validity"] = (
+                {field: validity[field] for field in _VALIDITY_FIELDS if field in validity}
+                if type(validity) is dict
+                else None
+            )
+        keys.append(snapshot)
+    return marked, keys
+
+
+def _find_key(keys: list[dict], key_id: Any) -> Optional[dict]:
+    for entry in keys:
         if entry.get("key_id") == key_id:
             return entry
     return None
@@ -133,7 +164,7 @@ def _ed25519_verify(public_key_hex: str, signature_hex: str, message: bytes) -> 
     try:
         raw = bytes.fromhex(public_key_hex)
         signature = bytes.fromhex(signature_hex)
-    except ValueError:
+    except (TypeError, ValueError):
         return False
     if len(raw) != 32 or len(signature) != 64:
         return False
@@ -159,14 +190,20 @@ def verify_authority_event(
     ``signature.scheme``/``signature.key_id``. ``expected_cert_digest`` and
     ``now`` are supplied by the caller so binding/window checks are deterministic.
 
-    TEST-ONLY REGISTRIES: a registry whose top-level ``test_only`` is present
-    with any value other than ``false`` is refused (``test_registry_refused``)
-    before the event is examined. Only conformance/test replay passes
-    ``allow_test_registry=True`` (exactly ``True``); production callers never do.
+    REGISTRY CHECKS run before the event is examined: a registry that is not
+    JSON-shaped data is ``malformed_registry`` (see :func:`_read_registry`); a
+    registry whose top-level ``test_only`` is present with any value other than
+    ``false`` is refused (``test_registry_refused``). Only conformance/test
+    replay passes ``allow_test_registry=True`` (exactly ``True``); production
+    callers never do.
 
     Returns ``{"ok": bool, "reason": str}``.
     """
-    if _is_test_registry(registry) and allow_test_registry is not True:
+    snapshot = _read_registry(registry)
+    if snapshot is None:
+        return {"ok": False, "reason": "malformed_registry"}
+    marked_test_only, keys = snapshot
+    if marked_test_only and allow_test_registry is not True:
         return {"ok": False, "reason": "test_registry_refused"}
     if not isinstance(event, dict) or not isinstance(event.get("core"), dict):
         return {"ok": False, "reason": "malformed_event"}
@@ -180,7 +217,7 @@ def verify_authority_event(
     except AuthorityCanonicalError:
         return {"ok": False, "reason": "malformed_event"}
 
-    key = _find_key(registry, core.get("key_id"))
+    key = _find_key(keys, core.get("key_id"))
     if key is None:
         return {"ok": False, "reason": "unknown_key_id"}
 
@@ -199,6 +236,6 @@ def verify_authority_event(
     if not _within_window(now, core.get("validity")):
         return {"ok": False, "reason": "core_validity_expired"}
 
-    if not _ed25519_verify(key["public_key"], signature["signature"], message):
+    if not _ed25519_verify(key.get("public_key"), signature["signature"], message):
         return {"ok": False, "reason": "bad_signature"}
     return {"ok": True, "reason": "verified"}

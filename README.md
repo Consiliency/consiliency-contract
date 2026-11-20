@@ -26,8 +26,12 @@ Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/
 > `{ok: false, reason: "test_registry_refused"}` for any registry whose
 > top-level `test_only` is present with a value other than `false`, before the
 > event is examined, unless the caller passes the explicit opt-in
-> `allow_test_registry=True` / `{ allowTestRegistry: true }` (exactly `true`).
+> `allow_test_registry=True` / `{ allowTestRegistry: true }` (exactly `true`;
+> in JS an own property of the options object).
 > Only conformance/test replay passes the opt-in; production callers never do.
+> A registry that is not JSON-shaped data (a plain object whose `keys`, when
+> present, is an array of plain objects) is rejected first as
+> `malformed_registry`.
 > Consumers that replay the authority vectors against the test-only registry add
 > the opt-in to those calls. Loaders, registries and vectors are unchanged; the
 > version-skew window stays `>=0.7.0 <0.8.0`.
@@ -154,7 +158,13 @@ from consiliency_contract.authority import (
 
 ## Verification
 
+Both suites exercise real Ed25519 signatures. `npm test` also runs the Python
+reference through `python3` (for the cross-language checks), so install
+`cryptography` (the `authority` extra) into that interpreter first, along with
+`build` for the packaging test:
+
 ```sh
+python3 -m pip install cryptography build
 npm test
 python -m unittest discover -s tests -p 'test_*.py'
 python -m build

@@ -33,7 +33,7 @@ def _with_marker(registry: dict, value: object) -> dict:
     return out
 
 
-def registry_variants() -> dict[str, dict]:
+def registry_variants() -> dict[str, object]:
     test = load_conformance_registry("authority_key_registry_test")
     prod = load_registry("authority_key_registry")
     return {
@@ -47,6 +47,15 @@ def registry_variants() -> dict[str, dict]:
         "test_marker_false_string": _with_marker(test, "false"),
         "test_marker_one": _with_marker(test, 1),
         "test_marker_zero": _with_marker(test, 0),
+        # malformed shapes (JSON-expressible), each refused as malformed_registry
+        "registry_null": None,
+        "registry_list": [],
+        "keys_null": dict(test, keys=None),
+        "keys_object": dict(test, keys={}),
+        "entry_not_record": dict(test, keys=[1]),
+        # well-formed but odd entry values, judged by the ordinary checks
+        "validity_not_record": dict(test, keys=[dict(k, validity="x") for k in test["keys"]]),
+        "public_key_number": dict(test, keys=[dict(k, public_key=7) for k in test["keys"]]),
     }
 
 

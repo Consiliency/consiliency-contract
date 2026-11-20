@@ -29,21 +29,28 @@ Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/
 > `allow_test_registry=True` / `{ allowTestRegistry: true }` (exactly `true`;
 > in JS an own data property of the options object).
 > Only conformance/test replay passes the opt-in; production callers never do.
-> A registry that is not JSON-shaped data (a plain object whose `keys`, when
-> present, is an array of plain objects; Python: exact `dict` / `list`, no
-> subclasses or other mappings; JS: same-realm plain objects and arrays, no
-> Proxies or accessors; frozen objects are fine) is rejected first as
-> `malformed_registry`, as is a `null` or missing registry (previously
-> `unknown_key_id`). The shipped loaders always produce accepted shapes. Both verifiers decode a public key or signature only
-> from a string of exactly 64 / 128 hex digits (anything else is
-> `bad_signature`), so the two readers accept exactly the same inputs.
+> A registry that is not JSON-shaped data is rejected first as
+> `malformed_registry`. Python accepts an exact `dict` whose `keys`, when
+> present, is an exact `list` of exact `dict` entries (no subclasses or other
+> mappings). JS accepts a non-Proxy object with prototype `Object.prototype`
+> or `null` (frozen is fine) whose `keys`, when present, is a non-Proxy array
+> of such objects; the fields the verifier reads must be own data properties,
+> never accessors. A `null` registry (or, in JS, an omitted one) is also
+> `malformed_registry`, where it used to be `unknown_key_id`. The shipped
+> loaders always produce accepted shapes.
+> Once a signature string is present (otherwise `missing_signature`), both
+> verifiers decode the registry public key and the signature only from a
+> string of exactly 64 / 128 hex digits, so they decode exactly the same
+> inputs; anything else is `bad_signature`. The Python canonicalizer and
+> timestamp check now match the JS reader too: a trailing newline or a
+> non-ASCII digit is rejected.
 > Consumers that replay the authority vectors against the test-only registry add
 > the opt-in to those calls, and should assert each vector's `reason` as well as
 > `ok`: a replay without the opt-in now yields `test_registry_refused` for every
 > vector, which a negative vector checked on `ok` alone would hide. Python
 > consumers that pass `allow_test_registry` need `consiliency-contract>=0.7.2`
-> (earlier verifiers reject the unknown keyword argument). Loaders, registries and vectors are unchanged; the
-> version-skew window stays `>=0.7.0 <0.8.0`.
+> (earlier verifiers reject the unknown keyword argument). Loaders, registries
+> and vectors are unchanged; the version-skew window stays `>=0.7.0 <0.8.0`.
 > `0.7.1` retires the deterministic conformance fixture key from the
 > production trust registry. `portal-authority-ed25519-v1` (and the other
 > fixture key_ids) are now `revoked: true` in

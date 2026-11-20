@@ -667,6 +667,12 @@ class ContractReaderTest(unittest.TestCase):
         odd_validity = dict(test_reg, keys=[dict(k, validity="x") for k in test_reg["keys"]])
         self.assertEqual(self._verify_vector("authority-valid", odd_validity, allow_test_registry=True)["reason"],
                          "key_expired")
+        # a dict-subclass validity is not plain data: it never opens a window
+        from collections import OrderedDict
+
+        subclass_validity = dict(test_reg, keys=[dict(k, validity=OrderedDict(k["validity"])) for k in test_reg["keys"]])
+        self.assertEqual(self._verify_vector("authority-valid", subclass_validity, allow_test_registry=True)["reason"],
+                         "key_expired")
 
     # --- production registry vs the test-only conformance registry (0.7.1) ---
 

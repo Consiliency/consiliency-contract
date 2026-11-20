@@ -27,11 +27,14 @@ Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/
 > top-level `test_only` is present with a value other than `false`, before the
 > event is examined, unless the caller passes the explicit opt-in
 > `allow_test_registry=True` / `{ allowTestRegistry: true }` (exactly `true`;
-> in JS an own property of the options object).
+> in JS an own data property of the options object).
 > Only conformance/test replay passes the opt-in; production callers never do.
 > A registry that is not JSON-shaped data (a plain object whose `keys`, when
-> present, is an array of plain objects) is rejected first as
-> `malformed_registry`. Both verifiers decode a public key or signature only
+> present, is an array of plain objects; Python: exact `dict` / `list`, no
+> subclasses or other mappings; JS: same-realm plain objects and arrays, no
+> Proxies or accessors; frozen objects are fine) is rejected first as
+> `malformed_registry`, as is a `null` or missing registry (previously
+> `unknown_key_id`). The shipped loaders always produce accepted shapes. Both verifiers decode a public key or signature only
 > from a string of exactly 64 / 128 hex digits (anything else is
 > `bad_signature`), so the two readers accept exactly the same inputs.
 > Consumers that replay the authority vectors against the test-only registry add

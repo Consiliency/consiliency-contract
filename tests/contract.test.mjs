@@ -828,6 +828,20 @@ test("a registry that is not JSON-shaped data is malformed_registry, never a thr
   const nullProto = Object.assign(Object.create(null), test);
   assert.equal(verifyVector("authority-valid", nullProto).reason, "test_registry_refused");
   assert.equal(verifyVector("authority-valid", nullProto, { allowTestRegistry: true }).reason, "verified");
+  // A deep-frozen registry is still plain data: judged normally.
+  const deepFreeze = (value) => {
+    if (value && typeof value === "object") {
+      for (const child of Object.values(value)) deepFreeze(child);
+      Object.freeze(value);
+    }
+    return value;
+  };
+  const frozen = deepFreeze(structuredClone(test));
+  assert.ok(Object.isFrozen(frozen) && Object.isFrozen(frozen.keys[0].validity));
+  assert.equal(verifyVector("authority-valid", frozen).reason, "test_registry_refused");
+  assert.equal(verifyVector("authority-valid", frozen, { allowTestRegistry: true }).reason, "verified");
+  const frozenProd = deepFreeze(structuredClone(loadRegistry("authority_key_registry")));
+  assert.equal(verifyVector("authority-valid", frozenProd).reason, "key_revoked");
 });
 
 test("the registry checks never touch the event", () => {

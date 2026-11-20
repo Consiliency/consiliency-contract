@@ -23,7 +23,7 @@ export declare function verifyAuthorityEvent(
   options: {
     now: string;
     expectedCertDigest: string;
-    /** Conformance/test replay only: permit a registry marked `test_only`. Production callers omit it. */
+    /** Conformance/test replay only: permit a registry marked `test_only`. Counts only as an own data property that is exactly `true`. Production callers omit it. */
     allowTestRegistry?: boolean;
   },
 ): AuthorityVerifyResult;

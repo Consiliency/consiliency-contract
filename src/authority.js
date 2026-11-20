@@ -106,6 +106,18 @@ function withinWindow(now, validity) {
   return validity.not_before <= now && now < validity.not_after;
 }
 
+// True when the registry carries a top-level `test_only` marker that is not
+// exactly `false` (fail-closed: true, null, strings, numbers all count).
+function isTestRegistry(registry) {
+  return (
+    registry !== null &&
+    typeof registry === "object" &&
+    !Array.isArray(registry) &&
+    "test_only" in registry &&
+    registry.test_only !== false
+  );
+}
+
 function findKey(registry, keyId) {
   const keys = (registry && registry.keys) || [];
   return keys.find((entry) => entry.key_id === keyId) || null;
@@ -143,8 +155,16 @@ function ed25519Verify(publicKeyHex, signatureHex, message) {
 // supplied by the caller (the cert being ratified, the evaluation time) so the
 // binding and window checks are deterministic.
 //
+// TEST-ONLY REGISTRIES: a registry whose top-level `test_only` is present with
+// any value other than `false` is refused (`test_registry_refused`) before the
+// event is examined. Only conformance/test replay passes
+// `allowTestRegistry: true` (exactly `true`); production callers never do.
+//
 // Returns { ok: boolean, reason: string }.
-export function verifyAuthorityEvent(event, registry, { now, expectedCertDigest } = {}) {
+export function verifyAuthorityEvent(event, registry, { now, expectedCertDigest, allowTestRegistry = false } = {}) {
+  if (isTestRegistry(registry) && allowTestRegistry !== true) {
+    return { ok: false, reason: "test_registry_refused" };
+  }
   if (!event || typeof event !== "object" || !event.core || typeof event.core !== "object") {
     return { ok: false, reason: "malformed_event" };
   }

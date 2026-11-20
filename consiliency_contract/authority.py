@@ -113,6 +113,12 @@ def _within_window(now: Any, validity: Any) -> bool:
     return not_before <= now < not_after
 
 
+def _is_test_registry(registry: Any) -> bool:
+    """True when the registry carries a top-level ``test_only`` marker that is not
+    exactly ``false`` (fail-closed: ``true``, ``null``, strings, numbers all count)."""
+    return isinstance(registry, dict) and "test_only" in registry and registry["test_only"] is not False
+
+
 def _find_key(registry: Any, key_id: Any) -> Optional[dict]:
     for entry in (registry or {}).get("keys", []):
         if entry.get("key_id") == key_id:
@@ -144,6 +150,7 @@ def verify_authority_event(
     *,
     now: str,
     expected_cert_digest: str,
+    allow_test_registry: bool = False,
 ) -> dict[str, Any]:
     """Verify an authority event against the pinned key registry.
 
@@ -152,8 +159,15 @@ def verify_authority_event(
     ``signature.scheme``/``signature.key_id``. ``expected_cert_digest`` and
     ``now`` are supplied by the caller so binding/window checks are deterministic.
 
+    TEST-ONLY REGISTRIES: a registry whose top-level ``test_only`` is present
+    with any value other than ``false`` is refused (``test_registry_refused``)
+    before the event is examined. Only conformance/test replay passes
+    ``allow_test_registry=True`` (exactly ``True``); production callers never do.
+
     Returns ``{"ok": bool, "reason": str}``.
     """
+    if _is_test_registry(registry) and allow_test_registry is not True:
+        return {"ok": False, "reason": "test_registry_refused"}
     if not isinstance(event, dict) or not isinstance(event.get("core"), dict):
         return {"ok": False, "reason": "malformed_event"}
     core = event["core"]

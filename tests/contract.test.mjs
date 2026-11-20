@@ -53,7 +53,7 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.7.1");
+  assert.equal(CONTRACT_VERSION, "0.7.2");
   assert.equal(loadContract().contract_version, CONTRACT_VERSION);
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
@@ -535,7 +535,7 @@ test("authority vectors verify/reject exactly as the vector expects (JS reader)"
   for (const name of names) {
     const vector = loadVector(name);
     const { event, now, expected_cert_digest: expectedCertDigest } = vector.input;
-    const res = verifyAuthorityEvent(event, reg, { now, expectedCertDigest });
+    const res = verifyAuthorityEvent(event, reg, { now, expectedCertDigest, allowTestRegistry: true });
     assert.equal(res.ok, vector.expected.verifies, `${name}: ok`);
     assert.equal(res.reason, vector.expected.reason, `${name}: reason`);
     // The conformance decision must agree with the crypto verdict.
@@ -551,7 +551,7 @@ test("the forged self-minted authority event REJECTS (the closed hole)", () => {
   const reg = loadConformanceRegistry("authority_key_registry_test");
   const vector = loadVector("authority-forged-self-minted");
   const { event, now, expected_cert_digest: expectedCertDigest } = vector.input;
-  const res = verifyAuthorityEvent(event, reg, { now, expectedCertDigest });
+  const res = verifyAuthorityEvent(event, reg, { now, expectedCertDigest, allowTestRegistry: true });
   assert.equal(res.ok, false, "a self-minted event must never verify");
   assert.equal(res.reason, "unknown_key_id");
 });
@@ -559,7 +559,7 @@ test("the forged self-minted authority event REJECTS (the closed hole)", () => {
 test("appending ledger chain data does NOT invalidate the core signature", () => {
   const reg = loadConformanceRegistry("authority_key_registry_test");
   const vector = loadVector("authority-valid");
-  const opts = { now: vector.input.now, expectedCertDigest: vector.input.expected_cert_digest };
+  const opts = { now: vector.input.now, expectedCertDigest: vector.input.expected_cert_digest, allowTestRegistry: true };
   assert.equal(verifyAuthorityEvent(vector.input.event, reg, opts).ok, true);
   const digest = "a".repeat(64);
   const chain = {
@@ -570,6 +570,125 @@ test("appending ledger chain data does NOT invalidate the core signature", () =>
   };
   const withChain = { ...vector.input.event, chain };
   assert.equal(verifyAuthorityEvent(withChain, reg, opts).ok, true, "core signature must survive chain append");
+});
+
+// --- the verifier refuses registries marked test_only (0.7.2) ---
+
+function verifyVector(name, registry, extra = {}) {
+  const { event, now, expected_cert_digest: expectedCertDigest } = loadVector(name).input;
+  return verifyAuthorityEvent(event, registry, { now, expectedCertDigest, ...extra });
+}
+
+test("the verifier refuses the test-only registry without the opt-in", () => {
+  const reg = loadConformanceRegistry("authority_key_registry_test");
+  assert.equal(reg.test_only, true);
+  for (const name of authorityVectorNames()) {
+    for (const extra of [{}, { allowTestRegistry: false }, { allowTestRegistry: 1 }, { allowTestRegistry: "true" }]) {
+      assert.deepEqual(verifyVector(name, reg, extra), { ok: false, reason: "test_registry_refused" }, `${name} ${JSON.stringify(extra)}`);
+    }
+  }
+  // the options bag itself may be omitted; the refusal still applies
+  assert.deepEqual(verifyAuthorityEvent(loadVector("authority-valid").input.event, reg), { ok: false, reason: "test_registry_refused" });
+});
+
+test("the test-only registry refusal precedes the event checks", () => {
+  const reg = loadConformanceRegistry("authority_key_registry_test");
+  const valid = loadVector("authority-valid").input;
+  const opts = { now: valid.now, expectedCertDigest: valid.expected_cert_digest };
+  for (const event of [null, {}, { core: {} }, { core: valid.event.core }]) {
+    assert.equal(verifyAuthorityEvent(event, reg, opts).reason, "test_registry_refused", JSON.stringify(event));
+  }
+  assert.equal(verifyAuthorityEvent({}, reg, { ...opts, allowTestRegistry: true }).reason, "malformed_event");
+});
+
+test("the opt-in replays the vectors against the test-only registry", () => {
+  const reg = loadConformanceRegistry("authority_key_registry_test");
+  assert.deepEqual(verifyVector("authority-valid", reg, { allowTestRegistry: true }), { ok: true, reason: "verified" });
+  for (const name of authorityVectorNames()) {
+    assert.equal(verifyVector(name, reg, { allowTestRegistry: true }).reason, loadVector(name).expected.reason, name);
+  }
+});
+
+test("the test_only marker is fail-closed", () => {
+  const testReg = loadConformanceRegistry("authority_key_registry_test");
+  for (const marker of [true, null, "true", "false", 1, 0, [], {}]) {
+    const reg = { ...testReg, test_only: marker };
+    assert.equal(verifyVector("authority-valid", reg).reason, "test_registry_refused", JSON.stringify(marker));
+    assert.equal(verifyVector("authority-valid", reg, { allowTestRegistry: true }).reason, "verified");
+  }
+  const prodMarked = { ...loadRegistry("authority_key_registry"), test_only: true };
+  assert.equal(verifyVector("authority-valid", prodMarked).reason, "test_registry_refused");
+});
+
+test("an unmarked registry still verifies without the opt-in", () => {
+  // Built from the test registry because the production signer's private key is
+  // not available here; the production path is unchanged for unmarked registries.
+  const { test_only: _marker, ...unmarked } = loadConformanceRegistry("authority_key_registry_test");
+  const markedFalse = { ...loadConformanceRegistry("authority_key_registry_test"), test_only: false };
+  for (const reg of [unmarked, markedFalse]) {
+    assert.deepEqual(verifyVector("authority-valid", reg), { ok: true, reason: "verified" });
+    for (const name of authorityVectorNames()) {
+      assert.equal(verifyVector(name, reg).reason, loadVector(name).expected.reason, name);
+    }
+  }
+  const prod = loadRegistry("authority_key_registry");
+  assert.ok(!("test_only" in prod));
+  for (const extra of [{}, { allowTestRegistry: true }]) {
+    assert.equal(verifyVector("authority-valid", prod, extra).reason, "key_revoked");
+  }
+});
+
+test("JS and Python verifiers agree on every test-registry matrix case", () => {
+  // Mirrors scripts/authority_verify_dump.py case for case.
+  const py = JSON.parse(execFileSync("python3", ["scripts/authority_verify_dump.py"], { encoding: "utf8" }));
+  const test = loadConformanceRegistry("authority_key_registry_test");
+  const prod = loadRegistry("authority_key_registry");
+  const withMarker = (reg, value) => {
+    const out = structuredClone(reg);
+    if (value === undefined) delete out.test_only;
+    else out.test_only = value;
+    return out;
+  };
+  const registries = {
+    test,
+    prod,
+    prod_marked_test: withMarker(prod, true),
+    test_marker_absent: withMarker(test, undefined),
+    test_marker_false: withMarker(test, false),
+    test_marker_null: withMarker(test, null),
+    test_marker_true_string: withMarker(test, "true"),
+    test_marker_false_string: withMarker(test, "false"),
+    test_marker_one: withMarker(test, 1),
+    test_marker_zero: withMarker(test, 0),
+  };
+  const optIns = {
+    omitted: {},
+    false: { allowTestRegistry: false },
+    true: { allowTestRegistry: true },
+    one: { allowTestRegistry: 1 },
+    true_string: { allowTestRegistry: "true" },
+  };
+  const valid = loadVector("authority-valid").input;
+  const events = {};
+  for (const name of authorityVectorNames()) {
+    const inp = loadVector(name).input;
+    events[name] = [inp.event, inp.now, inp.expected_cert_digest];
+  }
+  events.__malformed_empty__ = [{}, valid.now, valid.expected_cert_digest];
+  events.__malformed_null__ = [null, valid.now, valid.expected_cert_digest];
+  const js = {};
+  for (const [eventName, [event, now, expectedCertDigest]] of Object.entries(events)) {
+    for (const [regName, reg] of Object.entries(registries)) {
+      for (const [optName, extra] of Object.entries(optIns)) {
+        const res = verifyAuthorityEvent(event, reg, { now, expectedCertDigest, ...extra });
+        js[`${eventName}|${regName}|${optName}`] = { ok: res.ok, reason: res.reason };
+      }
+    }
+  }
+  assert.deepEqual(Object.keys(js).sort(), Object.keys(py).sort(), "both sides must build the same case set");
+  for (const key of Object.keys(js)) assert.deepEqual(js[key], py[key], key);
+  const reasons = new Set(Object.values(js).map((v) => v.reason));
+  assert.ok(reasons.has("test_registry_refused") && reasons.has("verified"));
 });
 
 test("the production registry retires every conformance fixture key (0.7.1)", () => {

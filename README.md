@@ -21,7 +21,17 @@ The Consiliency cross-repo **contract package** — the single, neutral rulebook
 
 Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/@consiliency/contract) + **PyPI** [`consiliency-contract`](https://pypi.org/project/consiliency-contract/), from shared JSON data + conformance vectors so the two language readers stay byte-identical.
 
-> **Status — `0.7.1` retires the deterministic conformance fixture key from the
+> **Status — `0.7.2`: the verifier refuses registries marked `test_only`.
+> `verify_authority_event` / `verifyAuthorityEvent` now return
+> `{ok: false, reason: "test_registry_refused"}` for any registry whose
+> top-level `test_only` is present with a value other than `false`, before the
+> event is examined, unless the caller passes the explicit opt-in
+> `allow_test_registry=True` / `{ allowTestRegistry: true }` (exactly `true`).
+> Only conformance/test replay passes the opt-in; production callers never do.
+> Consumers that replay the authority vectors against the test-only registry add
+> the opt-in to those calls. Loaders, registries and vectors are unchanged; the
+> version-skew window stays `>=0.7.0 <0.8.0`.
+> `0.7.1` retires the deterministic conformance fixture key from the
 > production trust registry. `portal-authority-ed25519-v1` (and the other
 > fixture key_ids) are now `revoked: true` in
 > `core/registries/authority-key-registry.json`; the production signer

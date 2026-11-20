@@ -1,5 +1,5 @@
 export declare const CONTRACT_PACKAGE: "@consiliency/contract";
-export declare const CONTRACT_VERSION: "0.7.1";
+export declare const CONTRACT_VERSION: "0.7.2";
 export declare const CONTRACT: Record<string, unknown>;
 export declare function loadContract(): Record<string, unknown>;
 export declare function loadSchema(name: string): Record<string, unknown>;
@@ -20,5 +20,10 @@ export interface AuthorityVerifyResult {
 export declare function verifyAuthorityEvent(
   event: unknown,
   registry: unknown,
-  options: { now: string; expectedCertDigest: string },
+  options: {
+    now: string;
+    expectedCertDigest: string;
+    /** Conformance/test replay only: permit a registry marked `test_only`. Production callers omit it. */
+    allowTestRegistry?: boolean;
+  },
 ): AuthorityVerifyResult;

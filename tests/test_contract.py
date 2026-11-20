@@ -35,8 +35,8 @@ def _stable_jcs(value: object) -> str:
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.7.1")
-        self.assertEqual(load_contract()["contract_version"], "0.7.1")
+        self.assertEqual(CONTRACT_VERSION, "0.7.2")
+        self.assertEqual(load_contract()["contract_version"], "0.7.2")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")
@@ -424,7 +424,8 @@ class ContractReaderTest(unittest.TestCase):
             expected = load_vector(name)["expected"]
             decision = load_vector(name)["decision"]
             res = verify_authority_event(
-                inp["event"], reg, now=inp["now"], expected_cert_digest=inp["expected_cert_digest"]
+                inp["event"], reg, now=inp["now"], expected_cert_digest=inp["expected_cert_digest"],
+                allow_test_registry=True,
             )
             self.assertEqual(res["ok"], expected["verifies"], f"{name}: ok")
             self.assertEqual(res["reason"], expected["reason"], f"{name}: reason")
@@ -437,7 +438,8 @@ class ContractReaderTest(unittest.TestCase):
         reg = load_conformance_registry("authority_key_registry_test")
         inp = load_vector("authority-forged-self-minted")["input"]
         res = verify_authority_event(
-            inp["event"], reg, now=inp["now"], expected_cert_digest=inp["expected_cert_digest"]
+            inp["event"], reg, now=inp["now"], expected_cert_digest=inp["expected_cert_digest"],
+            allow_test_registry=True,
         )
         self.assertFalse(res["ok"])
         self.assertEqual(res["reason"], "unknown_key_id")
@@ -445,7 +447,7 @@ class ContractReaderTest(unittest.TestCase):
     def test_chain_append_preserves_core_signature(self) -> None:
         reg = load_conformance_registry("authority_key_registry_test")
         inp = load_vector("authority-valid")["input"]
-        kwargs = dict(now=inp["now"], expected_cert_digest=inp["expected_cert_digest"])
+        kwargs = dict(now=inp["now"], expected_cert_digest=inp["expected_cert_digest"], allow_test_registry=True)
         self.assertTrue(verify_authority_event(inp["event"], reg, **kwargs)["ok"])
         digest = "a" * 64
         chained = dict(inp["event"])
@@ -456,6 +458,87 @@ class ContractReaderTest(unittest.TestCase):
             "inclusion_proof": {"entry_digest": digest, "previous_entry_digest": "0" * 64, "root_digest": "b" * 64},
         }
         self.assertTrue(verify_authority_event(chained, reg, **kwargs)["ok"], "core signature must survive chain append")
+
+    # --- the verifier refuses registries marked test_only (0.7.2) ---
+
+    def _verify_vector(self, name: str, registry: object, **opt_in) -> dict:
+        inp = load_vector(name)["input"]
+        return verify_authority_event(
+            inp["event"], registry, now=inp["now"], expected_cert_digest=inp["expected_cert_digest"], **opt_in
+        )
+
+    def test_verifier_refuses_the_test_registry_without_the_opt_in(self) -> None:
+        reg = load_conformance_registry("authority_key_registry_test")
+        self.assertIs(reg["test_only"], True)
+        for name in self._authority_vector_names():
+            for opt_in in ({}, {"allow_test_registry": False}, {"allow_test_registry": 1}, {"allow_test_registry": "true"}):
+                res = self._verify_vector(name, reg, **opt_in)
+                self.assertEqual(res, {"ok": False, "reason": "test_registry_refused"}, f"{name} {opt_in}")
+
+    def test_test_registry_refusal_precedes_event_checks(self) -> None:
+        reg = load_conformance_registry("authority_key_registry_test")
+        valid = load_vector("authority-valid")["input"]
+        for event in (None, {}, {"core": {}}, {"core": valid["event"]["core"]}):
+            res = verify_authority_event(event, reg, now=valid["now"], expected_cert_digest=valid["expected_cert_digest"])
+            self.assertEqual(res["reason"], "test_registry_refused", repr(event))
+        # with the opt-in the same events fall through to the ordinary checks
+        res = verify_authority_event({}, reg, now=valid["now"], expected_cert_digest=valid["expected_cert_digest"],
+                                     allow_test_registry=True)
+        self.assertEqual(res["reason"], "malformed_event")
+
+    def test_opt_in_replays_the_vectors_against_the_test_registry(self) -> None:
+        reg = load_conformance_registry("authority_key_registry_test")
+        self.assertEqual(self._verify_vector("authority-valid", reg, allow_test_registry=True),
+                         {"ok": True, "reason": "verified"})
+        for name in self._authority_vector_names():
+            res = self._verify_vector(name, reg, allow_test_registry=True)
+            self.assertNotEqual(res["reason"], "test_registry_refused", name)
+            self.assertEqual(res["reason"], load_vector(name)["expected"]["reason"], name)
+
+    def test_test_only_marker_is_fail_closed(self) -> None:
+        # Any top-level test_only other than exactly false is refused without the opt-in.
+        test_reg = load_conformance_registry("authority_key_registry_test")
+        for marker in (True, None, "true", "false", 1, 0, [], {}):
+            reg = dict(test_reg, test_only=marker)
+            self.assertEqual(self._verify_vector("authority-valid", reg)["reason"], "test_registry_refused", repr(marker))
+            self.assertEqual(self._verify_vector("authority-valid", reg, allow_test_registry=True)["reason"], "verified")
+        # A production registry marked test_only is refused too.
+        prod_marked = dict(load_registry("authority_key_registry"), test_only=True)
+        self.assertEqual(self._verify_vector("authority-valid", prod_marked)["reason"], "test_registry_refused")
+
+    def test_unmarked_registry_still_verifies_without_the_opt_in(self) -> None:
+        # The production verification path is unchanged for a registry with no
+        # test_only marker (or test_only: false): the same keys verify the valid
+        # case without any opt-in. Built from the test registry because the
+        # production signer's private key is not available here.
+        test_reg = load_conformance_registry("authority_key_registry_test")
+        unmarked = {k: v for k, v in test_reg.items() if k != "test_only"}
+        for reg in (unmarked, dict(test_reg, test_only=False)):
+            self.assertEqual(self._verify_vector("authority-valid", reg), {"ok": True, "reason": "verified"})
+            for name in self._authority_vector_names():
+                self.assertEqual(self._verify_vector(name, reg)["reason"], load_vector(name)["expected"]["reason"], name)
+        # The production registry is not marked, is not refused, and the opt-in
+        # changes nothing for it.
+        prod = load_registry("authority_key_registry")
+        self.assertNotIn("test_only", prod)
+        for opt_in in ({}, {"allow_test_registry": True}):
+            self.assertEqual(self._verify_vector("authority-valid", prod, **opt_in)["reason"], "key_revoked")
+
+    def test_authority_verify_dump_matches_direct_calls(self) -> None:
+        # scripts/authority_verify_dump.py feeds the JS parity test; it must report
+        # exactly what the Python verifier returns.
+        root = Path(__file__).resolve().parent.parent
+        proc = subprocess.run([sys.executable, "scripts/authority_verify_dump.py"], cwd=root,
+                              capture_output=True, text=True, check=True)
+        dump = json.loads(proc.stdout)
+        names = self._authority_vector_names()
+        self.assertEqual(len(dump), (len(names) + 2) * 10 * 5)
+        reasons = {v["reason"] for v in dump.values()}
+        self.assertIn("test_registry_refused", reasons)
+        self.assertIn("verified", reasons)
+        for name in names:
+            self.assertEqual(dump[f"{name}|test|omitted"], {"ok": False, "reason": "test_registry_refused"})
+            self.assertEqual(dump[f"{name}|test|true"]["reason"], load_vector(name)["expected"]["reason"])
 
     # --- production registry vs the test-only conformance registry (0.7.1) ---
 

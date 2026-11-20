@@ -12,6 +12,7 @@ import {
   canonicalCoreBytes,
   canonicalizeCore,
   listVectors,
+  loadConformanceRegistry,
   loadContract,
   loadRegistry,
   loadSchema,
@@ -52,7 +53,7 @@ function jsonFiles(root) {
 }
 
 test("loads contract, registries, schemas, and vectors", () => {
-  assert.equal(CONTRACT_VERSION, "0.7.0");
+  assert.equal(CONTRACT_VERSION, "0.7.1");
   assert.equal(loadContract().contract_version, CONTRACT_VERSION);
   assert.equal(CONTRACT.contract_id, "consiliency.contract.v1");
   assert.equal(loadRegistry("archetypes").archetypes.length, 7);
@@ -138,6 +139,9 @@ test("Python reader produces byte-identical canonical payload", () => {
     contract: CONTRACT,
     schemas: Object.fromEntries(Object.keys(CONTRACT.schemas).sort().map((name) => [name, loadSchema(name)])),
     registries: Object.fromEntries(Object.keys(CONTRACT.registries).sort().map((name) => [name, loadRegistry(name)])),
+    conformance_registries: Object.fromEntries(
+      Object.keys(CONTRACT.conformance.registries).sort().map((name) => [name, loadConformanceRegistry(name)]),
+    ),
     vectors: Object.fromEntries(listVectors().map((name) => [name, loadVector(name)])),
     decisions: Object.fromEntries(listVectors().map((name) => [name, loadVector(name).decision])),
   };
@@ -523,7 +527,7 @@ test("authority-key registry is the pinned Ed25519 root of trust", () => {
 });
 
 test("authority vectors verify/reject exactly as the vector expects (JS reader)", () => {
-  const reg = loadRegistry("authority_key_registry");
+  const reg = loadConformanceRegistry("authority_key_registry_test");
   const names = authorityVectorNames();
   assert.ok(names.length >= 12, "expected the full authority conformance vector set");
   let sawValid = false;
@@ -544,7 +548,7 @@ test("authority vectors verify/reject exactly as the vector expects (JS reader)"
 });
 
 test("the forged self-minted authority event REJECTS (the closed hole)", () => {
-  const reg = loadRegistry("authority_key_registry");
+  const reg = loadConformanceRegistry("authority_key_registry_test");
   const vector = loadVector("authority-forged-self-minted");
   const { event, now, expected_cert_digest: expectedCertDigest } = vector.input;
   const res = verifyAuthorityEvent(event, reg, { now, expectedCertDigest });
@@ -553,7 +557,7 @@ test("the forged self-minted authority event REJECTS (the closed hole)", () => {
 });
 
 test("appending ledger chain data does NOT invalidate the core signature", () => {
-  const reg = loadRegistry("authority_key_registry");
+  const reg = loadConformanceRegistry("authority_key_registry_test");
   const vector = loadVector("authority-valid");
   const opts = { now: vector.input.now, expectedCertDigest: vector.input.expected_cert_digest };
   assert.equal(verifyAuthorityEvent(vector.input.event, reg, opts).ok, true);
@@ -568,6 +572,49 @@ test("appending ledger chain data does NOT invalidate the core signature", () =>
   assert.equal(verifyAuthorityEvent(withChain, reg, opts).ok, true, "core signature must survive chain append");
 });
 
+test("the production registry retires every conformance fixture key (0.7.1)", () => {
+  const prodKeys = loadRegistry("authority_key_registry").keys;
+  const prod = new Map(prodKeys.map((key) => [key.key_id, key]));
+  assert.equal(prod.size, prodKeys.length, "duplicate key_id in the production registry");
+  const testReg = loadConformanceRegistry("authority_key_registry_test");
+  assert.equal(testReg.test_only, true);
+  assert.ok(!("test_only" in loadRegistry("authority_key_registry")));
+  assert.doesNotMatch(JSON.stringify(testReg), /private_key|secret|seed/i);
+  const fixtureMaterial = new Set(testReg.keys.map((key) => key.public_key));
+  for (const key of testReg.keys) {
+    // every fixture key_id stays reserved in production as a revoked tombstone
+    assert.equal(prod.get(key.key_id)?.revoked, true, `${key.key_id}: must be revoked in production`);
+  }
+  for (const key of prodKeys) {
+    if (key.revoked !== true) {
+      assert.ok(!fixtureMaterial.has(key.public_key), `${key.key_id}: trusted key carries fixture key material`);
+    }
+  }
+  const prodSigner = prod.get("portal-authority-ed25519-prod-v1");
+  assert.equal(prodSigner.public_key, "27499adc83381305359e7950b6ea9f1f7fa93480c9fe647b9fc8d4a64d6a467a");
+  assert.equal(prodSigner.revoked, false);
+});
+
+test("the test-only registry is unreachable through loadRegistry", () => {
+  assert.ok(!("authority_key_registry_test" in CONTRACT.registries));
+  assert.throws(() => loadRegistry("authority_key_registry_test"), /Unknown registry/);
+  assert.throws(() => loadConformanceRegistry("authority_key_registry"), /Unknown conformance registry/);
+  for (const name of authorityVectorNames()) {
+    assert.equal(loadVector(name).input.registry, "authority_key_registry_test", name);
+  }
+});
+
+test("no authority conformance vector verifies against the production registry", () => {
+  const prod = loadRegistry("authority_key_registry");
+  for (const name of authorityVectorNames()) {
+    const { event, now, expected_cert_digest: expectedCertDigest } = loadVector(name).input;
+    assert.equal(verifyAuthorityEvent(event, prod, { now, expectedCertDigest }).ok, false, name);
+  }
+  const valid = loadVector("authority-valid").input;
+  const res = verifyAuthorityEvent(valid.event, prod, { now: valid.now, expectedCertDigest: valid.expected_cert_digest });
+  assert.equal(res.reason, "key_revoked");
+});
+
 test("authority canonicalizer equals the constrained JCS form (JS)", () => {
   for (const name of authorityVectorNames()) {
     const core = loadVector(name).input.event.core;
@@ -580,7 +627,7 @@ test("the authority signature covers the domain-prefixed preimage, not bare byte
   // `spec-canon:v2:authority\n` ‖ canonical_bytes(core), NOT bare bytes. Proven
   // key-free: the valid vector's signature verifies over the preimage and FAILS
   // over the bare bytes.
-  const reg = loadRegistry("authority_key_registry");
+  const reg = loadConformanceRegistry("authority_key_registry_test");
   const vector = loadVector("authority-valid");
   const core = vector.input.event.core;
   const key = reg.keys.find((k) => k.key_id === core.key_id);

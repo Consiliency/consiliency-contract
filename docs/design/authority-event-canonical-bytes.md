@@ -64,7 +64,9 @@ Related contract artifacts:
   (`consiliency.authority_event_protocol.v1`).
 - Root of trust: [`core/registries/authority-key-registry.json`](../../core/registries/authority-key-registry.json)
   (`consiliency.authority_key_registry.v1`).
-- Conformance vectors: `conformance/vectors/authority-*.json`.
+- Conformance vectors: `conformance/vectors/authority-*.json`, verified against the
+  test-only registry [`conformance/registries/authority-key-registry.test.json`](../../conformance/registries/authority-key-registry.test.json)
+  (same schema; never a root of trust).
 
 ## Why a bespoke canonicalization (and not spec's ICU canon)
 
@@ -166,9 +168,29 @@ overlapping validity window; revoke by setting `revoked: true` or letting
 validity lapse — either fails verification regardless of an otherwise-valid
 signature.
 
+### Production registry vs the test-only registry
+
+The conformance vectors are signed with fixture keys that exist only for
+testing. Since `0.7.1` they verify against a separate, test-only registry,
+[`conformance/registries/authority-key-registry.test.json`](../../conformance/registries/authority-key-registry.test.json)
+(`"test_only": true`), never against the production root of trust:
+
+- In the production registry every fixture `key_id` is retired
+  (`revoked: true`) and kept as a tombstone, so it stays reserved and can never
+  verify. The only trusted production entry is
+  `portal-authority-ed25519-prod-v1`.
+- The test-only registry is listed under `conformance.registries` in
+  `core/contract.json` and loaded with `loadConformanceRegistry` /
+  `load_conformance_registry`. `loadRegistry` / `load_registry` cannot reach
+  it. No production verifier may load it.
+- Each vector's `input.registry` names `authority_key_registry_test`.
+- Tests assert that no conformance vector verifies against the production
+  registry, and that no trusted production key carries key material the
+  vector generator produces.
+
 ## Regenerating the fixtures
 
-The registry public keys and all signed vectors are generated deterministically
+The fixture public keys (in both registries) and all signed vectors are generated deterministically
 by [`scripts/gen_authority_vectors.py`](../../scripts/gen_authority_vectors.py)
 from stable seed labels (SHA-256 of a documented string → the Ed25519 private
 seed). That script is the ONLY place a private key exists and is NOT part of the

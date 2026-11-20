@@ -15,6 +15,7 @@ from consiliency_contract import (
     CONTRACT,
     CONTRACT_VERSION,
     list_vectors,
+    load_conformance_registry,
     load_contract,
     load_registry,
     load_schema,
@@ -34,8 +35,8 @@ def _stable_jcs(value: object) -> str:
 
 class ContractReaderTest(unittest.TestCase):
     def test_loads_contract_data(self) -> None:
-        self.assertEqual(CONTRACT_VERSION, "0.7.0")
-        self.assertEqual(load_contract()["contract_version"], "0.7.0")
+        self.assertEqual(CONTRACT_VERSION, "0.7.1")
+        self.assertEqual(load_contract()["contract_version"], "0.7.1")
         self.assertEqual(CONTRACT["contract_id"], "consiliency.contract.v1")
         self.assertEqual(len(load_registry("archetypes")["archetypes"]), 7)
         self.assertEqual(load_schema("manifest")["properties"]["schema"]["const"], "consiliency.manifest.v1")
@@ -414,7 +415,7 @@ class ContractReaderTest(unittest.TestCase):
         self.assertNotRegex(json.dumps(reg), r"(?i)private_key|secret|seed")
 
     def test_authority_vectors_verify_or_reject_as_expected(self) -> None:
-        reg = load_registry("authority_key_registry")
+        reg = load_conformance_registry("authority_key_registry_test")
         names = self._authority_vector_names()
         self.assertGreaterEqual(len(names), 12)
         saw_valid = saw_forged = False
@@ -433,7 +434,7 @@ class ContractReaderTest(unittest.TestCase):
         self.assertTrue(saw_valid and saw_forged)
 
     def test_forged_self_minted_event_rejects(self) -> None:
-        reg = load_registry("authority_key_registry")
+        reg = load_conformance_registry("authority_key_registry_test")
         inp = load_vector("authority-forged-self-minted")["input"]
         res = verify_authority_event(
             inp["event"], reg, now=inp["now"], expected_cert_digest=inp["expected_cert_digest"]
@@ -442,7 +443,7 @@ class ContractReaderTest(unittest.TestCase):
         self.assertEqual(res["reason"], "unknown_key_id")
 
     def test_chain_append_preserves_core_signature(self) -> None:
-        reg = load_registry("authority_key_registry")
+        reg = load_conformance_registry("authority_key_registry_test")
         inp = load_vector("authority-valid")["input"]
         kwargs = dict(now=inp["now"], expected_cert_digest=inp["expected_cert_digest"])
         self.assertTrue(verify_authority_event(inp["event"], reg, **kwargs)["ok"])
@@ -456,6 +457,89 @@ class ContractReaderTest(unittest.TestCase):
         }
         self.assertTrue(verify_authority_event(chained, reg, **kwargs)["ok"], "core signature must survive chain append")
 
+    # --- production registry vs the test-only conformance registry (0.7.1) ---
+
+    PROD_KEY_ID = "portal-authority-ed25519-prod-v1"
+    PROD_PUBLIC_KEY = "27499adc83381305359e7950b6ea9f1f7fa93480c9fe647b9fc8d4a64d6a467a"
+
+    @staticmethod
+    def _load_vector_generator():
+        import importlib.util
+
+        path = Path(__file__).resolve().parent.parent / "scripts" / "gen_authority_vectors.py"
+        spec = importlib.util.spec_from_file_location("_gen_authority_vectors_under_test", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_production_registry_trusts_no_vector_generator_key(self) -> None:
+        # The vector generator's keys exist only to sign conformance vectors. In the
+        # production root of trust each may appear only as a revoked tombstone, and
+        # no trusted production key may carry key material the generator produces.
+        gen = self._load_vector_generator()
+        generator_keys = {key_id: gen._public_hex(key_id) for key_id in gen.SEED_LABELS}
+        generator_material = set(generator_keys.values())
+        prod = {key["key_id"]: key for key in load_registry("authority_key_registry")["keys"]}
+        self.assertEqual(len(prod), len(load_registry("authority_key_registry")["keys"]), "duplicate key_id")
+        for key_id in generator_keys:
+            if key_id in prod:
+                self.assertIs(prod[key_id]["revoked"], True, f"{key_id}: generator key must be revoked in production")
+        for key in prod.values():
+            if key["revoked"] is not True:
+                self.assertNotIn(key["public_key"], generator_material, f"{key['key_id']}: generator key material")
+                self.assertNotIn(key["key_id"], gen.SEED_LABELS, key["key_id"])
+                self.assertEqual(gen.EXTERNAL_PUBLIC_KEYS.get(key["key_id"]), key["public_key"], key["key_id"])
+        # The vector signer is retired in production, never dropped (its key_id stays reserved).
+        self.assertIs(prod["portal-authority-ed25519-v1"]["revoked"], True)
+        # The production signer is present, trusted and byte-for-byte unchanged.
+        self.assertEqual(prod[self.PROD_KEY_ID]["public_key"], self.PROD_PUBLIC_KEY)
+        self.assertIs(prod[self.PROD_KEY_ID]["revoked"], False)
+        self.assertEqual(prod[self.PROD_KEY_ID]["approver"], "consiliency:portal:governance")
+        self.assertEqual(
+            prod[self.PROD_KEY_ID]["validity"],
+            {"not_before": "2026-07-04T00:00:00Z", "not_after": "2027-07-04T00:00:00Z"},
+        )
+
+    def test_test_registry_holds_only_vector_generator_keys(self) -> None:
+        gen = self._load_vector_generator()
+        test_reg = load_conformance_registry("authority_key_registry_test")
+        self.assertIs(test_reg.get("test_only"), True)
+        self.assertIn("TEST-ONLY", test_reg["$comment"])
+        prod = {key["key_id"]: key for key in load_registry("authority_key_registry")["keys"]}
+        for key in test_reg["keys"]:
+            self.assertEqual(key["public_key"], gen._public_hex(key["key_id"]), key["key_id"])
+            self.assertNotIn(key["key_id"], gen.EXTERNAL_PUBLIC_KEYS, key["key_id"])
+            # every fixture key_id is a revoked tombstone in production
+            self.assertIs(prod[key["key_id"]]["revoked"], True, key["key_id"])
+            self.assertEqual(prod[key["key_id"]]["public_key"], key["public_key"], key["key_id"])
+        self.assertNotIn("test_only", load_registry("authority_key_registry"))
+        self.assertNotRegex(json.dumps(test_reg), r"(?i)private_key|secret|seed")
+
+    def test_test_registry_is_unreachable_as_a_root_of_trust(self) -> None:
+        self.assertNotIn("authority_key_registry_test", CONTRACT["registries"])
+        for value in CONTRACT["registries"].values():
+            self.assertFalse(value.startswith("conformance/"), value)
+        with self.assertRaises(ValueError):
+            load_registry("authority_key_registry_test")
+        with self.assertRaises(ValueError):
+            load_conformance_registry("authority_key_registry")
+        for name in self._authority_vector_names():
+            self.assertEqual(load_vector(name)["input"]["registry"], "authority_key_registry_test", name)
+
+    def test_no_authority_vector_verifies_against_the_production_registry(self) -> None:
+        prod = load_registry("authority_key_registry")
+        for name in self._authority_vector_names():
+            inp = load_vector(name)["input"]
+            res = verify_authority_event(
+                inp["event"], prod, now=inp["now"], expected_cert_digest=inp["expected_cert_digest"]
+            )
+            self.assertFalse(res["ok"], f"{name}: a conformance vector must never verify in production")
+        valid = load_vector("authority-valid")["input"]
+        res = verify_authority_event(
+            valid["event"], prod, now=valid["now"], expected_cert_digest=valid["expected_cert_digest"]
+        )
+        self.assertEqual(res["reason"], "key_revoked")
+
     def test_authority_canonicalizer_equals_jcs(self) -> None:
         for name in self._authority_vector_names():
             core = load_vector(name)["input"]["event"]["core"]
@@ -468,7 +552,7 @@ class ContractReaderTest(unittest.TestCase):
         from cryptography.exceptions import InvalidSignature
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-        reg = load_registry("authority_key_registry")
+        reg = load_conformance_registry("authority_key_registry_test")
         vector = load_vector("authority-valid")
         core = vector["input"]["event"]["core"]
         key = next(k for k in reg["keys"] if k["key_id"] == core["key_id"])

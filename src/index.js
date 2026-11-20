@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const CONTRACT_PACKAGE = "@consiliency/contract";
-export const CONTRACT_VERSION = "0.7.0";
+export const CONTRACT_VERSION = "0.7.1";
 
 export {
   AuthorityCanonicalError,
@@ -39,6 +39,13 @@ export function loadSchema(name) {
 
 export function loadRegistry(name) {
   return readJson(assertKnown(CONTRACT.registries, name, "registry"));
+}
+
+// TEST-ONLY registries that conformance vectors verify against
+// (contract.json `conformance.registries`). Never a root of trust, and
+// deliberately unreachable through loadRegistry.
+export function loadConformanceRegistry(name) {
+  return readJson(assertKnown(CONTRACT.conformance.registries || {}, name, "conformance registry"));
 }
 
 export function listVectors() {

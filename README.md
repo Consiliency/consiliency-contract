@@ -14,14 +14,26 @@ The Consiliency cross-repo **contract package** — the single, neutral rulebook
 - **lease + inbox coordination (CS-0.10b)** — the `lease` (TTL + heartbeat + auto-expiry, soft/hard, repo/path-set/symbol scope), the append-only `lease_event` stream, the `lease_store` protocol (sole source of truth) and the `coordination_channel` inbox protocol (never authoritative)
 - **projection discovery + git-discipline (Slice C0)** — the `projections.index.v1` schema (a deterministic pure-merge index of per-artifact projection manifests, no `generated_at`, so every driver reproduces byte-identical entries), the `git_discipline_protocol` (pipeline-owned ref classes, lease + write-footprint, merge policy, and the **NEVER-DELETE-HUMAN-REFS** invariant as a schema-level rule), and the `pipeline_ref_classes` registry both runtimes read to agree on ref ownership
 - **interchangeability conformance (Slice X)** — `scripts/interchangeability/run_driver_equivalence.py` proves the pure-merge claim above isn't just asserted by this package's own reference mergers: it feeds the `projections-index-pure-merge-deterministic` vector through the real `spec-render/build_projections_index.py` producer and asserts byte-identical output, honestly scoped (see `scripts/interchangeability/README.md`)
-- **authority-event contract core (XG-1 Slice 1)** — the single, cryptographically-authenticated `authority_event_protocol.v1` schema with the **core/chain signing split** (Portal signs the slot-independent `core`; spec appends `chain` OUTSIDE the signature and never re-signs), one **canonical-bytes algorithm** implementable in dependency-free JS on Node 20 (see [`docs/design/authority-event-canonical-bytes.md`](docs/design/authority-event-canonical-bytes.md)), the vendored digest-pinned `authority_key_registry.v1` **Ed25519 root of trust** (public keys only), an Ed25519 verify reference in both readers, and 13 conformance vectors — a valid event VERIFIES in both readers and every forgery class (bad/missing signature, unknown/attacker key_id, algorithm-confusion, signer↔approver mismatch, revoked/expired key, cert_digest mismatch) REJECTS
+- **authority-event contract core (XG-1 Slice 1)** — the single, cryptographically-authenticated `authority_event_protocol.v1` schema with the **core/chain signing split** (Portal signs the slot-independent `core`; spec appends `chain` OUTSIDE the signature and never re-signs), one **canonical-bytes algorithm** implementable in dependency-free JS on Node 20 (see [`docs/design/authority-event-canonical-bytes.md`](docs/design/authority-event-canonical-bytes.md)), the vendored digest-pinned `authority_key_registry.v1` **Ed25519 root of trust** (public keys only), an Ed25519 verify reference in both readers, and 13 conformance vectors (replayed against the test-only `conformance/registries/authority-key-registry.test.json`, never the production registry) — a valid event VERIFIES in both readers and every forgery class (bad/missing signature, unknown/attacker key_id, algorithm-confusion, signer↔approver mismatch, revoked/expired key, cert_digest mismatch) REJECTS
 - **the certified label rescope (CS-1.4, XG-1 Slice 5)** — splits the single `certified` evidence label into `parity-certified` (byte-reproducible parity cert, no authority event — what CS proj-S certification ships today) and `authority-certified` (parity PLUS a verified, human-ratified authority event — reserved until the XG-1 authority loop lands end-to-end); `certified` survives only as a deprecated alias of `parity-certified`, never `authority-certified`, so existing producers/consumers keep validating (see [`docs/design/CS-1.4-certified-label-rescope.md`](docs/design/CS-1.4-certified-label-rescope.md))
 - **supervised-run status + admitted-launch envelope (provisional)** — a neutral (harness- and language-neutral) contract that harnesses consume later: `admitted_launch_envelope.v1` (what a harness receives after admission, its fixed enforcement tiers and the refusals that happen before any process starts) and `supervised_run_status.v1` (the per-attempt append-only run journal, its derived projection, bounded pages and the reader view, which keeps runtime state apart from work outcome and evidence). Both schemas and their golden control/negative conformance vectors live in [`core/supervised-run/`](core/supervised-run/), shipped byte-for-byte and digest-pinned in `core/supervised-run/provenance.json`; `conformance/SHA256SUMS` there is the contract's own manifest. See [`core/supervised-run/conformance/README.md`](core/supervised-run/conformance/README.md) for how to read a vector
 - **admitted-launch envelope v2 (provisional)** — `admitted_launch_envelope.v2`, published alongside the frozen v1 (every v1 byte unchanged). It keeps every v1 field and adds a required, closed `launch` block that binds, by digest or logical locator, every input that determines the launch: instruction and ordered reference bytes from the workspace, a declared root or a descriptor; the argument vector of the outermost spawn (SHA-256 of its UTF-8 RFC 8785 array); the ordered wrapper-and-executable chain; the captured source tree (including overlays), the worker cwd and the target map; a credential-safe environment commitment (non-secret values plus secret names, never secret values); the trusted configuration, template and qualification digests; action, route and stdin delivery; the stopping policy (`timeout_seconds`, 1–3600); and optional grants, each with an explicit canonical form. Every launch-side commitment must agree with the captured material it describes. Admission needs exactly one validator-held qualification record for the route, and unqualified means refused. Interactive terminal delivery is out of scope. Conformance covers admission (including exact schema-error sets), RFC 8785 and source-tree capture, and the write_scope apply check with its runtime journals; see [`core/supervised-run/conformance/README.v2.md`](core/supervised-run/conformance/README.v2.md)
 
 Dual-published: **npm** [`@consiliency/contract`](https://www.npmjs.com/package/@consiliency/contract) + **PyPI** [`consiliency-contract`](https://pypi.org/project/consiliency-contract/), from shared JSON data + conformance vectors so the two language readers stay byte-identical.
 
-> **Status — `0.7.0` adds the provisional `admitted_launch_envelope.v2`
+> **Status — `0.7.1` retires the deterministic conformance fixture key from the
+> production trust registry. `portal-authority-ed25519-v1` (and the other
+> fixture key_ids) are now `revoked: true` in
+> `core/registries/authority-key-registry.json`; the production signer
+> `portal-authority-ed25519-prod-v1` is unchanged. The authority conformance
+> vectors now verify against a separate test-only registry,
+> `conformance/registries/authority-key-registry.test.json` (loaded with
+> `loadConformanceRegistry` / `load_conformance_registry`, never a root of
+> trust), and each vector's `input.registry` names `authority_key_registry_test`.
+> Consumers that vendor the registry re-vendor it; consumers that replay the
+> authority vectors verify them against the test-only registry. No schema or
+> verifier change; the version-skew window stays `>=0.7.0 <0.8.0`.
+> `0.7.0` adds the provisional `admitted_launch_envelope.v2`
 > (`core/supervised-run/admitted-launch-envelope.v2.schema.json`, with
 > `conformance/envelope.v2.vectors.json` and `conformance/README.v2.md`) next to
 > the frozen v1: no v1 schema, vector or README byte changes, and the v1
@@ -96,6 +108,7 @@ import {
   CONTRACT,
   CONTRACT_VERSION,
   listVectors,
+  loadConformanceRegistry, // test-only registries for replaying vectors
   loadContract,
   loadRegistry,
   loadSchema,
@@ -113,6 +126,7 @@ from consiliency_contract import (
     CONTRACT,
     CONTRACT_VERSION,
     list_vectors,
+    load_conformance_registry,  # test-only registries for replaying vectors
     load_contract,
     load_registry,
     load_schema,

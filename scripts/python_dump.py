@@ -10,6 +10,7 @@ from consiliency_contract import (
     CONTRACT,
     CONTRACT_VERSION,
     list_vectors,
+    load_conformance_registry,
     load_registry,
     load_schema,
     load_vector,
@@ -25,6 +26,9 @@ payload = {
     "contract": CONTRACT,
     "schemas": {name: load_schema(name) for name in sorted(CONTRACT["schemas"])},
     "registries": {name: load_registry(name) for name in sorted(CONTRACT["registries"])},
+    "conformance_registries": {
+        name: load_conformance_registry(name) for name in sorted(CONTRACT["conformance"]["registries"])
+    },
     "vectors": {name: load_vector(name) for name in list_vectors()},
     "decisions": {name: load_vector(name)["decision"] for name in list_vectors()},
 }

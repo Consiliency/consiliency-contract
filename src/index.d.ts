@@ -1,9 +1,11 @@
 export declare const CONTRACT_PACKAGE: "@consiliency/contract";
-export declare const CONTRACT_VERSION: "0.7.0";
+export declare const CONTRACT_VERSION: "0.7.1";
 export declare const CONTRACT: Record<string, unknown>;
 export declare function loadContract(): Record<string, unknown>;
 export declare function loadSchema(name: string): Record<string, unknown>;
 export declare function loadRegistry(name: string): Record<string, unknown>;
+/** TEST-ONLY registries for replaying conformance vectors; never a root of trust. */
+export declare function loadConformanceRegistry(name: string): Record<string, unknown>;
 export declare function listVectors(): string[];
 export declare function loadVector(name: string): Record<string, unknown>;
 

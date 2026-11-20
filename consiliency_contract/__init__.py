@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Any
 
 CONTRACT_PACKAGE = "consiliency-contract"
-CONTRACT_VERSION = "0.7.0"
-__version__ = "0.7.0"
+CONTRACT_VERSION = "0.7.1"
+__version__ = "0.7.1"
 
 
 def _source_root() -> Path:
@@ -46,6 +46,19 @@ def load_registry(name: str) -> dict[str, Any]:
     relative_path = CONTRACT["registries"].get(name)
     if not relative_path:
         raise ValueError(f"Unknown registry: {name}")
+    return _read_json(relative_path)
+
+
+def load_conformance_registry(name: str) -> dict[str, Any]:
+    """Load a TEST-ONLY registry that conformance vectors verify against.
+
+    These registries (contract.json ``conformance.registries``) are fixtures for
+    replaying the conformance vectors. They are never a root of trust and are
+    deliberately unreachable through :func:`load_registry`.
+    """
+    relative_path = CONTRACT["conformance"].get("registries", {}).get(name)
+    if not relative_path:
+        raise ValueError(f"Unknown conformance registry: {name}")
     return _read_json(relative_path)
 
 

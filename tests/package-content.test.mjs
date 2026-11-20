@@ -10,6 +10,8 @@ test("npm package includes shared JSON data", () => {
   assert.ok(files.has("core/contract.json"));
   assert.ok(files.has("core/canonical-html/contract-v1.json"));
   assert.ok(files.has("conformance/vectors/manifest-valid-product.json"));
+  assert.ok(files.has("core/registries/authority-key-registry.json"));
+  assert.ok(files.has("conformance/registries/authority-key-registry.test.json"));
   assert.ok(files.has("src/index.js"));
   for (const rel of ["provenance.json", "admitted-launch-envelope.schema.json", "run-status.schema.json", "conformance/README.md", "conformance/envelope.vectors.json", "conformance/run-status.vectors.json", "conformance/SHA256SUMS", "admitted-launch-envelope.v2.schema.json", "conformance/envelope.v2.vectors.json", "conformance/README.v2.md", "conformance/envelope.v2.canonical.vectors.json", "conformance/envelope.v2.apply.vectors.json"]) {
     assert.ok(files.has(`core/supervised-run/${rel}`), rel);
@@ -27,6 +29,7 @@ test("wheel and sdist include shared JSON data", () => {
   const wheelFiles = execFileSync("python3", ["-c", "import sys, zipfile; z=zipfile.ZipFile(sys.argv[1]); print('\\n'.join(z.namelist()))", `dist/${wheel}`], { encoding: "utf8" });
   assert.match(wheelFiles, /consiliency_contract\/_data\/core\/contract\.json/);
   assert.match(wheelFiles, /consiliency_contract\/_data\/conformance\/vectors\/manifest-valid-product\.json/);
+  assert.match(wheelFiles, /consiliency_contract\/_data\/conformance\/registries\/authority-key-registry\.test\.json/);
   assert.match(wheelFiles, /consiliency_contract\/_data\/core\/supervised-run\/conformance\/SHA256SUMS/);
   assert.match(wheelFiles, /consiliency_contract\/_data\/core\/supervised-run\/conformance\/README\.md/);
   assert.match(wheelFiles, /consiliency_contract\/_data\/core\/supervised-run\/run-status\.schema\.json/);
@@ -39,6 +42,7 @@ test("wheel and sdist include shared JSON data", () => {
   const sdistFiles = execFileSync("tar", ["-tf", `dist/${sdist}`], { encoding: "utf8" });
   assert.match(sdistFiles, /\/core\/contract\.json/);
   assert.match(sdistFiles, /\/conformance\/vectors\/manifest-valid-product\.json/);
+  assert.match(sdistFiles, /\/conformance\/registries\/authority-key-registry\.test\.json/);
   assert.match(sdistFiles, /\/core\/supervised-run\/conformance\/SHA256SUMS/);
   assert.match(sdistFiles, /\/core\/supervised-run\/admitted-launch-envelope\.v2\.schema\.json/);
   assert.match(sdistFiles, /\/core\/supervised-run\/conformance\/envelope\.v2\.vectors\.json/);

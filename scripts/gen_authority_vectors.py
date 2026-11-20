@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
-"""Deterministically generate the authority-key registry + conformance vectors.
+"""Deterministically generate the authority-key registries + conformance vectors.
 
-This script is the ONLY place a private Ed25519 key exists, and it is NOT part
-of the published package (package.json `files` and the pyproject wheel/sdist
-force-includes cover core/, conformance/, src/ — never scripts/). Private keys
-are regenerated on demand from the documented SEED_LABELS below (SHA-256 of a
-stable label), so nothing secret is committed: the repo carries only the PUBLIC
-keys (in the registry) and the signed vectors.
+The conformance fixture keys exist only inside this script, which the npm
+package and the wheel do not ship (the sdist is a source snapshot and does
+include scripts/). The fixture keys are
+regenerated on demand, so no key file is committed: the repo carries only the
+PUBLIC keys (in the registries) and the signed vectors. Fixture keys are for
+conformance testing only and are never trusted by the production registry.
+
+Two registries are written:
+
+* ``core/registries/authority-key-registry.json`` — the PRODUCTION root of trust.
+  Every key this generator signs with is present there only as a revoked
+  tombstone (its key_id stays reserved and can never verify); the only trusted
+  entries are external production keys (``EXTERNAL_PUBLIC_KEYS``).
+* ``conformance/registries/authority-key-registry.test.json`` — the TEST-ONLY
+  registry the conformance vectors verify against. It is never a root of trust.
 
 Ed25519 signatures are deterministic (RFC 8032), so re-running this reproduces
-byte-identical registry + vectors. Run from the repo root:
+byte-identical registries + vectors. Run from the repo root:
 
     python3 scripts/gen_authority_vectors.py            # write files
     python3 scripts/gen_authority_vectors.py --check    # verify committed == regenerated
@@ -33,6 +42,10 @@ from consiliency_contract.authority import (  # noqa: E402
 )
 
 REGISTRY_PATH = ROOT / "core" / "registries" / "authority-key-registry.json"
+TEST_REGISTRY_PATH = ROOT / "conformance" / "registries" / "authority-key-registry.test.json"
+# The contract name of the registry the vectors verify against (contract.json
+# `conformance.registries`); never a key of `registries` (the production map).
+TEST_REGISTRY_NAME = "authority_key_registry_test"
 VECTORS_DIR = ROOT / "conformance" / "vectors"
 CANON_PROVENANCE_PATH = ROOT / "core" / "authority-canon" / "provenance.json"
 
@@ -124,7 +137,42 @@ def _sign(key_id: str, core: dict) -> str:
     return _private_key(key_id).sign(authority_signing_preimage(core)).hex()
 
 
+_ROTATION = {
+    "policy": "Add a new key_id with its own validity window; overlap windows to roll signers. Never reuse a retired key_id.",
+    "identity_binding": "A key_id is bound to exactly one approver identity; a signature verifies only if core.approver == the key's registered approver."
+}
+_REVOCATION = {
+    "policy": "Set revoked:true (or let validity lapse) to retire a key_id. A revoked or out-of-window key fails verification regardless of an otherwise-valid signature.",
+    "irreversible": True
+}
+
+# The conformance fixture keys as they appear in the TEST-ONLY registry: one
+# valid signer, one revoked, one out of window (each exercised by a vector).
+_FIXTURE_KEYS = (
+    ("portal-authority-ed25519-v1", {"not_before": "2026-01-01T00:00:00Z", "not_after": "2027-01-01T00:00:00Z"}, False),
+    ("portal-authority-ed25519-rotated-out", {"not_before": "2026-01-01T00:00:00Z", "not_after": "2027-01-01T00:00:00Z"}, True),
+    ("portal-authority-ed25519-expired", {"not_before": "2025-01-01T00:00:00Z", "not_after": "2025-06-01T00:00:00Z"}, False),
+)
+
+
+def _fixture_entry(key_id: str, validity: dict, revoked: bool) -> dict:
+    return {
+        "key_id": key_id,
+        "scheme": "ed25519",
+        "public_key": _public_hex(key_id),
+        "approver": PORTAL_APPROVER,
+        "validity": dict(validity),
+        "revoked": revoked
+    }
+
+
 def build_registry() -> dict:
+    """The PRODUCTION root of trust (core/registries/authority-key-registry.json).
+
+    The fixture key_ids are kept only as revoked tombstones: revocation is
+    irreversible and a retired key_id is never reused, so none of them can ever
+    verify against this registry. Trusted entries are external production keys.
+    """
     return {
         "schema": "consiliency.authority_key_registry.v1",
         "$comment": (
@@ -133,41 +181,15 @@ def build_registry() -> dict:
             "trust; there is deliberately no live-fetch/Portal-served option (panel "
             "amendment #2). Verification selects a key by the SIGNED core's key_id and "
             "takes scheme + public_key + approver + validity + revoked FROM HERE, never "
-            "from the event. Only PUBLIC keys live here; the Portal holds the private key."
+            "from the event. Only PUBLIC keys live here; the Portal holds the private key. "
+            "The conformance fixture key_ids are retired here (revoked:true); the "
+            "conformance vectors verify against the test-only registry "
+            "conformance/registries/authority-key-registry.test.json, never against this one."
         ),
-        "rotation": {
-            "policy": "Add a new key_id with its own validity window; overlap windows to roll signers. Never reuse a retired key_id.",
-            "identity_binding": "A key_id is bound to exactly one approver identity; a signature verifies only if core.approver == the key's registered approver."
-        },
-        "revocation": {
-            "policy": "Set revoked:true (or let validity lapse) to retire a key_id. A revoked or out-of-window key fails verification regardless of an otherwise-valid signature.",
-            "irreversible": True
-        },
+        "rotation": dict(_ROTATION),
+        "revocation": dict(_REVOCATION),
         "keys": [
-            {
-                "key_id": "portal-authority-ed25519-v1",
-                "scheme": "ed25519",
-                "public_key": _public_hex("portal-authority-ed25519-v1"),
-                "approver": PORTAL_APPROVER,
-                "validity": {"not_before": "2026-01-01T00:00:00Z", "not_after": "2027-01-01T00:00:00Z"},
-                "revoked": False
-            },
-            {
-                "key_id": "portal-authority-ed25519-rotated-out",
-                "scheme": "ed25519",
-                "public_key": _public_hex("portal-authority-ed25519-rotated-out"),
-                "approver": PORTAL_APPROVER,
-                "validity": {"not_before": "2026-01-01T00:00:00Z", "not_after": "2027-01-01T00:00:00Z"},
-                "revoked": True
-            },
-            {
-                "key_id": "portal-authority-ed25519-expired",
-                "scheme": "ed25519",
-                "public_key": _public_hex("portal-authority-ed25519-expired"),
-                "approver": PORTAL_APPROVER,
-                "validity": {"not_before": "2025-01-01T00:00:00Z", "not_after": "2025-06-01T00:00:00Z"},
-                "revoked": False
-            },
+            *[_fixture_entry(key_id, validity, True) for key_id, validity, _ in _FIXTURE_KEYS],
             {
                 # PRODUCTION key — real, externally generated; private half in the
                 # Portal's GCP Secret Manager (secret AUTHORITY_SIGNER_ED25519_PROD_V1).
@@ -180,6 +202,27 @@ def build_registry() -> dict:
                 "revoked": False
             }
         ]
+    }
+
+
+def build_test_registry() -> dict:
+    """The TEST-ONLY registry the conformance vectors verify against.
+
+    Same schema as the production registry so the verifier reads it unchanged,
+    but it is never a root of trust: it holds only conformance fixture keys.
+    """
+    return {
+        "schema": "consiliency.authority_key_registry.v1",
+        "$comment": (
+            "TEST-ONLY. The registry the authority conformance vectors verify against. "
+            "It is NEVER a root of trust: no production verifier may load it. It holds only "
+            "conformance fixture keys; the production root of trust is "
+            "core/registries/authority-key-registry.json, which lists these key_ids as revoked."
+        ),
+        "test_only": True,
+        "rotation": dict(_ROTATION),
+        "revocation": dict(_REVOCATION),
+        "keys": [_fixture_entry(key_id, validity, revoked) for key_id, validity, revoked in _FIXTURE_KEYS]
     }
 
 
@@ -252,7 +295,7 @@ def _pin_canon_bytes(core: dict) -> str:
 def scenario(event_obj: dict, *, expected_cert_digest: str = CERT_DIGEST) -> dict:
     return {
         "schema": "consiliency.authority_verification_scenario.v1",
-        "registry": "authority_key_registry",
+        "registry": TEST_REGISTRY_NAME,
         "now": NOW,
         "expected_cert_digest": expected_cert_digest,
         # The exact bytes the Ed25519 signature covers = canon-core v2
@@ -510,7 +553,8 @@ def main(argv=None) -> int:
     parser.add_argument("--check", action="store_true", help="verify committed files match regenerated output")
     args = parser.parse_args(argv)
 
-    outputs = {REGISTRY_PATH: build_registry()}
+    outputs = {REGISTRY_PATH: build_registry(), TEST_REGISTRY_PATH: build_test_registry()}
+    registry_paths = (REGISTRY_PATH, TEST_REGISTRY_PATH)
     for vec in build_vectors():
         outputs[VECTORS_DIR / f"{vec['id']}.json"] = vec
     provenance = build_provenance()
@@ -520,22 +564,25 @@ def main(argv=None) -> int:
     if args.check:
         mismatched = []
         for path, data in outputs.items():
-            want = _dump(path, data)
-            have = path.read_text(encoding="utf-8") if path.exists() else None
+            # Compare raw bytes (no newline translation): downstream repos pin
+            # these files by SHA-256, so any byte difference is drift.
+            want = _dump(path, data).encode("utf-8")
+            have = path.read_bytes() if path.exists() else None
             if have != want:
                 mismatched.append(str(path.relative_to(ROOT)))
         if mismatched:
             print("STALE (regenerate with scripts/gen_authority_vectors.py):", *mismatched, sep="\n  ")
             return 1
         note = "" if provenance is not None else " (spec canon absent: provenance not re-checked)"
-        print(f"OK: registry + {len(outputs) - 1 if provenance is None else len(outputs) - 2} vectors match committed output{note}")
+        vector_count = len([k for k in outputs if k not in registry_paths and k != CANON_PROVENANCE_PATH])
+        print(f"OK: registries + {vector_count} vectors match committed output{note}")
         return 0
 
-    CANON_PROVENANCE_PATH.parent.mkdir(parents=True, exist_ok=True)
     for path, data in outputs.items():
-        path.write_text(_dump(path, data), encoding="utf-8")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(_dump(path, data).encode("utf-8"))
     extra = "" if provenance is None else " + canon provenance"
-    print(f"wrote registry + {len([k for k in outputs if k != CANON_PROVENANCE_PATH and k != REGISTRY_PATH])} vectors{extra}")
+    print(f"wrote registries + {len([k for k in outputs if k != CANON_PROVENANCE_PATH and k not in registry_paths])} vectors{extra}")
     if provenance is None:
         print("WARN: spec canon-core v2 not found (set CONFORMANCE_SPEC_REPO); provenance + pins used the local port only")
     return 0

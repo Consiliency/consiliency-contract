@@ -1,6 +1,6 @@
 {
   "schema": "consiliency.authority_key_registry.v1",
-  "$comment": "The vendored, digest-pinned root of trust. This registry living IN the contract repo — gated by the repo's merge gate — IS the physical root of trust; there is deliberately no live-fetch/Portal-served option (panel amendment #2). Verification selects a key by the SIGNED core's key_id and takes scheme + public_key + approver + validity + revoked FROM HERE, never from the event. Only PUBLIC keys live here; the Portal holds the private key.",
+  "$comment": "The vendored, digest-pinned root of trust. This registry living IN the contract repo — gated by the repo's merge gate — IS the physical root of trust; there is deliberately no live-fetch/Portal-served option (panel amendment #2). Verification selects a key by the SIGNED core's key_id and takes scheme + public_key + approver + validity + revoked FROM HERE, never from the event. Only PUBLIC keys live here; the Portal holds the private key. The conformance fixture key_ids are retired here (revoked:true); the conformance vectors verify against the test-only registry conformance/registries/authority-key-registry.test.json, never against this one.",
   "rotation": {
     "policy": "Add a new key_id with its own validity window; overlap windows to roll signers. Never reuse a retired key_id.",
     "identity_binding": "A key_id is bound to exactly one approver identity; a signature verifies only if core.approver == the key's registered approver."
@@ -19,7 +19,7 @@
         "not_before": "2026-01-01T00:00:00Z",
         "not_after": "2027-01-01T00:00:00Z"
       },
-      "revoked": false
+      "revoked": true
     },
     {
       "key_id": "portal-authority-ed25519-rotated-out",
@@ -41,7 +41,7 @@
         "not_before": "2025-01-01T00:00:00Z",
         "not_after": "2025-06-01T00:00:00Z"
       },
-      "revoked": false
+      "revoked": true
     },
     {
       "key_id": "portal-authority-ed25519-prod-v1",

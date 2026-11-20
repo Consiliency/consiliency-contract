@@ -24,16 +24,20 @@ import re
 from typing import Any, Optional
 
 # ASCII snake_case identifier — keeps JS/Python key sort order identical.
-KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$", re.ASCII)
 
 # Metadata-safe ASCII for every signed-core STRING field: printable ASCII
 # 0x21..0x7E EXCLUDING double-quote (0x22) and backslash (0x5C). Nothing in this
 # set requires JSON escaping and nothing is non-ASCII, so the JS and Python
 # serializers provably cannot diverge.
-VALUE_RE = re.compile(r"^[\x21\x23-\x5b\x5d-\x7e]+$")
+VALUE_RE = re.compile(r"^[\x21\x23-\x5b\x5d-\x7e]+$", re.ASCII)
 
 # RFC3339 UTC, fixed width, "Z" only — sorts lexicographically == chronologically.
-TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", re.ASCII)
+
+# Every pattern here is matched with ``fullmatch`` and compiled ``re.ASCII``:
+# Python's ``$`` also matches before a trailing newline and ``\d`` matches
+# non-ASCII digits, neither of which the JS reader accepts.
 
 SUPPORTED_SCHEME = "ed25519"
 
@@ -72,7 +76,7 @@ def canonicalize_core(value: Any) -> str:
     if value is False:
         return "false"
     if isinstance(value, str):
-        if not VALUE_RE.match(value):
+        if not VALUE_RE.fullmatch(value):
             raise AuthorityCanonicalError(f"non-metadata-safe string: {value!r}")
         return '"' + value + '"'
     if isinstance(value, int):
@@ -85,7 +89,7 @@ def canonicalize_core(value: Any) -> str:
         return "[" + ",".join(canonicalize_core(item) for item in value) + "]"
     if isinstance(value, dict):
         for key in value:
-            if not isinstance(key, str) or not KEY_RE.match(key):
+            if not isinstance(key, str) or not KEY_RE.fullmatch(key):
                 raise AuthorityCanonicalError(f"illegal object key: {key!r}")
         keys = sorted(value)
         return "{" + ",".join('"' + key + '":' + canonicalize_core(value[key]) for key in keys) + "}"
@@ -107,7 +111,7 @@ def authority_signing_preimage(core: Any) -> bytes:
 
 
 def _is_timestamp(value: Any) -> bool:
-    return isinstance(value, str) and bool(TIMESTAMP_RE.match(value))
+    return isinstance(value, str) and bool(TIMESTAMP_RE.fullmatch(value))
 
 
 def _within_window(now: Any, validity: Any) -> bool:

@@ -6,6 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  AuthorityCanonicalError,
   CONTRACT,
   CONTRACT_VERSION,
   authoritySigningPreimage,
@@ -781,6 +782,18 @@ test("key and signature hex must be exact-length hex strings", () => {
   const withSig = (sig) => ({ ...vector.event, signature: { ...vector.event.signature, signature: sig } });
   assert.equal(verifyAuthorityEvent(withSig(vector.event.signature.signature.toUpperCase()), test, opts).reason, "verified");
   assert.equal(verifyAuthorityEvent(withSig(`${vector.event.signature.signature}\n`), test, opts).reason, "bad_signature");
+});
+
+test("patterns reject trailing newlines and non-ASCII digits (mirrors the Python suite)", () => {
+  for (const bad of [{ a: "x\n" }, { "k\n": "x" }]) {
+    assert.throws(() => canonicalizeCore(bad), AuthorityCanonicalError, JSON.stringify(bad));
+  }
+  const reg = loadConformanceRegistry("authority_key_registry_test");
+  const inp = loadVector("authority-valid").input;
+  for (const now of [`${inp.now}\n`, `\u0662${inp.now.slice(1)}`]) {
+    const res = verifyAuthorityEvent(inp.event, reg, { now, expectedCertDigest: inp.expected_cert_digest, allowTestRegistry: true });
+    assert.equal(res.reason, "key_expired", JSON.stringify(now));
+  }
 });
 
 test("an own test_only: undefined is still a marker", () => {

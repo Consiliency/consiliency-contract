@@ -656,6 +656,23 @@ class ContractReaderTest(unittest.TestCase):
                                          allow_test_registry=True)
             self.assertEqual(res["reason"], want, repr(candidate))
 
+    def test_patterns_reject_trailing_newlines_and_non_ascii_digits(self) -> None:
+        # Same verdicts as the JS reader (tests/contract.test.mjs pins the mirror).
+        from consiliency_contract.authority import AuthorityCanonicalError, _is_timestamp
+
+        for bad in ({"a": "x\n"}, {"k\n": "x"}):
+            with self.assertRaises(AuthorityCanonicalError, msg=repr(bad)):
+                canonicalize_core(bad)
+        self.assertTrue(_is_timestamp("2026-07-01T00:00:00Z"))
+        for bad in ("2026-07-01T00:00:00Z\n", "\u0662026-07-01T00:00:00Z"):
+            self.assertFalse(_is_timestamp(bad), repr(bad))
+        reg = load_conformance_registry("authority_key_registry_test")
+        inp = load_vector("authority-valid")["input"]
+        for now in (inp["now"] + "\n", "\u0662" + inp["now"][1:]):
+            res = verify_authority_event(inp["event"], reg, now=now, expected_cert_digest=inp["expected_cert_digest"],
+                                         allow_test_registry=True)
+            self.assertEqual(res["reason"], "key_expired", repr(now))
+
     def test_odd_entry_values_reach_a_verdict(self) -> None:
         test_reg = load_conformance_registry("authority_key_registry_test")
         bad_key = dict(test_reg, keys=[dict(k, public_key=7) for k in test_reg["keys"]])

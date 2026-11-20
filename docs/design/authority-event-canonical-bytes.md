@@ -194,9 +194,8 @@ testing. Since `0.7.1` they verify against a separate, test-only registry,
 The fixture public keys (in both registries) and all signed vectors are generated deterministically
 by [`scripts/gen_authority_vectors.py`](../../scripts/gen_authority_vectors.py).
 The fixture keys are for conformance testing only and are never trusted by the
-production registry. The npm package and the wheel do not ship the script (they
-carry `core/`, `conformance/` and `src/`); the sdist is a source snapshot and
-does include `scripts/`. Ed25519 signatures are deterministic (RFC 8032), so
+production registry. The npm package and the wheel do not ship the script; the
+sdist is a source snapshot and does include `scripts/`. Ed25519 signatures are deterministic (RFC 8032), so
 `python3 scripts/gen_authority_vectors.py --check` proves the committed bytes
 match a fresh run byte for byte (enforced by
 `test_authority_regenerates_deterministically`).

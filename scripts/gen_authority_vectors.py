@@ -2,8 +2,8 @@
 """Deterministically generate the authority-key registries + conformance vectors.
 
 The conformance fixture keys exist only inside this script, which the npm
-package and the wheel do not ship (they carry core/, conformance/ and src/; the
-sdist is a source snapshot and does include scripts/). The fixture keys are
+package and the wheel do not ship (the sdist is a source snapshot and does
+include scripts/). The fixture keys are
 regenerated on demand, so no key file is committed: the repo carries only the
 PUBLIC keys (in the registries) and the signed vectors. Fixture keys are for
 conformance testing only and are never trusted by the production registry.
